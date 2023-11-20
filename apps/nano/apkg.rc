@@ -1,0 +1,23 @@
+Package:			nano
+Version:			7.2
+Packager:			PDN
+Email:
+Homepage:			https://www.nano-editor.org/
+Description:		GNU nano was designed to be a free replacement for the Pico text editor.
+Icon:				nano.png
+AddonShowName:		Nano Editor
+AddonIndexPage:
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		0
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden: 			off

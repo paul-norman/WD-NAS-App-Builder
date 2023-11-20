@@ -1,0 +1,11 @@
+{
+  "name": "test_server",
+  "version": "1.0.0",
+  "description": "A test application for the WD series of NAS devices",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "PDN",
+  "license": "ISC"
+}

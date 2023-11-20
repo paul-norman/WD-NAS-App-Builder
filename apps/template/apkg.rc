@@ -1,0 +1,23 @@
+Package:			template
+Version:			0.0.1
+Packager:			PDN
+Email:
+Homepage:
+Description:		A blank template app from which to begin development of new apps.
+Icon:				logo.svg
+AddonShowName:		Template
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		0
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

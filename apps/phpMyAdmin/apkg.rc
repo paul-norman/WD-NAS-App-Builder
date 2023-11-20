@@ -1,0 +1,23 @@
+Package:			phpMyAdmin
+Version:			5.2.1
+Packager:			PDN
+Email:
+Homepage:			https://www.phpmyadmin.net/
+Description:		A free software tool written in PHP, intended to handle the administration of MySQL over the Web.
+Icon:				logo.png
+AddonShowName:		phpMyAdmin
+AddonIndexPage:		index.php
+AddonUsedPort:		80
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		0
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

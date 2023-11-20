@@ -1,0 +1,23 @@
+Package:			golang
+Version:			1.21.4
+Packager:			PDN
+Email:
+Homepage:			https://go.dev/
+Description:		A programming language to build simple, secure, scalable systems.
+Icon:				logo.svg
+AddonShowName:		GoLang
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		0
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

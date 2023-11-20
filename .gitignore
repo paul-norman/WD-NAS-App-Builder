@@ -1,0 +1,17 @@
+/packages
+/__MACOSX
+native/*/work*
+cross/*/work*
+kernel/*/work*
+
+apps/*/work*
+apps/*/*.sign
+apps/*/*.xml
+
+toolchains/*/work*
+local.mk
+
+.idea
+.env
+*.DS_Store
+*~

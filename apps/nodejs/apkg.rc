@@ -1,0 +1,23 @@
+Package:			nodejs
+Version:			20.9.0
+Packager:			PDN
+Email:
+Homepage:
+Description:		Node.js® is an open-source, cross-platform JavaScript runtime environment.
+Icon:				logo.svg
+AddonShowName:		Node.js
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		0
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
