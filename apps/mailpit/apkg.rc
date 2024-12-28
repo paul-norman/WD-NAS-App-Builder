@@ -1,0 +1,23 @@
+Package:			mailpit
+Version:			1.21.8
+Packager:			PDN
+Email:
+Homepage:
+Description:		Mailpit is a small, fast, low memory, zero-dependency, multi-platform email testing tool and API for developers.
+Icon:				logo.svg
+AddonShowName:		Mailpit
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		0
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
