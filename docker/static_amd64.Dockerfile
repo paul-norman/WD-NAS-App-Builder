@@ -1,6 +1,6 @@
 FROM debian:bullseye
 
-ENV LANG C.UTF-8
+ENV LANG=C.UTF-8
 
 RUN apt-get update && \
 	DEBIAN_FRONTEND=noninteractive apt-get upgrade -yy && \

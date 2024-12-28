@@ -56,7 +56,7 @@ if [ -z ${APP_PATH+x} ]; then
 	restore_files() {
 		# Clean up the helpers file
 		echo -e "\nHelper files removed"
-		rm -f helpers.sh apkg_helpers.sh
+		rm -f "${APP_PATH}/helpers.sh" "${APP_PATH}/apkg_helpers.sh"
 
 		# Restore the app build instructions
 		if [ -f "${APPS_PATH}/build_${APP_NAME}.sh" ]; then
