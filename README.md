@@ -70,14 +70,15 @@ The statically linked files will be created in `/packages/static/<static_app_nam
   - [ ] SSH config to the WD NAS device
   - [ ] Create test file format / helpers
 - [ ] Find others willing to help / test *(preferably someone with an ARM based NAS device)*
-- [ ] Create some new, really simple, potentially useful, standalone apps. *(No need to be novel, perhaps directly out of Entware ipk files to begin with?)*. Some ideas:
-  - [x] [Node 20.9.0](https://nodejs.org/dist/v20.9.0/node-v20.9.0-linux-x64.tar.xz)
-  - [x] [Go 1.21.4](https://go.dev/dl/go1.21.4.linux-amd64.tar.gz)
+- [ ] Create some new, really simple, potentially useful, stand-alone apps. *(No need to be novel, perhaps directly out of Entware ipk files to begin with?)*. Some ideas:
+  - [x] [Node 23.5.0](https://nodejs.org/dist/v23.5.0/node-v23.5.0-linux-x64.tar.xz)
+  - [x] [Go 1.23.4](https://go.dev/dl/go1.23.4.linux-amd64.tar.gz)
   - [x] [phpMyAdmin 5.2.1](https://files.phpmyadmin.net/phpMyAdmin/5.2.1/phpMyAdmin-5.2.1-all-languages.tar.gz)
-  - [ ] [PHP 8.2](https://bin.entware.net/x64-k3.2/php8-fpm_8.2.8-1_x64-3.2.ipk)
-  - [ ] [MongoDb 7.0.3](https://repo.mongodb.org/apt/debian/dists/bullseye/mongodb-org/7.0/main/binary-amd64/mongodb-org-server_7.0.3_amd64.deb)
+  - [x] [Mailpit 1.21.8](https://github.com/axllent/mailpit/releases/download/v1.21.8/mailpit-linux-amd64.tar.gz)
+  - [ ] [PHP 8.4]
+  - [ ] [MongoDb 8.0](https://repo.mongodb.org/apt/debian/dists/bullseye/mongodb-org/8.0/main/binary-amd64/mongodb-org-server_8.0.0_amd64.deb)
   - [ ] [Git 2.39](https://bin.entware.net/x64-k3.2/git_2.39.2-1_x64-3.2.ipk)
-  - [ ] [Docker 24.07](https://download.docker.com/linux/static/stable/x86_64/docker-24.0.7.tgz) / [Docker-Compose 2.23](https://github.com/docker/compose/releases/download/v2.23.1/docker-compose-linux-x86_64) / [Portainer 2.19](https://github.com/portainer/portainer/releases/download/2.19.2/portainer-2.19.2-linux-amd64.tar.gz)
+  - [ ] [Docker 27.4.1](https://download.docker.com/linux/static/stable/x86_64/docker-27.4.1.tgz) / [Docker-Compose 2.32.1](https://github.com/docker/compose/releases/download/v2.32.1/docker-compose-linux-x86_64) / [Portainer 2.25.1](https://github.com/portainer/portainer/releases/download/2.25.1/portainer-2.25.1-linux-amd64.tar.gz)
 
 ## Where to find other apps?
 

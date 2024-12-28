@@ -2,7 +2,7 @@ Package:			nodejs
 Version:			23.5.0
 Packager:			PDN
 Email:
-Homepage:
+Homepage:			https://nodejs.org
 Description:		Node.js® is an open-source, cross-platform JavaScript runtime environment.
 Icon:				logo.svg
 AddonShowName:		Node.js

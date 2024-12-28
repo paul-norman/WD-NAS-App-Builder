@@ -10,7 +10,7 @@ MODELS[amd64]="MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100"
 for ARCH in "${!MODELS[@]}"; do
 	# Build the statically linked binary if it doesn't already exist
 	if [ ! -d "${REPO_PATH}/packages/static/${APP_NAME}" ]; then
-		../../build_static.sh ${APP_NAME}
+		/bin/bash ../../build_static.sh ${APP_NAME}
 	fi
 	
 	# Put the statically linked binary into the binaries directory

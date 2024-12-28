@@ -46,7 +46,7 @@ if [ -z ${APP_PATH+x} ]; then
 		# Create a source bundle for this architecture
 		echo -e "\nBundle sources for ${arch} into release dir"
 		src_tar="${RELEASE_DIR}/${APP_NAME}_${APP_VERSION}_${arch}.tar.gz"
-		tar -czf ${src_tar} .
+		tar -czf ${src_tar} -C ${APP_PATH} .
 
 		rm apkg.sign
 		rm apkg.xml

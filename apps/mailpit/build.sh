@@ -7,14 +7,13 @@ MODELS[amd64]="MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100"
 MODELS[arm]="WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra"
 
 for ARCH in "${!MODELS[@]}"; do
+	MP_REPO="https://github.com/axllent/mailpit/releases/download/v${APKG_VERSION}/mailpit-linux-${ARCH}.tar.gz"
+	
 	# Make a directory for the files
 	mkdir -p binaries
 	cd binaries
 
-	MP_REPO="https://github.com/axllent/mailpit/releases/download/v${APKG_VERSION}/mailpit-linux-${ARCH}.tar.gz"
-
 	# Download and extract the right version of Mailpit
-	echo -e "\nDownloading: ${MP_REPO}"
 	wget ${MP_REPO} -O mailpit.tar.gz
 
 	# Extract the data

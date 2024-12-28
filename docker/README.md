@@ -25,6 +25,8 @@ It's a good idea to have the latest versions of Docker and Docker Compose instal
 
 ### Volumes
 
+- List all volumes: `docker volume ls`
+- Remove a volume: `docker volume rm <volume_id_or_name>`
 - Remove all unused volumes: `docker volume prune`
 
 ### Network

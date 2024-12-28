@@ -2,7 +2,7 @@ Package:			mailpit
 Version:			1.21.8
 Packager:			PDN
 Email:
-Homepage:
+Homepage:			https://mailpit.axllent.org/
 Description:		Mailpit is a small, fast, low memory, zero-dependency, multi-platform email testing tool and API for developers.
 Icon:				logo.svg
 AddonShowName:		Mailpit
