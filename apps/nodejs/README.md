@@ -1,6 +1,6 @@
 # Node.js App
 
-This app provides `node`, `npm`, `npx` and `corepack` binaries to allow installing and running Node.js projects directly on the WD NAS device.
+This app provides `node`, `npm`, `npx`, `pnpm` and `corepack` binaries to allow installing and running Node.js projects directly on the WD NAS device.
 
 ## Building the Node.js app
 

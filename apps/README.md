@@ -75,7 +75,7 @@ In addition to these, all scripts also load in all [APKG helpers](#apkg-helpers)
 | `${PROFILE_PATH}`             | The shell profile path                                           | `/etc/profile`                     |
 | `${HARDWARE_MODEL}`           | The WD NAS device [model](../guides/README.md#packaging-command) | `MyCloudPR4100`                    |
 | `${HARDWARE_KERNEL_ARCH}`     | The WD NAS device kernel architecture *(x86_64 or armv7l)*       | `x86_64`                           |
-| `${HARDWARE_DEBIAN_ARCH}`     | The WD NAS device debian architecture *(amd64 or armhf)*         | `amd64`                            |
+| `${HARDWARE_DEBIAN_ARCH}`     | The WD NAS device Debian architecture *(amd64 or armhf)*         | `amd64`                            |
 | `${HARDWARE_TOOLCHAIN}`       | The toolchain needed to build for the architecture               | `x86_64-linux-gnu`                 |
 | `${DATA_VOL_1}`               | The first data volume *(if present)*                             | `/mnt/HD/HD_a2`                    |
 | `${DATA_VOL_2}`               | The second data volume *(if present)*                            | `/mnt/HD/HD_b2`                    |
@@ -117,8 +117,8 @@ The helpers for the `apkg.rc` file may be used **both** in the local build scrip
 | `${APKG_START_CONFLICT}`      | Any other apps that this app conflicts with at startup       |
 | `${APKG_CENTER_TYPE}`         | Embed app configuration UI: 0 - own page, 1 - web UI page    |
 | `${APKG_USER_CONTROL}`        | Controllable by: 0 - any user, 1 - admin only                |
-| `${APKG_MIN_FW_VER}`          | The minimium compatible firmware version                     |
-| `${APKG_MAX_FW_VER}`          | The maximium compatible firmware version                     |
+| `${APKG_MIN_FW_VER}`          | The minimum compatible firmware version                      |
+| `${APKG_MAX_FW_VER}`          | The maximum compatible firmware version                      |
 | `${APKG_INDIVIDUAL_FLAG}`     | The web UI will show some notice information for apps        |
 | `${APKG_HIDDEN}`              | Should the app appear for users                              |
 

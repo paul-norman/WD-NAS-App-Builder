@@ -7,7 +7,7 @@ cd binaries
 
 PMA_REPO="https://files.phpmyadmin.net/phpMyAdmin/${APKG_VERSION}/phpMyAdmin-${APKG_VERSION}-all-languages.tar.gz"
 
-# Download and extract the right version of Go
+# Download and extract the right version of phpMyAdmin
 wget ${PMA_REPO} -O pma.tar.gz
 
 # Extract the data

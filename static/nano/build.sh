@@ -4,9 +4,9 @@ set -e
 set -o pipefail
 set -x
 
-MUSL_VERSION=1.2.4
+MUSL_VERSION=1.2.5
 NCURSES_VERSION=6.3
-NANO_VERSION=7.2
+NANO_VERSION=8.3
 
 ARCH=$(uname -m)
 if [ ${ARCH} = "x86_64" ]; then

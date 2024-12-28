@@ -21,6 +21,19 @@ if [ -z ${APP_PATH+x} ]; then
 		((last_id=${#models[@]} - 1))
 		arch=${models[last_id]}
 		unset models[last_id]
+		
+		# Normalise variations on the arch variable (e.g. x86_64 => amd64 | x64 => amd64 | armv7l => armhf)
+		if [ "$arch" = "x86_64" ]; then
+			arch="amd64"
+		elif [ "$arch" = "x64" ]; then
+			arch="amd64"
+		elif [ "$arch" = "x86" ]; then
+			arch="amd64"
+		elif [ "$arch" = "armv7l" ]; then
+			arch="armhf"
+		elif [ "$arch" = "arm" ]; then
+			arch="armhf"
+		fi
 
 		# Build the archive for all models of this architecture
 		for model in "${models[@]}"; do
