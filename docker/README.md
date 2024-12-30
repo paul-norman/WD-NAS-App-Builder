@@ -10,7 +10,7 @@ It's a good idea to have the latest versions of Docker and Docker Compose instal
 
 ### Images
 
-- List all images: `docker images`
+- List all images: `docker image ls`
 - Delete an image: `docker image rm -f <image_id_or_name>`
 
 ### Containers

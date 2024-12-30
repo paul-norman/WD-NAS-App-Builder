@@ -27,6 +27,12 @@ if [ ! -d "apps/${APP_NAME}" ]; then
 	exit 1
 fi
 
+# Build any statically linked binaries first if required
+if [ -d "static/${APP_NAME}" ]; then
+	/bin/bash build_static.sh ${APP_NAME} amd64
+	#/bin/bash build_static.sh ${APP_NAME} armhf
+fi
+
 if [[ "$(docker images -q wd_builder:latest 2> /dev/null)" == "" ]]; then
 	docker build -f docker/build.Dockerfile -t wd_builder .
 fi

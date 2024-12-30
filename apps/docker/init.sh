@@ -23,46 +23,44 @@
 # ----------------------------------------------------------------------
 
 # Create folder for the webpage
-log "Creating web path: ${APP_WEB_PATH}"
+log "creating web path: ${APP_WEB_PATH}"
 mkdir -p ${APP_WEB_PATH}
 
-log "Linking redirect page from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
+log "linking redirect page from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
 ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 
-# Add Docker binaries to the PATH
-log "Linking Docker binaries"
+# Add binaries to the PATH
+log "linking ${APP_NAME} binaries"
 ln -sf ${APP_PATH}/binaries/* /sbin
 
-# Setup a persistent Docker root directory
-DOCKER_ROOT=${APPS_PATH}/_docker
-
-if [ -d ${DOCKER_ROOT} ]; then
-	if [ -d ${DOCKER_ROOT}/devicemapper ]; then
-		log "Found an old Docker devicemapper storage. Backing it up and creating a fresh Docker root directory"
-		mv "${DOCKER_ROOT}" "${DOCKER_ROOT}.bak"
-		mkdir -p "${DOCKER_ROOT}"
+# Setup a persistent data directory
+if [ -d ${APP_PERSISTENT_DATA_PATH} ]; then
+	if [ -d ${APP_PERSISTENT_DATA_PATH}/devicemapper ]; then
+		log "Found old ${APP_NAME} devicemapper. Backing up and creating a fresh ${APP_NAME} data directory"
+		mv "${APP_PERSISTENT_DATA_PATH}" "${APP_PERSISTENT_DATA_PATH}.bak"
+		mkdir -p "${APP_PERSISTENT_DATA_PATH}"
 	else
-		log "Found existing Docker root, reusing it"
+		log "Found existing ${APP_NAME} data directory, reusing it"
 	fi
 else
-	log "Creating a new Docker root"
-	mkdir -p "${DOCKER_ROOT}"
+	log "Creating a new ${APP_NAME} data directory"
+	mkdir -p "${APP_PERSISTENT_DATA_PATH}"
 fi
 
-# Setup Docker
-log "Running daemon setup"
+# Setup
+log "running daemon setup"
 "${APP_PATH}/daemon.sh" setup
 
 sleep 1
 
-# Start Docker
-log "Running daemon start"
+# Start
+log "running daemon start"
 "${APP_PATH}/daemon.sh" start
 
 sleep 3
 
-# Install Portainer to manage Docker (if there is no existing Portainer container (running or not))
-log "Installing Portainer"
+# Install Portainer (if there is no existing Portainer container (running or not))
+log "installing Portainer"
 docker ps -a | grep portainer-ce
 if [ $? = 1 ]; then
 	docker volume create portainer_data

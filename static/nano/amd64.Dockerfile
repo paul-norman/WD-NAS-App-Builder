@@ -8,6 +8,7 @@ RUN apt-get update && \
 	build-essential \
 	automake \
 	curl \
+	wget \
 	git \
 	pkg-config
 

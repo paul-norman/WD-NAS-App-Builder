@@ -75,10 +75,10 @@ The statically linked files will be created in `/packages/static/<static_app_nam
   - [x] [Go 1.23.4](https://go.dev/dl/go1.23.4.linux-amd64.tar.gz)
   - [x] [phpMyAdmin 5.2.1](https://files.phpmyadmin.net/phpMyAdmin/5.2.1/phpMyAdmin-5.2.1-all-languages.tar.gz)
   - [x] [Mailpit 1.21.8](https://github.com/axllent/mailpit/releases/download/v1.21.8/mailpit-linux-amd64.tar.gz)
+  - [x] [ValKey 8.0.1](https://github.com/valkey-io/valkey/archive/refs/tags/8.0.1.tar.gz)
+  - [x] [Docker 27.4.1](https://download.docker.com/linux/static/stable/x86_64/docker-27.4.1.tgz) / [Docker-Compose 2.32.1](https://github.com/docker/compose/releases/download/v2.32.1/docker-compose-linux-x86_64) / [Portainer 2.25.1](https://github.com/portainer/portainer/releases/download/2.25.1/portainer-2.25.1-linux-amd64.tar.gz)
   - [ ] [PHP 8.4]
-  - [ ] [MongoDb 8.0](https://repo.mongodb.org/apt/debian/dists/bullseye/mongodb-org/8.0/main/binary-amd64/mongodb-org-server_8.0.0_amd64.deb)
-  - [ ] [Git 2.39](https://bin.entware.net/x64-k3.2/git_2.39.2-1_x64-3.2.ipk)
-  - [ ] [Docker 27.4.1](https://download.docker.com/linux/static/stable/x86_64/docker-27.4.1.tgz) / [Docker-Compose 2.32.1](https://github.com/docker/compose/releases/download/v2.32.1/docker-compose-linux-x86_64) / [Portainer 2.25.1](https://github.com/portainer/portainer/releases/download/2.25.1/portainer-2.25.1-linux-amd64.tar.gz)
+  - [ ] [Git 2.47.1](https://bin.entware.net/x64-k3.2/git_2.39.2-1_x64-3.2.ipk)
 
 ## Where to find other apps?
 
