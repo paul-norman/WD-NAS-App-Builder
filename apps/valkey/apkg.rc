@@ -1,0 +1,23 @@
+Package:			valkey
+Version:			8.0.1
+Packager:			PDN
+Email:
+Homepage:			https://valkey.io/
+Description:		ValKey is an open source (BSD) high-performance key/value datastore that supports a variety of workloads such as caching, message queues, and can act as a primary database. It is a drop-in replacement for Redis.
+Icon:				logo.svg
+AddonShowName:		ValKey
+AddonIndexPage:
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		0
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden: 			off
