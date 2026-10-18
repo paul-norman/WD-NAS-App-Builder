@@ -16,9 +16,11 @@ APP_PATH="$(dirname "$(readlink -f "$0")")"
 DOCKER_ROOT="$(dirname "${APP_PATH}")/_docker"
 DOCKER_LOG="${DOCKER_ROOT}/docker.log"
 
-# The WD kernel (4.14) has no overlay, btrfs or zfs support (and is too old for fuse-overlayfs), so daemon.json selects
-# the vfs storage driver
 DOCKER_CONFIG_FILE="${APP_PATH}/daemon.json"
+
+# Kernel modules that WD's kernel lacks (overlay, iptable_raw), built from WD's GPL source by static/docker for one
+# firmware version: modules/<model>/*.ko, plus a "firmware" file saying which version
+MODULES_PATH="${APP_PATH}/modules"
 
 log() {
 	if [ ! -f "${LOG}" ]; then
@@ -46,6 +48,43 @@ is_docker_setup() {
 
 	log "Docker is not yet setup"
 	return 1
+}
+
+# Loads one of the app's own kernel modules, but only on the exact model and firmware it was built for: a module built
+# for any other kernel could crash it
+load_app_module() {
+	if lsmod | grep -q "^$1 "; then
+		return 0
+	fi
+
+	model="$(cat /usr/local/modules/files/model 2>/dev/null)"
+	model="${model#WD}"
+	firmware="$(cat /etc/version 2>/dev/null)"
+	module="${MODULES_PATH}/${model}/$1.ko"
+	if [ ! -f "${module}" ]; then
+		log "Not loading $1: no module built for ${model}"
+		return 1
+	fi
+	if [ "${firmware}" != "$(cat ${MODULES_PATH}/firmware)" ]; then
+		log "Not loading $1: built for firmware $(cat ${MODULES_PATH}/firmware), but this is firmware ${firmware} (rebuild the app for it)"
+		return 1
+	fi
+
+	# A marker that only survives if loading crashed the NAS, so that it isn't tried again on the next start (e.g. boot)
+	marker="${DOCKER_ROOT}/.loading-$1"
+	if [ -f "${marker}" ]; then
+		log "Not loading $1: a previous attempt never finished (the NAS may have crashed). Delete ${marker} to try again"
+		return 1
+	fi
+
+	log "Loading: $1 (built for ${model} firmware ${firmware})"
+	touch "${marker}" && sync
+	if ! insmod "${module}"; then
+		log " - failed to load $1"
+		rm -f "${marker}"
+		return 1
+	fi
+	rm -f "${marker}"
 }
 
 # Prints the PID of the running Docker daemon (if any)
@@ -103,6 +142,7 @@ docker_setup() {
 	log "Loading drivers"
 
 	drivers="
+		exportfs
 		nf_conntrack
 		nf_nat
 		nf_defrag_ipv4
@@ -118,7 +158,6 @@ docker_setup() {
 		ip_tables
 		iptable_filter
 		iptable_nat
-		iptable_raw
 		llc
 		stp
 		bridge
@@ -135,6 +174,10 @@ docker_setup() {
 			log "${driver} already loaded"
 		fi
 	done
+
+	# The app's own modules: overlay (for the overlay2 storage driver) and iptable_raw (see docker_start)
+	load_app_module overlay
+	load_app_module iptable_raw
 
 	log "Setting up cgroup"
 	umount /sys/fs/cgroup 2>/dev/null
@@ -170,9 +213,22 @@ docker_start() {
 		export DOCKER_INSECURE_NO_IPTABLES_RAW=1
 	fi
 
+	# overlay2 when the overlay module is loaded, otherwise vfs (works everywhere, but every image layer is a full copy).
+	# Each driver stores its own images and containers, so switching driver hides those stored with the other one
+	storage_driver=vfs
+	if grep -q "overlay$" /proc/filesystems; then
+		storage_driver=overlay2
+	fi
+	log "Storage driver: ${storage_driver}"
+	for other in vfs overlay2; do
+		if [ "${other}" != "${storage_driver}" ] && [ -d "${DOCKER_ROOT}/${other}" ]; then
+			log "Note: images and containers stored with ${other} aren't available with ${storage_driver} (delete ${DOCKER_ROOT}/${other} to free its space)"
+		fi
+	done
+
 	# Join the memory cgroup before starting the daemon, so that containerd and all containers are limited too
 	log "Starting dockerd (log: ${DOCKER_LOG})"
-	sh -c 'echo $$ > /sys/fs/cgroup/memory/docker/tasks 2>/dev/null; exec "$0" --ip-masq=true --config-file "$1"' "${DOCKERD}" "${DOCKER_CONFIG_FILE}" >> "${DOCKER_LOG}" 2>&1 &
+	sh -c 'echo $$ > /sys/fs/cgroup/memory/docker/tasks 2>/dev/null; exec "$0" --ip-masq=true --config-file "$1" --storage-driver "$2"' "${DOCKERD}" "${DOCKER_CONFIG_FILE}" "${storage_driver}" >> "${DOCKER_LOG}" 2>&1 &
 	pid=$!
 
 	# Wait for the daemon to accept commands

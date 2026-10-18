@@ -28,6 +28,10 @@ rm -f /sbin/ctr
 rm -f /sbin/docker*
 rm -f /sbin/runc
 
+# Unload the app's own kernel modules (Docker has stopped by now)
+log "unloading the app's kernel modules"
+rmmod overlay iptable_raw 2>/dev/null
+
 # Remove the web path
 log "removing web path: ${APP_WEB_PATH}"
 rm -rf ${APP_WEB_PATH}

@@ -4,7 +4,20 @@ Installs the Docker engine, Docker Compose and the [Portainer](https://www.porta
 
 - `docker`, `dockerd`, `docker-compose` and the other binaries are linked into `/sbin`.
 - Images, containers and volumes are stored next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_docker` *(linked to `/var/lib/docker`)*, and are kept across reinstalls.
-- The WD kernel *(4.14)* has no `overlay`, `btrfs` or `zfs` support and is too old for Docker's `fuse-overlayfs` driver, so images and containers are stored with the `vfs` storage driver *(set in `daemon.json`)*. It works everywhere, but every image layer is a full copy and creating a container copies the whole image, so it uses much more disk space and is slow with large images.
+- The WD kernel *(4.14)* has no `overlay` file system, so the app includes an `overlay.ko` kernel module *(plus `iptable_raw.ko`, which Docker 28+ uses to block access to unpublished container ports)*, built from WD's own GPL source by `static/docker`. With it, Docker uses the efficient `overlay2` storage driver.
+- A kernel module only fits the exact kernel it was built for, so each model gets its own build, and the modules are **only loaded on the model and firmware they were built for** *(see `MODELS` and `VERSION` in `static/docker/build.sh`)*:
+
+| Model | Modules | Tested on a real NAS |
+| ----- | ------- | -------------------- |
+| PR4100 | yes | yes |
+| PR2100 | yes *(WD's kernel source and config are identical to the PR4100's)* | via the PR4100 |
+| DL4100 | yes *(own kernel config)* | no |
+| DL2100 | no *(WD's GPL archive is truncated)* | - |
+| ARM models | no | - |
+
+- On any other model or firmware *(e.g. after a firmware update)* Docker falls back to the `vfs` storage driver, which works everywhere but makes every image layer a full copy *(much more disk space, slow with large images)*. The log says when this happens; rebuild the app with `VERSION` set to the new firmware *(and its GPL source date)* to restore `overlay2`.
+- If loading a module ever crashes the NAS, it isn't tried again: a marker file *(`_docker/.loading-<module>`)* left behind by the crash makes Docker fall back to `vfs`. Delete the marker to try again.
+- Each storage driver keeps its own images and containers, so after a switch between `overlay2` and `vfs` the other driver's images and containers aren't visible *(re-pull them; delete the unused `vfs` or `overlay2` directory to free its space)*.
 - Docker is limited to half of the NAS's memory *(a third on devices with 1GB or less)*, shared by all containers.
 - Portainer is created on first start and is available on port `9000` *(HTTP)* and `9443` *(HTTPS)*. The **Open** button in the NAS web UI redirects to port `9000`.
 

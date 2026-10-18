@@ -152,7 +152,7 @@ if [ -z ${APP_PATH+x} ]; then
 		find ${APPS_PATH} -maxdepth 1 -name "*.bin*" | while read file; do
 			rm -f ${file}
 		done
-		rm -rf "${APP_PATH}/binaries" "${APP_PATH}/apkg.sign" "${APP_PATH}/apkg.xml"
+		rm -rf "${APP_PATH}/binaries" "${APP_PATH}/modules" "${APP_PATH}/apkg.sign" "${APP_PATH}/apkg.xml"
 	}
 
 	# Abort the current operation

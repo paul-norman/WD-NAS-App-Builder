@@ -6,6 +6,7 @@ kernel/*/work*
 
 apps/*/work*
 apps/*/binaries/
+apps/*/modules/
 apps/*/*.sign
 apps/*/*.xml
 

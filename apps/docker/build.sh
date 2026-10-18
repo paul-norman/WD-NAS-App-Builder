@@ -39,11 +39,24 @@ for ARCH in "${!MODELS[@]}"; do
 
 	cd ../
 
+	# Kernel modules for the Intel models (overlay, iptable_raw - one folder per model), built from WD's GPL source by
+	# static/docker, which the root build.sh runs first. daemon.sh only loads them on the model and firmware they were
+	# built for
+	if [ "$ARCH" = "x86_64" ]; then
+		STATIC_VERSION=$(cat "${REPO_PATH}/packages/static/${APP_NAME}/latest" 2>/dev/null)
+		STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${STATIC_VERSION}/amd64"
+		if [ -z "${STATIC_VERSION}" ] || [ ! -f "${STATIC_PATH}/firmware" ] || ! ls "${STATIC_PATH}"/*/overlay.ko > /dev/null 2>&1; then
+			abort "kernel modules not found in: ${STATIC_PATH} (run: ./build_static.sh ${APP_NAME} amd64)"
+		fi
+		mkdir -p modules
+		cp -r "${STATIC_PATH}/." modules/
+	fi
+
 	# Build the archive for all models of this architecture
 	build ${MODELS[${ARCH}]} ${ARCH}
 	
 	# Clean up any mess
-	rm -rf binaries
+	rm -rf binaries modules
 done
 
 # Cleanup

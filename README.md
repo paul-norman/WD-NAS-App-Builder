@@ -43,6 +43,8 @@ The statically linked files will be created in `/packages/static/<static_app_nam
 
 Where a program can't work as a fully static binary *(e.g. ValKey 9+, which loads its built-in Lua engine with `dlopen`)*, it is instead built on Debian Bullseye, linked only against glibc. The NAS runs Bullseye's glibc 2.31, so those shared libraries are always present.
 
+`static/docker` is different again: it builds kernel modules that WD's kernel lacks *(`overlay`, `iptable_raw`)* from WD's own GPL source, for one specific firmware version *(see the [Docker app](apps/docker/README.md))*.
+
 Each `static/<static_app_name>/build.sh` must declare the version it builds on its own line as `VERSION=<version>`. A version that has already been built for an architecture is skipped, so bumping `VERSION` is all that's needed to trigger a rebuild *(delete the matching `/packages/static/...` directory to force one)*.
 
 ## Project structure

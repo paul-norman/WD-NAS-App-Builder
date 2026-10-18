@@ -59,8 +59,9 @@ if [ -z "${VERSION}" ]; then
 	exit 1
 fi
 
+# (unless the build script checks for its own existing outputs, e.g. when it builds several independent parts)
 OUTPUT_PATH="packages/static/${APP_NAME}/${VERSION}/${ARCH}"
-if [ -n "$(ls -A "${OUTPUT_PATH}" 2>/dev/null)" ]; then
+if ! grep -q '^CHECKS_OWN_OUTPUTS=yes' "static/${APP_NAME}/build.sh" && [ -n "$(ls -A "${OUTPUT_PATH}" 2>/dev/null)" ]; then
 	echo "Static ${APP_NAME} ${VERSION} (${ARCH}) is already built: ${OUTPUT_PATH}"
 	printf "%s" "${VERSION}" > "packages/static/${APP_NAME}/latest"
 	exit 0
