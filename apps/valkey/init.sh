@@ -38,13 +38,24 @@ else
 fi
 
 # Create a minimal config file
-if [ ! -f "${APP_PERSISTENT_DATA_PATH}/${APP_NAME}.conf" ]; then
-	log "creating config file: ${APP_PERSISTENT_DATA_PATH}/${APP_NAME}.conf"
-	echo "bind 0.0.0.0 -::1" > "${APP_PERSISTENT_DATA_PATH}/${APP_NAME}.conf"
-	echo "protected-mode no" >> "${APP_PERSISTENT_DATA_PATH}/${APP_NAME}.conf"
-	echo "port 6379" >> "${APP_PERSISTENT_DATA_PATH}/${APP_NAME}.conf"
-	echo "dir ${APP_PERSISTENT_DATA_PATH}" >> "${APP_PERSISTENT_DATA_PATH}/${APP_NAME}.conf"
+CONF_PATH="${APP_PERSISTENT_DATA_PATH}/${APP_NAME}.conf"
+if [ ! -f "${CONF_PATH}" ]; then
+	log "creating config file: ${CONF_PATH}"
+	echo "bind 0.0.0.0 -::1" > "${CONF_PATH}"
+	echo "protected-mode yes" >> "${CONF_PATH}"
+	echo "port 6379" >> "${CONF_PATH}"
+	echo "dir ${APP_PERSISTENT_DATA_PATH}" >> "${CONF_PATH}"
 fi
+
+# Require a password as the server listens on all interfaces (also upgrades older password-less configs)
+if ! grep -q "^requirepass " "${CONF_PATH}"; then
+	log "generating a password in config file: ${CONF_PATH}"
+	VALKEY_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 32)";
+	sed -i "/^protected-mode /d" "${CONF_PATH}"
+	echo "protected-mode yes" >> "${CONF_PATH}"
+	echo "requirepass ${VALKEY_PASSWORD}" >> "${CONF_PATH}"
+fi
+chmod 600 "${CONF_PATH}"
 
 # Link the config file
 log "linking config file: /etc/${APP_NAME}/${APP_NAME}.conf"

@@ -24,8 +24,6 @@ function build_valkey() {
 	tar -xf valkey.tar.gz --strip-components=1
 	rm valkey.tar.gz
 
-    sed -i "s|\(protected_mode.*\)1|\10|g" src/config.c
-	
     make -j "$(nproc)" LDFLAGS="-s -w -static" CFLAGS="-static" USE_SYSTEMD=no BUILD_TLS=no
 }
 
