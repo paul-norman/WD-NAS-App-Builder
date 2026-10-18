@@ -1,2 +1,9 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Auto detect text files, store them with LF line endings and always check them out with LF
+# (shell scripts with CRLF line endings fail to run on the NAS)
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.pdf binary
+mksapkg-OS5 binary

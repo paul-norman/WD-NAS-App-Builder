@@ -1,65 +1,81 @@
 # Install WSL and Docker on Windows
 
-You will need Windows 10/11 Professional *(not Home)* to run this system.
+WSL2 *(Windows Subsystem for Linux)* works on Windows 10 *(version 2004 or later)* and Windows 11, including the Home editions.
 
 ## Install WSL2
-- Enable Hyper-V in the computer BIOS
-- Enable WSL in Windows
-	- Launch Powershell as an administrator
-	- Run: `dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart`
-	- Run: `dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart`
-- Download and Install this [Windows Update](https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi) 
-- Set WSL to version 2 *(in Powershell)*:
-	- Run: `wsl --set-default-version 2`
-- Install Ubuntu *(in Powershell)*:
- 	- Run: `wsl --install -d Ubuntu`
-- Check Version (22.04) *(in Powershell)*:
+
+- Make sure hardware virtualisation *(Intel VT-x / AMD-V, sometimes called "SVM")* is enabled in the computer's BIOS / UEFI settings.
+- Launch Powershell as an administrator and run:
+	- `wsl --install`
+- Restart the computer when asked. Ubuntu finishes installing on the next start and asks you to create a Linux username and password.
+- Check that Ubuntu is running under WSL version 2 *(in Powershell)*:
 	- Run: `wsl -l -v`
 
 ## Access WSL2
 
-To run Ubuntu, just open Powershell *(or Terminal)*, type `wsl` and press "Enter". You will gain the Ubuntu shell in few seconds.
+To run Ubuntu, just open Powershell *(or [Windows Terminal](https://github.com/microsoft/terminal/releases))*, type `wsl` and press "Enter". You will gain the Ubuntu shell in a few seconds.
 
-To access Ubuntu in Explorer, put: `\\wsl$\Ubuntu-22.04\home\<your_username>` in the address bar. You can manage files as normal, but the interface will not automatically refresh and you'll need to refresh *(F5)* to see changes reflected in the files.
+To access Ubuntu in Explorer, put: `\\wsl$\Ubuntu\home\<your_username>` in the address bar. You can manage files as normal, but the interface will not automatically refresh and you'll need to refresh *(F5)* to see changes reflected in the files.
+
+**Keep this repository inside the Ubuntu file system** *(e.g. `~/WD-NAS-App-Builder`)* rather than on a Windows drive *(e.g. `/mnt/c/...`)*. Builds are much faster there, and Windows drives mounted into Docker containers have file system quirks.
 
 ## Install Docker *(on WSL2)*
 
-- Launch WSL
- 	- Launch Powershell / [Windows Terminal](https://github.com/microsoft/terminal/releases)
-	- Run: `wsl`
-- Within WSL Ubuntu:
-	- Run: `sudo apt-get remove docker docker-engine docker.io containerd runc`
+These steps follow Docker's [official Ubuntu instructions](https://docs.docker.com/engine/install/ubuntu/). Within WSL Ubuntu:
+
+- Remove any old or unofficial Docker packages *(only those that are installed)*:
+	- Run: `sudo apt-get remove -y $(dpkg --get-selections docker.io docker-compose docker-compose-v2 docker-doc podman-docker containerd runc 2>/dev/null | cut -f1)`
+- Add Docker's package repository:
 	- Run: `sudo apt-get update`
-	- Run: `sudo apt-get upgrade -y`
-	- Run: `sudo apt-get install -y ca-certificates curl gnupg lsb-release`
-	- Run: `sudo mkdir -p /etc/apt/keyrings`
-	- Run: `curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg`
-	- Run: `echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null`
+	- Run: `sudo apt-get install -y ca-certificates curl`
+	- Run: `sudo install -m 0755 -d /etc/apt/keyrings`
+	- Run: `sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc`
+	- Run: `sudo chmod a+r /etc/apt/keyrings/docker.asc`
+	- Run all of the lines below together *(as one paste)*:
+
+```bash
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+```
+
+- Install Docker *(this includes Docker Compose, available as `docker compose`)*:
 	- Run: `sudo apt-get update`
-	- Run: `sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin`
-	- Run: `sudo service docker start`
+	- Run: `sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`
+- Start Docker now and whenever WSL starts:
+	- Run: `sudo systemctl enable --now docker`
+- Allow your user to run Docker without `sudo`:
 	- Run: `sudo usermod -aG docker $USER`
-	- Run: `sudo systemctl enable docker.service`
-	- Run: `sudo systemctl enable docker.socket`
-	- Run: `sudo docker run hello-world`
-	- Run: `sudo curl -L https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose`
-	- Run: `sudo chmod +x /usr/local/bin/docker-compose`
-	- Run: `docker-compose -v`
-	- If using Ubuntu > 20.10:
-		- Run: `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
-		- Run: `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
-	- Run: `exit`
-	- *Optional, run: `docker login` and add Docker account credentials*
+	- Run: `exit`, then in Powershell run `wsl --shutdown` and open WSL again for the change to apply
+- Check that everything works:
+	- Run: `docker run --rm hello-world`
+- *Optional, run: `docker login` and add Docker account credentials*
+
+### Troubleshooting
+
+- If `systemctl` reports that systemd isn't running, enable it by adding the following to `/etc/wsl.conf` *(e.g. `sudo nano /etc/wsl.conf`)*, then run `wsl --shutdown` in Powershell and open WSL again:
+
+```ini
+[boot]
+systemd=true
+```
+
+- If Docker fails to start with `iptables` errors *(older WSL kernels)*, switch to the legacy iptables tools and restart Docker:
+	- Run: `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
+	- Run: `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
+	- Run: `sudo systemctl restart docker`
 
 ## Install Git
 
-- Launch WSL
- 	- Launch Powershell / [Windows Terminal](https://github.com/microsoft/terminal/releases)
-	- Run: `wsl`
-- Within WSL Ubuntu:
-  - Run: `sudo apt-get update`
-  - Run: `sudo apt-get upgrade -y`
-  - Run: `sudo apt-get install -y git`
-  - Edit and run the following:
-    - Run: `git config --global user.name "<Your Name>"`
-	- Run: `git config --global user.email  "<Your Email>"`
+Within WSL Ubuntu:
+
+- Run: `sudo apt-get update`
+- Run: `sudo apt-get install -y git`
+- Edit and run the following:
+	- Run: `git config --global user.name "<Your Name>"`
+	- Run: `git config --global user.email "<Your Email>"`

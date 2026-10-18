@@ -23,4 +23,4 @@ If you don't have docker installed, see the [guide](../../docker/README.md) in t
   - Other options `apkg.rc` are explained in the [guide](../../guides/README.md).
 - The `apps/new_app/build.sh` script runs locally to package your app. Customise it to your app's needs *(e.g. if you need to package downloaded binaries)*.
   - If you're downloading the application files on the WD NAS device itself, you can leave this file alone.
-- All other shell scripts (`apps/new_app/*.sh`) run on the WD NAS device itself to perform the actions that are required. See [guide](guides/README.md).
+- All other shell scripts (`apps/new_app/*.sh`) run on the WD NAS device itself to perform the actions that are required. See the [overview](../../guides/README.md) and the [script helpers guide](../README.md#script-helpers).

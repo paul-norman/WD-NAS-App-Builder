@@ -19,7 +19,7 @@ It's a good idea to have the latest versions of Docker and Docker Compose instal
 - List ALL containers: `docker container ls -a`
 - Connect to a running container: `docker exec -it <container_id_or_name> bash`
 - Stop all running containers: `docker stop $(docker container ls -q)`
-- Remove all unused containers: `docker image prune -a`
+- Remove all unused images: `docker image prune -a`
 - Delete a container: `docker container rm <container_id_or_name>`
 - Delete ALL stopped containers: `docker container rm $(docker container ls -aqf status=exited)`
 
@@ -37,15 +37,15 @@ It's a good idea to have the latest versions of Docker and Docker Compose instal
 
 ### Compose
 
-- First / normal build: `docker-compose up --build`
-- Start: `docker-compose up`
-- Force a rebuild: `docker-compose build --no-cache`
-- Force a rebuild of one service: `docker-compose build --no-cache <service_name>`
+- First / normal build: `docker compose up --build`
+- Start: `docker compose up`
+- Force a rebuild: `docker compose build --no-cache`
+- Force a rebuild of one service: `docker compose build --no-cache <service_name>`
 
 ### Remove EVERYTHING *(Nuclear option when you can't be arsed to debug)*
 
 - `docker system df`
-- `docker-compose down`
+- `docker compose down`
 - `docker stop $(docker ps -q)`
 - `docker system prune -a`
 - `docker system prune --volumes`

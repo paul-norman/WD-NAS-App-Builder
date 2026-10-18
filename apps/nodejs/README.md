@@ -1,6 +1,10 @@
 # Node.js App
 
-This app provides `node`, `npm`, `npx`, `pnpm` and `corepack` binaries to allow installing and running Node.js projects directly on the WD NAS device.
+This app provides `node`, `npm`, `npx` and `corepack` binaries to allow installing and running Node.js projects directly on the WD NAS device.
+
+`pnpm` and `yarn` are available through `corepack`, which downloads them on first use *(e.g. `corepack pnpm install`)*.
+
+A small test server is started on port `30290` *(the **Open** button in the NAS web UI redirects to it)*, with its output in `test_server.log` in the app's install directory.
 
 ## Building the Node.js app
 

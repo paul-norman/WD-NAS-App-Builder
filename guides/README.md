@@ -145,10 +145,18 @@ PHP 7.4 is installed on the WS Nas devices providing execution of PHP files, tho
 It's fairly common for an app to have its own webserver listening on a port, in this case it's common to use a very small PHP index page to redirect to the correct port *(in combination with `CenterType: 0`)*:
 
 ```php
-<?php header('Location: http://'.$_SERVER['HTTP_HOST'].':1234/'); ?>
+<?php
+// Redirect to the app's own web server, on the host the NAS UI was opened with (minus the UI's own port)
+$port = 1234;
+$host = preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? '');
+if (!preg_match('/^(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+)$/', $host)) {
+	http_response_code(400);
+	exit('Invalid host');
+}
+header('Location: http://' . $host . ':' . $port . '/');
 ```
 
-Where `1234` should be substituted for the correct port for the specific app.
+Where `1234` should be substituted for the correct port for the specific app. The port is stripped from the `Host` header *(in case the NAS UI itself was opened on a non-default port)* and anything that isn't a plain hostname or IP address is rejected, so the page can't be used to redirect elsewhere.
 
 ### CGI
 
