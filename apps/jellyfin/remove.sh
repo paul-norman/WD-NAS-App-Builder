@@ -18,10 +18,9 @@
 . "$1/helpers.sh" "$0" "$1";
 
 # ----------------------------------------------------------------------------
-# Removes all the app completely. 
-#  - Remember to make backups of configuration / data here to support upgrades
+# Removes all the app completely.
+#  - Jellyfin's data, configuration and cache are kept in the persistent path
 # ----------------------------------------------------------------------------
 
-# Remove the Jellyfin app
-log "removing app: ${APP_PATH}"
-rm -rf ${APP_PATH}
+log "Removing all files from: ${APP_PATH}";
+rm -rf "${APP_PATH}";

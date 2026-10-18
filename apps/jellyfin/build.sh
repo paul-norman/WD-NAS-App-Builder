@@ -1,115 +1,50 @@
 #!/bin/bash
 . "../build_helpers.sh"
 
-# Update these and the version in `apkg.rc` for each build
-Jellyfin="10.8.12-1"
-JellyfinMain="10.8.12"
-Ffmpeg="6_6.0-8"
-FfmpegMain="6.0-8"
-
-# Some models use AMD64 architecture and others use ARM
+# Jellyfin 12+ and jellyfin-ffmpeg only publish 64-bit builds, so only the Intel models are supported
 declare -A MODELS
 MODELS[amd64]="MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100"
-MODELS[armhf]="WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra"
+
+FFMPEG_VERSION=8.1.3-1
 
 for ARCH in "${!MODELS[@]}"; do
-	JELLYFIN_REPO="https://repo.jellyfin.org/releases/server/debian/versions/stable/server/${JellyfinMain}/jellyfin-server_${Jellyfin}_${ARCH}.deb"
-	JELLYFIN_WEB_REPO="https://repo.jellyfin.org/releases/server/debian/versions/stable/web/${JellyfinMain}/jellyfin-web_${Jellyfin}_all.deb"
-	FFMPEG_REPO="https://repo.jellyfin.org/releases/server/debian/versions/jellyfin-ffmpeg/${FfmpegMain}/jellyfin-ffmpeg${Ffmpeg}-bullseye_${ARCH}.deb"
-	
+	JELLYFIN_REPO="https://repo.jellyfin.org/files/server/linux/stable/v${APP_VERSION}/${ARCH}/jellyfin_${APP_VERSION}-${ARCH}.tar.gz"
+	FFMPEG_REPO="https://github.com/jellyfin/jellyfin-ffmpeg/releases/download/v${FFMPEG_VERSION}/jellyfin-ffmpeg_${FFMPEG_VERSION}_portable_linux64-gpl.tar.xz"
+
+	# The libraries the portable releases need, built for the NAS's glibc by static/jellyfin (which the root build.sh
+	# runs first). libe_sqlite3.so must match this Jellyfin version's bundled SQLite, so they are built per version
+	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
+	for lib in libe_sqlite3.so libva.so.2 libva-drm.so.2 libdrm.so.2; do
+		if [ ! -f "${STATIC_PATH}/${lib}" ]; then
+			abort "${lib} not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+		fi
+	done
+
 	# Make a directory for the files
-	mkdir -p binaries
+	mkdir -p binaries/ffmpeg/lib
 	cd binaries
-	
-	# Download and extract the right version of Jellyfin
-	wget ${JELLYFIN_REPO} -O jellyfin.deb
-	
-	# Extract the archive
-	if [ -f jellyfin.deb ]; then
-		ar x jellyfin.deb
-		rm jellyfin.deb
-		rm debian-binary
-	else
-		abort "$(pwd)/jellyfin.deb could not be extracted"
-	fi
-	
-	# Extract the data
-	if [ -f data.tar.xz ]; then
-		tar -xf data.tar.xz
-		rm data.tar.xz
-		rm control.tar.xz
-	else
-		abort "$(pwd)/data.tar.xz could not be extracted"
-	fi
-	
-	# Make a subdirectory to store FFMPEG
-	mkdir -p ffmpeg
-	cd ffmpeg
-	
-	# TODO: try to build this statically
-	# Download and extract the right version of FFMPEG
-	#wget ${FFMPEG_REPO} -O ffmpeg.deb
-	
-	# Extract the archive
-	#if [ -f ffmpeg.deb ]; then
-	#	ar x ffmpeg.deb
-	#	rm ffmpeg.deb
-	#	rm debian-binary
-	#else
-	#	abort "$(pwd)/ffmpeg.deb could not be extracted"
-	#fi
 
-	# Extract the data
-	#if [ -f data.tar.xz ]; then
-	#	tar -xf data.tar.xz
-	#	rm data.tar.xz
-	#	rm control.tar.xz
-	#else
-	#	abort "$(pwd)/data.tar.xz could not be extracted"
-	#fi
-	
-	# For now we'll just use generic statically linked FFMPEG
-	wget "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${ARCH}-static.tar.xz" -O ffmpeg.tar.xz
-	if [ -f ffmpeg.tar.xz ]; then
-		tar -xf ffmpeg.tar.xz
-		rm ffmpeg.tar.xz
-		DIR=$(ls | head -n 1)
-		mv ${DIR} bin
-	else
-		abort "$(pwd)/ffmpeg.tar.xz could not be extracted"
+	# Download and extract Jellyfin (the server and its web client, with their own .NET runtime)
+	if ! wget -q ${JELLYFIN_REPO} -O jellyfin.tar.gz || ! tar -xzf jellyfin.tar.gz || [ ! -x jellyfin/jellyfin ]; then
+		abort "Jellyfin could not be downloaded or extracted from: ${JELLYFIN_REPO}"
 	fi
-	
-	# Make a subdirectory to store Jellyfin Web
+	rm jellyfin.tar.gz
+
+	# Download and extract jellyfin-ffmpeg (ffmpeg and ffprobe)
+	if ! wget -q ${FFMPEG_REPO} -O ffmpeg.tar.xz || ! tar -xJf ffmpeg.tar.xz -C ffmpeg || [ ! -x ffmpeg/ffmpeg ]; then
+		abort "jellyfin-ffmpeg could not be downloaded or extracted from: ${FFMPEG_REPO}"
+	fi
+	rm ffmpeg.tar.xz
+
+	# Replace Jellyfin's SQLite (built for a newer glibc) and give ffmpeg its newer libva / libdrm
+	cp "${STATIC_PATH}/libe_sqlite3.so" jellyfin/libe_sqlite3.so
+	cp "${STATIC_PATH}/libva.so.2" "${STATIC_PATH}/libva-drm.so.2" "${STATIC_PATH}/libdrm.so.2" ffmpeg/lib/
+
 	cd ../
-	mkdir -p jellyfin-web
-	cd jellyfin-web
-	
-	# Download and extract the right version of FFMPEG
-	wget ${JELLYFIN_WEB_REPO} -O jellyfinweb.deb
-	
-	# Extract the archive
-	if [ -f jellyfinweb.deb ]; then
-		ar x jellyfinweb.deb
-		rm jellyfinweb.deb
-		rm debian-binary
-	else
-		abort "$(pwd)/jellyfinweb.deb could not be extracted"
-	fi
 
-	# Extract the data
-	if [ -f data.tar.xz ]; then
-		tar -xf data.tar.xz
-		rm data.tar.xz
-		rm control.tar.xz
-	else
-		abort "$(pwd)/data.tar.xz could not be extracted"
-	fi
-	
-	cd ../../
-	
 	# Build the archive for all models of this architecture
 	build ${MODELS[${ARCH}]} ${ARCH}
-	
+
 	# Clean up any mess
 	rm -rf binaries
 done

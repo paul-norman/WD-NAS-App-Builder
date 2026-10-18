@@ -27,10 +27,6 @@
 
 PID_FILE="/var/run/${APP_NAME}.pid"
 
+# Allow time for Jellyfin to finish writing its database before it is killed
 log "stopping app..."
-kill $(cat ${PID_FILE})
-sleep 1
-log "...app stopped using PID: $(cat ${PID_FILE})"
-
-rm -f ${PID_FILE}
-log "PID file removed"
+stop_process "${PID_FILE}" 30

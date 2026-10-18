@@ -62,11 +62,12 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
 - [x] Understand the WD app basics
   - [x] Create a template to expedite future app creation
 - [x] Create something new, but simple (`nodejs` app)
-- [x] Test wrapping existing Jellyfin Debian builds (`jellyfin` app)
+- [x] Run Jellyfin natively (`jellyfin` app - Jellyfin 12.2 portable release, with libraries rebuilt for the NAS's glibc)
   - [x] Installs
   - [x] Runs
-  - [ ] Loads Jellyfin-Web *(truncates HTML output, but does start loading?)*
-  - [ ] Use Jellyfin-Ffmpeg *(currently falling back to 3rd party statically linked version)*
+  - [x] Loads Jellyfin-Web
+  - [x] Uses Jellyfin-Ffmpeg, with VA-API hardware encoding on the Intel GPU *(verified with ffmpeg on a PR4100)*
+  - [x] Hardware transcoding while streaming from Jellyfin *(GPU encoding; 10-bit HEVC is decoded in software, ~1.3x real time for 1080p on a PR4100 - 8-bit H.264 / HEVC are decoded on the GPU too)*
 - [ ] Learn about building / statically linking
   - [x] Attempt a statically linked build for AMD64 (`nano` app)
   - [ ] Attempt a statically linked build for ARM

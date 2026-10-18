@@ -29,49 +29,10 @@ mkdir -p ${APP_WEB_PATH}
 log "linking web files from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
 ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 
-# Create a folder that will persist
-if [ ! -d "${APP_PERSISTENT_DATA_PATH}" ]; then
-	log "creating persistent storage directory: ${APP_PERSISTENT_DATA_PATH}"
-	mkdir -p ${APP_PERSISTENT_DATA_PATH}
-fi
-
-# Create folders that are required by Jellyfin
-if [ ! -d "${APP_PERSISTENT_DATA_PATH}/data" ]; then
-	log "creating persistent data directory: ${APP_PERSISTENT_DATA_PATH}/data"
-	mkdir -p ${APP_PERSISTENT_DATA_PATH}/data
-fi
-
-if [ ! -d "${APP_PERSISTENT_DATA_PATH}/cache" ]; then
-	log "creating persistent cache directory: ${APP_PERSISTENT_DATA_PATH}/cache"
-	mkdir -p ${APP_PERSISTENT_DATA_PATH}/cache
-fi
-
-if [ ! -d "${APP_PERSISTENT_DATA_PATH}/config" ]; then
-	log "creating persistent config directory: ${APP_PERSISTENT_DATA_PATH}/config"
-	mkdir -p ${APP_PERSISTENT_DATA_PATH}/config
-fi
-
-if [ ! -d "${APP_PERSISTENT_DATA_PATH}/log" ]; then
-	log "creating persistent log directory: ${APP_PERSISTENT_DATA_PATH}/log"
-	mkdir -p ${APP_PERSISTENT_DATA_PATH}/log
-fi
-
-# Link the folders to the app
-log "linking data directories from: ${APP_PERSISTENT_DATA_PATH}/* to: ${APP_PATH}/binaries"
-ln -sf ${APP_PERSISTENT_DATA_PATH}/* ${APP_PATH}/binaries >> ${LOG} 2>&1
-
-# Create Jellyfin-Web folder
-JELLYFIN_BIN_PATH="${APP_PATH}/binaries/usr/lib/jellyfin/bin"
-if [ ! -d "${JELLYFIN_BIN_PATH}/jellyfin-web" ]; then
-	log "creating Jellyfin-Web directory: ${JELLYFIN_BIN_PATH}/jellyfin-web"
-	mkdir -p ${JELLYFIN_BIN_PATH}/jellyfin-web
-	
-	# Link the web client to the bin dir
-	log "linking jellyfin-web directories from: ${APP_PATH}/binaries/jellyfin-web/usr/share/jellyfin/web/* to: ${JELLYFIN_BIN_PATH}/jellyfin-web"
-	ln -sf ${APP_PATH}/binaries/jellyfin-web/usr/share/jellyfin/web/* ${JELLYFIN_BIN_PATH}/jellyfin-web >> ${LOG} 2>&1
-fi
-
-# Link the app `binaries` directory to their recommended location `/opt/jellyfin`
-log "linking binaries from: ${APP_PATH}/binaries to: /opt/${APP_NAME}"
-mkdir -p "/opt/${APP_NAME}"
-ln -sf ${APP_PATH}/binaries /opt/${APP_NAME}/jellyfin >> ${LOG} 2>&1
+# Persistent folders for Jellyfin's data, cache, configuration, logs and temporary files (kept across reinstalls)
+for dir in data cache config log tmp; do
+	if [ ! -d "${APP_PERSISTENT_DATA_PATH}/${dir}" ]; then
+		log "creating persistent directory: ${APP_PERSISTENT_DATA_PATH}/${dir}"
+		mkdir -p "${APP_PERSISTENT_DATA_PATH}/${dir}"
+	fi
+done

@@ -25,24 +25,26 @@
 # Load all the useful variables
 . "$1/helpers.sh" "$0" "$1";
 
-# Set max stack size
-ulimit -s 3000
-
-JELLYFIN_PATH="/opt/${APP_NAME}"
-JELLYFIN_BIN_PATH="${JELLYFIN_PATH}/usr/lib/jellyfin/bin"
-#FFMPEG_BIN_PATH="/opt/${APP_NAME}/ffmpeg/usr/lib/jellyfin-ffmpeg"
-FFMPEG_BIN_PATH="/opt/${APP_NAME}/ffmpeg/bin"
 PID_FILE="/var/run/${APP_NAME}.pid"
+JELLYFIN_LOG="${APP_PATH}/${APP_NAME}.log"
 
-log "starting app..."
-log "COMMAND: ${JELLYFIN_BIN_PATH}/jellyfin -d ${JELLYFIN_PATH}/data -C ${JELLYFIN_PATH}/cache -c ${JELLYFIN_PATH}/config -l ${JELLYFIN_PATH}/log --ffmpeg ${FFMPEG_BIN_PATH}/ffmpeg"
+if is_running "${PID_FILE}"; then
+	log "Jellyfin is already running with PID: $(cat ${PID_FILE})"
+	exit 0
+fi
 
-${JELLYFIN_BIN_PATH}/jellyfin \
- -d ${JELLYFIN_PATH}/data \
- -C ${JELLYFIN_PATH}/cache \
- -c ${JELLYFIN_PATH}/config \
- -l ${JELLYFIN_PATH}/log \
- --ffmpeg ${FFMPEG_BIN_PATH}/ffmpeg & 
+# Large libraries need many open files, and temporary files belong on disk rather than in the NAS's RAM
+ulimit -n 65536 2>/dev/null
+export TMPDIR="${APP_PERSISTENT_DATA_PATH}/tmp"
+
+# bin/ffmpeg is a wrapper that runs jellyfin-ffmpeg with the newer libva / libdrm it needs (the NAS's are too old)
+log "starting Jellyfin (output: ${JELLYFIN_LOG})"
+"${APP_PATH}/binaries/jellyfin/jellyfin" \
+	--datadir "${APP_PERSISTENT_DATA_PATH}/data" \
+	--cachedir "${APP_PERSISTENT_DATA_PATH}/cache" \
+	--configdir "${APP_PERSISTENT_DATA_PATH}/config" \
+	--logdir "${APP_PERSISTENT_DATA_PATH}/log" \
+	--ffmpeg "${APP_PATH}/bin/ffmpeg" > "${JELLYFIN_LOG}" 2>&1 &
 echo $! > ${PID_FILE}
 
-log "...app started with PID: $(cat ${PID_FILE})"
+log "Jellyfin started with PID: $(cat ${PID_FILE})"

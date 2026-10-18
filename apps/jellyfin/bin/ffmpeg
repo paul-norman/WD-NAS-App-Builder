@@ -1,0 +1,5 @@
+#!/bin/sh
+# Runs jellyfin-ffmpeg's ffmpeg with the newer libva / libdrm it needs for VA-API (the NAS's are too old), built by
+# static/jellyfin. libva still uses the NAS's own Intel i965 driver from /usr/lib/x86_64-linux-gnu/dri
+FFMPEG_PATH="$(dirname "$(readlink -f "$0")")/../binaries/ffmpeg"
+LD_LIBRARY_PATH="${FFMPEG_PATH}/lib" exec "${FFMPEG_PATH}/ffmpeg" "$@"
