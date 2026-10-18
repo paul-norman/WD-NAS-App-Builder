@@ -22,14 +22,22 @@
 #  - Use this to restore custom paths and settings on reinstall / reboot
 # ----------------------------------------------------------------------
 
-# Allow a local login without password
+# Configure phpMyAdmin (password-less logins stay disabled as MySQL root has no password)
 log "updating ${APP_NAME} config file";
-PMA_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12)";
 SQL_SECRET="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 32; echo '')";
 mv "${APP_PATH}/binaries/config.sample.inc.php" "${APP_PATH}/binaries/config.inc.php"
 sed -i "s/\['blowfish_secret'\] = ''/\['blowfish_secret'\] = \'${SQL_SECRET}\'/g" "${APP_PATH}/binaries/config.inc.php";
 sed -i "s/\['host'\] = 'localhost'/\['host'\] = '127.0.0.1'/g" "${APP_PATH}/binaries//config.inc.php";
-sed -i "s/\['AllowNoPassword'\] = false/\['AllowNoPassword'\] = true/g" "${APP_PATH}/binaries/config.inc.php";
+
+# Generate the admin password once and keep it in persistent storage (readable by root only)
+ADMIN_PASSWORD_FILE="${APP_PERSISTENT_DATA_PATH}/admin_password"
+mkdir -p "${APP_PERSISTENT_DATA_PATH}"
+if [ ! -s "${ADMIN_PASSWORD_FILE}" ]; then
+	log "generating admin password in: ${ADMIN_PASSWORD_FILE}";
+	tr -dc A-Za-z0-9 </dev/urandom | head -c 20 > "${ADMIN_PASSWORD_FILE}"
+fi
+chmod 600 "${ADMIN_PASSWORD_FILE}"
+ADMIN_PASSWORD="$(cat "${ADMIN_PASSWORD_FILE}")"
 
 # Start MySQL (symlink to MariaDB 10.5.19 - 6 Feb 2023) if it isn't already running
 log "starting MySQL";
@@ -39,7 +47,6 @@ sleep 1
 
 # Create MySQL system users
 log "creating MySQL system users";
-mysql --user=root --password= -N -e "DROP USER IF EXISTS 'admin'@'localhost';";
-mysql --user=root --password= -N -e "CREATE USER 'admin'@'localhost' IDENTIFIED BY 'admin';";
-mysql --user=root --password= -N -e "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, DELETE HISTORY ON *.* TO 'admin'@'localhost' IDENTIFIED BY 'admin' WITH GRANT OPTION;";
+mysql --user=root --password= -N -e "CREATE USER IF NOT EXISTS 'admin'@'localhost' IDENTIFIED BY '${ADMIN_PASSWORD}';";
+mysql --user=root --password= -N -e "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, DELETE HISTORY ON *.* TO 'admin'@'localhost' WITH GRANT OPTION;";
 mysql --user=root --password= -N -e "FLUSH PRIVILEGES;";

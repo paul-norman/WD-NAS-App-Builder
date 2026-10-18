@@ -37,6 +37,7 @@ ln -sf ${APP_PATH}/binaries/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 log "linking redirect page from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
 ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 
-log "allow remote access and restart MySQL service";
-python3 /usr/bin/mysql_reset.py -a;
+# phpMyAdmin connects via 127.0.0.1, so MySQL (whose root has no password) stays closed to the network
+log "deny remote access and restart MySQL service";
+python3 /usr/bin/mysql_reset.py -d;
 sleep 1
