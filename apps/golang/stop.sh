@@ -27,10 +27,5 @@
 
 PID_FILE="/var/run/${APP_NAME}_test_server.pid"
 
-log "stopping app..."
-kill $(cat ${PID_FILE})
-sleep 1
-log "...app stopped using PID: $(cat ${PID_FILE})"
-
-rm -f ${PID_FILE}
-log "PID file removed"
+log "stopping test app..."
+stop_process "${PID_FILE}"

@@ -28,12 +28,7 @@
 PID_FILE="/var/run/${APP_NAME}.pid"
 
 log "stopping app..."
-kill $(cat ${PID_FILE})
-sleep 1
-log "...app stopped using PID: $(cat ${PID_FILE})"
+stop_process "${PID_FILE}"
 
-rm -f ${PID_FILE}
-log "PID file removed"
-
-log "Removing binary symlink from: /usr/sbin/mailpit";
+log "Removing binary symlink from: /usr/bin/mailpit";
 rm -f /usr/bin/mailpit

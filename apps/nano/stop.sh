@@ -25,10 +25,14 @@
 #  - When no index page is defined in apkg.rc, the disable button is greyed out
 # -----------------------------------------------------------------------------
 
-log "Removing binary symlink from: /usr/sbin/nano";
-rm -f /usr/bin/nano
+# Only remove our own symlink
+if [ "$(readlink /usr/bin/nano)" = "${APP_PATH}/binaries/nano" ]; then
+	log "Removing binary symlink from: /usr/bin/nano";
+	rm -f /usr/bin/nano
+fi
 
 # Restoring old nano (if present) /usr/local/modules/usr/bin/nano
-if [ -f /usr/bin/nano.OLD ]; then
+if [ ! -e /usr/bin/nano ] && { [ -e /usr/bin/nano.OLD ] || [ -L /usr/bin/nano.OLD ]; }; then
+	log "restoring system nano from: /usr/bin/nano.OLD"
 	mv /usr/bin/nano.OLD /usr/bin/nano
 fi

@@ -26,9 +26,22 @@
 . "$1/helpers.sh" "$0" "$1";
 
 PID_FILE="/var/run/${APP_NAME}.pid"
+VALKEY_LOG="${APP_PATH}/${APP_NAME}.log"
+OVERCOMMIT_FILE="/var/run/${APP_NAME}_overcommit_memory"
 
-sysctl vm.overcommit_memory=1
-valkey-server "/etc/${APP_NAME}/${APP_NAME}.conf" & 
+if is_running "${PID_FILE}"; then
+	log "ValKey is already running with PID: $(cat ${PID_FILE})"
+	exit 0
+fi
+
+# ValKey recommends memory overcommit, remember the system setting so that stop.sh can restore it
+if [ ! -f "${OVERCOMMIT_FILE}" ]; then
+	cat /proc/sys/vm/overcommit_memory > "${OVERCOMMIT_FILE}"
+fi
+sysctl -w vm.overcommit_memory=1 >> ${LOG} 2>&1
+
+log "starting ValKey (output: ${VALKEY_LOG})"
+valkey-server "/etc/${APP_NAME}/${APP_NAME}.conf" > "${VALKEY_LOG}" 2>&1 &
 echo $! > ${PID_FILE}
 
 log "ValKey started with PID: $(cat ${PID_FILE})"

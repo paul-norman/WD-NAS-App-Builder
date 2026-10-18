@@ -90,6 +90,23 @@ In addition to these, all scripts also load in all [APKG helpers](#apkg-helpers)
 log "Log contents"
 ```
 
+`is_running` - succeeds if the process in a PID file is running *(e.g. to avoid starting a second copy)*
+
+```bash
+if is_running "/var/run/${APP_NAME}.pid"; then
+	log "already running"
+	exit 0
+fi
+```
+
+`stop_process` - stops the process in a PID file, waiting up to a number of seconds *(default 10)* for it to exit before killing it, then removes the PID file
+
+```bash
+stop_process "/var/run/${APP_NAME}.pid" 30
+```
+
+If `AddonDefaultGroup` / `AddonDefaultUser` are set in `apkg.rc`, `init.sh` also creates that group and a locked user *(no password, no login shell)* when they don't already exist. Existing users and groups are never removed or changed.
+
 ## APKG Helpers
 
 The helpers for the `apkg.rc` file may be used **both** in the local build script and on the WD NAS devices, so it has been separated into its own file.

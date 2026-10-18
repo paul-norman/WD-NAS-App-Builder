@@ -33,9 +33,3 @@ ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 log "linking core binaries to path: ${APP_PATH}/binaries/bin/* to: /usr/bin"
 ln -sf ${APP_PATH}/binaries/bin/go /usr/bin/go >> ${LOG} 2>&1
 ln -sf ${APP_PATH}/binaries/bin/gofmt /usr/bin/gofmt >> ${LOG} 2>&1
-
-# Create a test server as a check
-cd ${APP_PATH}/web/test_server
-log "installing the test server files in $(pwd)"
-go build -o test_server main.go
-chmod +x test_server

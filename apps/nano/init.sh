@@ -29,6 +29,8 @@ mkdir -p ${APP_WEB_PATH}
 log "linking redirect page from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
 ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 
-# Fix the global bash setting
-sed -i "/export TERM=*/d" /etc/profile
-echo "export TERM=xterm" >> /etc/profile
+# Fix the global terminal setting (marked so that clean.sh can remove it again)
+if ! grep -q "# added by the nano app" /etc/profile; then
+	log "setting TERM=xterm in: /etc/profile"
+	echo "export TERM=xterm # added by the nano app" >> /etc/profile
+fi

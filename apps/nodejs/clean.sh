@@ -24,3 +24,7 @@
 # Remove the web path
 log "removing web path: ${APP_WEB_PATH}"
 rm -rf ${APP_WEB_PATH}
+
+# Remove the core binaries from the global path
+log "removing core binary links from: /usr/bin"
+rm -f /usr/bin/node /usr/bin/npm /usr/bin/npx /usr/bin/corepack

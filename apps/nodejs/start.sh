@@ -27,13 +27,19 @@
 
 SERVER_PATH="${APP_PATH}/web/test_server"
 PID_FILE="/var/run/${APP_NAME}_test_server.pid"
+SERVER_LOG="${APP_PATH}/test_server.log"
+
+if is_running "${PID_FILE}"; then
+	log "test app is already running with PID: $(cat ${PID_FILE})"
+	exit 0
+fi
 
 cd ${SERVER_PATH}
 
-log "starting test app..."
+log "starting test app (output: ${SERVER_LOG})..."
 log "COMMAND: node ./index.js"
 
-node ./index.js & 
+node ./index.js > "${SERVER_LOG}" 2>&1 &
 echo $! > ${PID_FILE}
 
 log "...app started with PID: $(cat ${PID_FILE})"

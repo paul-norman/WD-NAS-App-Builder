@@ -35,11 +35,3 @@ ln -sf ${APP_PATH}/binaries/bin/node /usr/bin/node >> ${LOG} 2>&1
 ln -sf ${APP_PATH}/binaries/bin/npm /usr/bin/npm >> ${LOG} 2>&1
 ln -sf ${APP_PATH}/binaries/bin/npx /usr/bin/npx >> ${LOG} 2>&1
 ln -sf ${APP_PATH}/binaries/bin/corepack /usr/bin/corepack >> ${LOG} 2>&1
-
-# Create a test server as a check
-cd ${APP_PATH}/web/test_server
-log "installing the test server files in $(pwd)"
-npm update -g npm
-npm i pnpm -g
-pnpm setup
-pnpm install

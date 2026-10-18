@@ -30,8 +30,15 @@ log "linking Mailpit binary: ${APP_PATH}/binaries/mailpit to: /usr/bin/mailpit"
 ln -sf ${APP_PATH}/binaries/mailpit /usr/bin/mailpit >> ${LOG} 2>&1
 
 PID_FILE="/var/run/${APP_NAME}.pid"
+MAILPIT_LOG="${APP_PATH}/${APP_NAME}.log"
 
-mailpit --smtp 0.0.0.0:1026 --smtp-auth-allow-insecure --smtp-auth-accept-any & 
+if is_running "${PID_FILE}"; then
+	log "Mailpit is already running with PID: $(cat ${PID_FILE})"
+	exit 0
+fi
+
+log "starting Mailpit (output: ${MAILPIT_LOG})"
+mailpit --smtp 0.0.0.0:1026 --smtp-auth-allow-insecure --smtp-auth-accept-any > "${MAILPIT_LOG}" 2>&1 &
 echo $! > ${PID_FILE}
 
 log "Mailpit started with PID: $(cat ${PID_FILE})"

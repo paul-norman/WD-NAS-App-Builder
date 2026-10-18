@@ -24,3 +24,7 @@
 # Remove the web path
 log "removing web path: ${APP_WEB_PATH}"
 rm -rf ${APP_WEB_PATH}
+
+# Remove the terminal setting added by init.sh
+log "removing TERM setting from: /etc/profile"
+sed -i "/# added by the nano app/d" /etc/profile

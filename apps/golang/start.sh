@@ -27,13 +27,20 @@
 
 SERVER_PATH="${APP_PATH}/web/test_server"
 PID_FILE="/var/run/${APP_NAME}_test_server.pid"
+SERVER_LOG="${APP_PATH}/test_server.log"
 
+if is_running "${PID_FILE}"; then
+	log "test app is already running with PID: $(cat ${PID_FILE})"
+	exit 0
+fi
+
+# The test server is compiled at build time (it serves ./static relative to the server path)
 cd ${SERVER_PATH}
 
-log "starting test app..."
-log "COMMAND: ./test_server"
+log "starting test app (output: ${SERVER_LOG})..."
+log "COMMAND: ${APP_PATH}/binaries/test_server"
 
-./test_server & 
+"${APP_PATH}/binaries/test_server" > "${SERVER_LOG}" 2>&1 &
 echo $! > ${PID_FILE}
 
 log "...app started with PID: $(cat ${PID_FILE})"

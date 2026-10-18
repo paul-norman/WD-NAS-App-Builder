@@ -25,8 +25,9 @@
 # Load all the useful variables
 . "$1/helpers.sh" "$0" "$1";
 
-# Backup the old nano
-if [ -f /usr/bin/nano ]; then
+# Backup the system nano (once, and never our own symlink - start.sh can run more than once)
+if [ -e /usr/bin/nano ] && [ "$(readlink /usr/bin/nano)" != "${APP_PATH}/binaries/nano" ] && [ ! -e /usr/bin/nano.OLD ]; then
+	log "backing up system nano to: /usr/bin/nano.OLD"
 	mv /usr/bin/nano /usr/bin/nano.OLD
 fi
 

@@ -33,6 +33,11 @@ for ARCH in "${!MODELS[@]}"; do
 	
 	cd ../
 
+	# Compile the test server now, so the NAS doesn't need to build it on every boot
+	if ! (cd web/test_server && CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} ../../binaries/bin/go build -o ../../binaries/test_server main.go); then
+		abort "the test server could not be compiled"
+	fi
+
 	# Build the archive for all models of this architecture
 	build ${MODELS[${ARCH}]} ${ARCH}
 

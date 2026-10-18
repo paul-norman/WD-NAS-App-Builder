@@ -32,36 +32,64 @@ log() {
 		touch ${LOG};
 	fi
 	
-	if [ "$@" == "" ]; then
+	if [ "$*" == "" ]; then
 		echo "" >> ${LOG};
-	elif [ "$@" == "---" ]; then
+	elif [ "$*" == "---" ]; then
 		echo "----------------------------------------------------------------" >> ${LOG};
 	else
-		echo "$(date '+%Y-%m-%d %H:%M:%S') ${APP_NAME}/${APP_SCRIPT} $@" >> ${LOG};
+		echo "$(date '+%Y-%m-%d %H:%M:%S') ${APP_NAME}/${APP_SCRIPT} $*" >> ${LOG};
 	fi
 }
 
+# Check whether the process in a PID file is running
+is_running() {
+	[ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null
+}
+
+# Stop the process in a PID file, waiting up to $2 seconds (default 10) before killing it
+stop_process() {
+	local pid_file="$1"
+	local timeout="${2:-10}"
+
+	if ! is_running "${pid_file}"; then
+		log "not running (no live PID in: ${pid_file})"
+		rm -f "${pid_file}"
+		return 0
+	fi
+
+	local pid="$(cat "${pid_file}")"
+	local waited=0
+	log "stopping PID: ${pid}"
+	kill "${pid}"
+	while kill -0 "${pid}" 2>/dev/null; do
+		if [ ${waited} -ge ${timeout} ]; then
+			log "PID ${pid} did not stop within ${timeout} seconds, killing it"
+			kill -9 "${pid}" 2>/dev/null
+			break
+		fi
+		sleep 1
+		waited=$((waited + 1))
+	done
+
+	rm -f "${pid_file}"
+	log "stopped PID: ${pid}"
+}
+
 if [ "${APP_SCRIPT}" == "init.sh" ]; then
-	# Set a user group for this application (if specified)
-	if [ "${USER_GROUP}" != "" ]; then
+	# Create a user group for this application (if specified and missing - existing groups are never removed)
+	if [ "${USER_GROUP}" != "" ] && ! grep -q "^${USER_GROUP}:" /etc/group; then
 		log "Create ${USER_GROUP} group";
-		delgroup "${USER_GROUP}" 2>/dev/null;
 		addgroup "${USER_GROUP}";
 	fi
 
-	# Set a user name and password for this application (if specified)
-	if [ "${USER_NAME}" != "" ] && [ "${USER_NAME}" != "root" ] && [ "${USER_NAME}" != "sshd" ]; then
-		SALT="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12)";
-		PASS="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12)";
-		USER_PASSWORD="$(openssl passwd -6 -salt ${SALT} ${PASS})";
+	# Create a locked (no password, no login shell) user for this application (if specified and missing)
+	if [ "${USER_NAME}" != "" ] && [ "${USER_NAME}" != "root" ] && [ "${USER_NAME}" != "sshd" ] && ! grep -q "^${USER_NAME}:" /etc/passwd; then
 		log "Create ${USER_NAME} user";
-		deluser "${USER_NAME}" 2>/dev/null;
-		adduser -D -H -G "${USER_NAME}" "${USER_GROUP}";
-		log "Set ${USER_NAME} user password";
-passwd -a sha512 "${USER_NAME}" << EOF
-${USER_PASSWORD}
-${USER_PASSWORD}
-EOF
+		if [ "${USER_GROUP}" != "" ]; then
+			adduser -D -H -s /bin/false -G "${USER_GROUP}" "${USER_NAME}";
+		else
+			adduser -D -H -s /bin/false "${USER_NAME}";
+		fi
 	fi
 fi
 

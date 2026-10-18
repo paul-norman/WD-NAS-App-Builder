@@ -27,10 +27,15 @@
 
 PID_FILE="/var/run/${APP_NAME}.pid"
 
-log "stopping app..."
-kill $(cat ${PID_FILE})
-sleep 1
-log "...app stopped using PID: $(cat ${PID_FILE})"
+OVERCOMMIT_FILE="/var/run/${APP_NAME}_overcommit_memory"
 
-rm -f ${PID_FILE}
-log "PID file removed"
+# Allow time for ValKey to save its data to disk before it is killed
+log "stopping app..."
+stop_process "${PID_FILE}" 30
+
+# Restore the system memory overcommit setting
+if [ -f "${OVERCOMMIT_FILE}" ]; then
+	log "restoring vm.overcommit_memory to: $(cat ${OVERCOMMIT_FILE})"
+	sysctl -w vm.overcommit_memory="$(cat ${OVERCOMMIT_FILE})" >> ${LOG} 2>&1
+	rm -f "${OVERCOMMIT_FILE}"
+fi

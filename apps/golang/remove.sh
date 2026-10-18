@@ -22,8 +22,5 @@
 #  - Remember to make backups of configuration / data here to support upgrades
 # ----------------------------------------------------------------------------
 
-log "Removing all symlinks from /usr/bin";
-rm /usr/bin/go /usr/bin/gofmt
-
 log "Removing all files from: ${APP_PATH}";
 rm -rf "${APP_PATH}";

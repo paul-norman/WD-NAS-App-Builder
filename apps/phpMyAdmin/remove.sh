@@ -23,7 +23,6 @@
 # ----------------------------------------------------------------------------
 
 log "deleting MySQL users";
-mysql --user=root --password= -N -e "DROP USER IF EXISTS 'pma'@'localhost';";
 mysql --user=root --password= -N -e "DROP USER IF EXISTS 'admin'@'localhost';";
 
 log "Removing all files from: ${APP_PATH}";
