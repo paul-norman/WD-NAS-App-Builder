@@ -47,25 +47,4 @@ else
 	mkdir -p "${APP_PERSISTENT_DATA_PATH}"
 fi
 
-# Setup
-log "running daemon setup"
-"${APP_PATH}/daemon.sh" setup
-
-sleep 1
-
-# Start
-log "running daemon start"
-"${APP_PATH}/daemon.sh" start
-
-sleep 3
-
-# Install Portainer (if there is no existing Portainer container (running or not))
-log "installing Portainer"
-docker ps -a | grep portainer-ce
-if [ $? = 1 ]; then
-	docker volume create portainer_data
-	
-	docker run -d -p 9000:9000 -p 9443:9443 --name portainer --restart always \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-v portainer_data:/data portainer/portainer-ce:2.45.2
-fi
+# The daemon itself (and Portainer) is started by start.sh, which always runs straight after this script

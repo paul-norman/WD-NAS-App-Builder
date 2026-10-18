@@ -25,10 +25,9 @@
 #  - When no index page is defined in apkg.rc, the disable button is greyed out
 # -----------------------------------------------------------------------------
 
+# Shutdown waits for Docker to exit before unmounting anything
 log "Running daemon shutdown"
 "${APP_PATH}/daemon.sh" shutdown
-
-sleep 1
 
 log "Remaining mounts:"
 log "$(cat /proc/self/mounts | grep docker)"

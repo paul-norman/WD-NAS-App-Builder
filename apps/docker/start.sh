@@ -28,8 +28,20 @@
 log "Running daemon setup"
 "${APP_PATH}/daemon.sh" setup
 
+# Starting is a no-op when Docker is already running, and only returns once it is ready for commands
 log "Running daemon start"
-"${APP_PATH}/daemon.sh" start
+if ! "${APP_PATH}/daemon.sh" start; then
+	log "Docker failed to start, see: ${APP_PERSISTENT_DATA_PATH}/docker.log"
+	exit 1
+fi
 
-sleep 3
-log "$(docker ps)"
+# Install Portainer (if there is no existing Portainer container (running or not))
+if [ -z "$(/sbin/docker ps -a -q --filter "name=^portainer$")" ]; then
+	log "installing Portainer"
+	/sbin/docker volume create portainer_data >> ${LOG} 2>&1
+	/sbin/docker run -d -p 9000:9000 -p 9443:9443 --name portainer --restart always \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-v portainer_data:/data portainer/portainer-ce:2.45.2 >> ${LOG} 2>&1
+fi
+
+log "$(/sbin/docker ps)"

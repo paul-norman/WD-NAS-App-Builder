@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 export DOCKER_RAMDISK=1
 
@@ -6,17 +6,21 @@ LOG="/tmp/debug_apkg"
 
 DOCKER=/sbin/docker
 DOCKERD=/sbin/dockerd
+DOCKER_PID_FILE=/var/run/docker.pid
 
-DOCKER_ROOT=/shares/Volume_1/Nas_Prog/_docker
+# Persistent data lives next to the app (e.g. /mnt/HD/HD_a2/Nas_Prog/_docker), whichever volume it is installed on
+APP_PATH="$(dirname "$(readlink -f "$0")")"
+DOCKER_ROOT="$(dirname "${APP_PATH}")/_docker"
+DOCKER_LOG="${DOCKER_ROOT}/docker.log"
 
 log() {
 	if [ ! -f "${LOG}" ]; then
 		touch ${LOG};
 	fi
-	
-	if [ "$1" == "" ]; then
+
+	if [ "$1" = "" ]; then
 		echo "" >> ${LOG};
-	elif [ "$1" == "---" ]; then
+	elif [ "$1" = "---" ]; then
 		echo "----------------------------------------------------------------" >> ${LOG};
 	else
 		echo "$(date '+%Y-%m-%d %H:%M:%S') docker/daemon.sh $1" >> ${LOG};
@@ -24,27 +28,40 @@ log() {
 }
 
 is_mountpoint() {
-	mnts=$(cat /proc/self/mounts | grep "$1" | awk '{print $2}')
-
-	for i in "${mnts[@]}"
-	do
-		if [ "$i" == "$1" ] ; then
-			return 0
-		fi
-	done
-
-	return 1
+	awk -v mnt="$1" '$2 == mnt { found = 1 } END { exit !found }' /proc/self/mounts
 }
 
 is_docker_setup() {
-	path=$(readlink -f /var/lib/docker)
-	btrfs_mounted=$(cat /proc/mounts | grep "${path}")
-	if [ -z "${btrfs_mounted}" ]; then
-		log "Docker is not yet setup"
-		return 1
-	else 
+	if [ "$(readlink /var/lib/docker)" = "${DOCKER_ROOT}" ] && is_mountpoint /sys/fs/cgroup/memory; then
 		log "Docker is setup"
+		return 0
 	fi
+
+	log "Docker is not yet setup"
+	return 1
+}
+
+# Prints the PID of the running Docker daemon (if any)
+docker_pid() {
+	pid="$(cat ${DOCKER_PID_FILE} 2>/dev/null)"
+	if [ -n "${pid}" ] && kill -0 "${pid}" 2>/dev/null; then
+		echo "${pid}"
+	else
+		pidof dockerd
+	fi
+}
+
+# Waits up to $2 seconds for process $1 to exit
+wait_for_exit() {
+	waited=0
+	while kill -0 "$1" 2>/dev/null; do
+		if [ ${waited} -ge $2 ]; then
+			return 1
+		fi
+		sleep 1
+		waited=$((waited + 1))
+	done
+	return 0
 }
 
 docker_setup() {
@@ -53,51 +70,55 @@ docker_setup() {
 	log "Setting up docker"
 
 	# Ensure that we have a Docker directory
-	if [ -L /var/lib/docker ]; then
+	mkdir -p "${DOCKER_ROOT}"
+	if [ "$(readlink /var/lib/docker)" = "${DOCKER_ROOT}" ]; then
 		log "Found Docker symlink"
 	else
-		log "No Docker symlink found, creating..."
-		ln -sf ${DOCKER_ROOT} /var/lib/docker 
+		log "Creating Docker symlink: /var/lib/docker -> ${DOCKER_ROOT}"
+		rm -f /var/lib/docker
+		ln -sf "${DOCKER_ROOT}" /var/lib/docker
 	fi
 
 	# For iptables
-	ln -s /usr/local/modules/usrlib/xtables /usr/lib/xtables
+	if [ ! -e /usr/lib/xtables ]; then
+		ln -s /usr/local/modules/usrlib/xtables /usr/lib/xtables
+	fi
 
 	if [ ! -L /usr/sbin/mkfs.ext4 ]; then
 		ln -s /usr/bin/mke2fs /usr/sbin/mkfs.ext4
 	fi
 
-	if ! $(lsmod | grep ^ipv6 &> /dev/null); then
+	if ! lsmod | grep -q "^ipv6 "; then
 		log "Loading ipv6"
 		insmod /usr/local/modules/driver/ipv6.ko disable_ipv6=1
 	fi
 
 	log "Loading drivers"
 
-	drivers=(
-		"nf_conntrack"
-		"nf_nat"
-		"nf_defrag_ipv4"
-		"nf_conntrack_ipv4"
-		"nf_nat_ipv4"
-		"x_tables"
-		"xt_conntrack"
-		"xt_addrtype"
-		"xt_tcpudp"
-		"xt_nat"
-		"nf_nat_masquerade_ipv4"
-		"ipt_MASQUERADE"
-		"ip_tables"
-		"iptable_filter"
-		"iptable_nat"
-		"llc"
-		"stp"
-		"bridge"
-		"br_netfilter"
-	)
+	drivers="
+		nf_conntrack
+		nf_nat
+		nf_defrag_ipv4
+		nf_conntrack_ipv4
+		nf_nat_ipv4
+		x_tables
+		xt_conntrack
+		xt_addrtype
+		xt_tcpudp
+		xt_nat
+		nf_nat_masquerade_ipv4
+		ipt_MASQUERADE
+		ip_tables
+		iptable_filter
+		iptable_nat
+		llc
+		stp
+		bridge
+		br_netfilter
+	"
 
-	for driver in "${drivers[@]}"; do
-		if ! $(lsmod | grep -w ${driver} &> /dev/null); then
+	for driver in ${drivers}; do
+		if ! lsmod | grep -qw "^${driver}"; then
 			log "Loading: ${driver}"
 			if ! insmod "/usr/local/modules/driver/${driver}.ko" ; then
 				log " - failed to load ${driver}"
@@ -118,46 +139,98 @@ docker_setup() {
 	fi
 }
 
-docker_stop() {
-	# Stop all containers
-	containers="$(${DOCKER} ps -q)"
-	if [ ! -z "${containers}" ]; then
-		log "Stopping containers ${containers}"
-		${DOCKER} stop ${containers}
+docker_start() {
+	pid="$(docker_pid)"
+	if [ -n "${pid}" ]; then
+		log "Docker is already running with PID: ${pid}"
+		return 0
 	fi
 
-	# Stop docker
-	docker_pid="$(cat /var/run/docker.pid)"
-	if [ ! -z "${docker_pid}" ]; then
-		log "Stopping Docker pid=${docker_pid}"
-		kill "${docker_pid}"
+	if ! is_docker_setup; then
+		log "Docker is not setup! Run docker/daemon.sh setup"
+		return 1
 	fi
+
+	# Clear any mounts left behind by a previous Docker that didn't shut down cleanly
+	dm_cleanup
+	set_docker_cgroup
+
+	# Join the memory cgroup before starting the daemon, so that containerd and all containers are limited too
+	log "Starting dockerd (log: ${DOCKER_LOG})"
+	sh -c 'echo $$ > /sys/fs/cgroup/memory/docker/tasks 2>/dev/null; exec "$0" --ip-masq=true' "${DOCKERD}" >> "${DOCKER_LOG}" 2>&1 &
+	pid=$!
+
+	# Wait for the daemon to accept commands
+	waited=0
+	until ${DOCKER} info > /dev/null 2>&1; do
+		if ! kill -0 "${pid}" 2>/dev/null; then
+			log "Docker exited during startup, see: ${DOCKER_LOG}"
+			return 1
+		fi
+		if [ ${waited} -ge 60 ]; then
+			log "Docker did not become ready within 60 seconds, see: ${DOCKER_LOG}"
+			return 1
+		fi
+		sleep 1
+		waited=$((waited + 1))
+	done
+
+	log "Docker is running with PID: ${pid}"
+}
+
+docker_stop() {
+	# Stop all containers
+	containers="$(${DOCKER} ps -q 2>/dev/null)"
+	if [ -n "${containers}" ]; then
+		log "Stopping containers: $(echo ${containers})"
+		${DOCKER} stop ${containers} > /dev/null
+	fi
+
+	# Stop docker and wait for it (and the containerd it manages) to exit before anything is unmounted
+	pid="$(docker_pid)"
+	if [ -n "${pid}" ]; then
+		log "Stopping Docker PID: ${pid}"
+		kill "${pid}"
+		if ! wait_for_exit "${pid}" 30; then
+			log "Docker did not stop within 30 seconds, killing it"
+			kill -9 "${pid}" 2>/dev/null
+			wait_for_exit "${pid}" 5
+		fi
+	fi
+
+	for pid in $(pidof containerd); do
+		wait_for_exit "${pid}" 10 || kill -9 "${pid}" 2>/dev/null
+	done
 }
 
 dm_cleanup() {
-	shm_mounts=$(cat /proc/self/mounts | grep "shm.*docker" | awk '{print $2}')
-	
-	for mnt in "${shm_mounts[@]}"; do
+	grep "shm.*docker" /proc/self/mounts | awk '{print $2}' | while read -r mnt; do
 		log "shm_cleanup: ${mnt}"
-		umount "$mnt"
-	done 
-	
-	if [ ! -z $(cat /proc/self/mounts | grep -c docker) ]; then
-		path=$(readlink -f /var/lib/docker)
-		umount ${path}/plugins
-		umount ${path}
+		umount "${mnt}"
+	done
+
+	# Unmount anything inside the Docker directory (deepest first), then the directory itself
+	path="$(readlink -f /var/lib/docker)"
+	if [ -n "${path}" ]; then
+		awk '{print $2}' /proc/self/mounts | grep "^${path}/" | sort -r | while read -r mnt; do
+			log "Unmounting: ${mnt}"
+			umount "${mnt}"
+		done
+
+		if is_mountpoint "${path}"; then
+			log "Unmounting: ${path}"
+			umount "${path}"
+		fi
 	fi
-	
-	dmsetup remove_all
 }
 
 docker_cleanup() {
 	log "Cleaning up Docker"
 
+	dm_cleanup
+
 	# Remove cgroup stuff
 	/usr/sbin/cgroupfs-umount
-
-	dm_cleanup
 }
 
 set_docker_cgroup() {
@@ -166,10 +239,12 @@ set_docker_cgroup() {
 	mem_quota=0
 	mem_total_kb=`grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}'`
 
-	if [[ ! "${mem_total_kb}" =~ ^[0-9]+$ ]] ; then
-		log "Failed to get total memory!"
-		return 1
-	fi
+	case "${mem_total_kb}" in
+		''|*[!0-9]*)
+			log "Failed to get total memory!"
+			return 1
+			;;
+	esac
 
 	if [ ${mem_total_kb} -gt ${ONE_G_KB} ]; then
 		mem_quota=$((mem_total_kb/2))
@@ -198,33 +273,22 @@ set_docker_cgroup() {
 case $1 in
 	start)
 		log "Starting Docker"
-		is_docker_setup || (log "Docker is not setup! Run docker/daemon.sh setup" && exit 1)
-		dm_cleanup
-		cgroupfs-mount
-		set_docker_cgroup
-		${DOCKERD} --ip-masq=true >> /var/lib/docker/docker.log 2>&1 &
-		docker_pid=$!
-		log "Docker pid ${docker_pid}"
-		# Attach docker pid to memory cgroup
-		if [[ "${docker_pid}" =~ ^[0-9]+$ ]]; then
-			log "Attaching Docker pid to memory cgroup"
-			echo ${docker_pid} > /sys/fs/cgroup/memory/docker/tasks
-		fi
+		docker_start || exit 1
 		;;
 	stop)
 		docker_stop
 		;;
 	status)
-		docker_pid=$(pidof dockerd)
-		docker_mounts=$(cat /proc/self/mounts | grep docker)
-		if [ -z "${docker_pid}" ]; then
+		pid="$(docker_pid)"
+		docker_mounts="$(grep docker /proc/self/mounts)"
+		if [ -z "${pid}" ]; then
 			log "Docker is not running!"
-			if [ "${docker_mounts}" ]; then
+			if [ -n "${docker_mounts}" ]; then
 				log "Found mounts: ${docker_mounts}"
 			fi
 			exit 1
 		else
-			log "Docker is running with PID: ${docker_pid}"
+			log "Docker is running with PID: ${pid}"
 		fi
 		;;
 	setup)
