@@ -2,6 +2,9 @@
 
 export DOCKER_RAMDISK=1
 
+# The app's binaries (which dockerd looks for in the PATH) are linked into /sbin
+export PATH="/sbin:/usr/sbin:/bin:/usr/bin:${PATH}"
+
 LOG="/tmp/debug_apkg"
 
 DOCKER=/sbin/docker
@@ -12,6 +15,10 @@ DOCKER_PID_FILE=/var/run/docker.pid
 APP_PATH="$(dirname "$(readlink -f "$0")")"
 DOCKER_ROOT="$(dirname "${APP_PATH}")/_docker"
 DOCKER_LOG="${DOCKER_ROOT}/docker.log"
+
+# The WD kernel (4.14) has no overlay, btrfs or zfs support (and is too old for fuse-overlayfs), so daemon.json selects
+# the vfs storage driver
+DOCKER_CONFIG_FILE="${APP_PATH}/daemon.json"
 
 log() {
 	if [ ! -f "${LOG}" ]; then
@@ -111,6 +118,7 @@ docker_setup() {
 		ip_tables
 		iptable_filter
 		iptable_nat
+		iptable_raw
 		llc
 		stp
 		bridge
@@ -155,9 +163,16 @@ docker_start() {
 	dm_cleanup
 	set_docker_cgroup
 
+	# Docker 28+ uses the iptables "raw" table to stop other machines reaching container ports that aren't published.
+	# Without it (no iptable_raw module) containers can't start at all, so fall back to running without those rules
+	if ! iptables -t raw -L -n > /dev/null 2>&1; then
+		log "WARNING: no iptables raw table (iptable_raw module), so Docker runs without its direct access filtering"
+		export DOCKER_INSECURE_NO_IPTABLES_RAW=1
+	fi
+
 	# Join the memory cgroup before starting the daemon, so that containerd and all containers are limited too
 	log "Starting dockerd (log: ${DOCKER_LOG})"
-	sh -c 'echo $$ > /sys/fs/cgroup/memory/docker/tasks 2>/dev/null; exec "$0" --ip-masq=true' "${DOCKERD}" >> "${DOCKER_LOG}" 2>&1 &
+	sh -c 'echo $$ > /sys/fs/cgroup/memory/docker/tasks 2>/dev/null; exec "$0" --ip-masq=true --config-file "$1"' "${DOCKERD}" "${DOCKER_CONFIG_FILE}" >> "${DOCKER_LOG}" 2>&1 &
 	pid=$!
 
 	# Wait for the daemon to accept commands

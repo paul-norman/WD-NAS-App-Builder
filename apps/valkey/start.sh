@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Called when app is enabled
-	# -> 1. $INSTALL_PATH/start.sh
+	# -> 1. $INSTALL_PATH/start.sh $INSTALL_PATH
 
 # Called upon app installation
 	#	 1. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
@@ -9,8 +9,8 @@
 	# -> 3. $INSTALL_PATH/start.sh $INSTALL_PATH
 
 # Called upon app reinstallation
-	#	 1. $INSTALL_PATH/stop.sh
-	#	 2. $INSTALL_PATH/clean.sh
+	#	 1. $INSTALL_PATH/stop.sh $INSTALL_PATH
+	#	 2. $INSTALL_PATH/clean.sh $INSTALL_PATH
 	#	 3. $INSTALL_PATH/preinst.sh $INSTALL_PATH
 	#	 4. $INSTALL_PATH/remove.sh $INSTALL_PATH
 	#	 5. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
@@ -41,7 +41,7 @@ fi
 sysctl -w vm.overcommit_memory=1 >> ${LOG} 2>&1
 
 log "starting ValKey (output: ${VALKEY_LOG})"
-valkey-server "/etc/${APP_NAME}/${APP_NAME}.conf" > "${VALKEY_LOG}" 2>&1 &
+"${APP_PATH}/binaries/valkey-server" "/etc/${APP_NAME}/${APP_NAME}.conf" > "${VALKEY_LOG}" 2>&1 &
 echo $! > ${PID_FILE}
 
 log "ValKey started with PID: $(cat ${PID_FILE})"

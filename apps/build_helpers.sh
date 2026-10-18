@@ -35,28 +35,52 @@ if [ -z ${APP_PATH+x} ]; then
 			arch="armhf"
 		fi
 
+		# Package from a copy on the container's own file system, so that the packaged file permissions are correct
+		# whatever the host file system reports (e.g. Windows drives show every file as rwxrwxrwx)
+		local stage_root="$(mktemp -d)"
+		local stage="${stage_root}/${APP_NAME}"
+		cp -a "${APP_PATH}" "${stage}"
+		normalise_permissions "${stage}"
+
+		# Files run as root on the NAS, so they must be owned by root (not the build user's ID, which may match a NAS user)
+		chown -R 0:0 "${stage}"
+
 		# Build the archive for all models of this architecture
 		for model in "${models[@]}"; do
 			echo -e  "\n-----------------------------------"
 			echo "BUILDING FOR: ${model} ($arch)"
 			echo -e  "-----------------------------------\n"
-			if ! ../../mksapkg-OS5 -E -s -m ${model} > /dev/null; then
+			if ! (cd "${stage}" && "${REPO_PATH}/mksapkg-OS5" -E -s -m ${model} > /dev/null); then
 				abort "mksapkg-OS5 failed to build the package for: ${model}"
 			fi
 
-			# mksapkg-OS5 names its output: <model>_<app>_<version>.bin(<date>)
-			if ! ls "${APPS_PATH}/${model}_${APP_NAME}_"*.bin* > /dev/null 2>&1; then
+			# mksapkg-OS5 names its output: <model>_<app>_<version>.bin(<date>) (in the parent directory)
+			if ! ls "${stage_root}/${model}_${APP_NAME}_"*.bin* > /dev/null 2>&1; then
 				abort "mksapkg-OS5 did not create a package for: ${model}"
 			fi
 		done
+		mv "${stage_root}/"*.bin* "${APPS_PATH}/"
 
 		# Create a source bundle for this architecture
 		echo -e "\nBundle sources for ${arch} into release dir"
 		src_tar="${RELEASE_DIR}/${APP_NAME}_${APP_VERSION}_${arch}.tar.gz"
-		tar -czf ${src_tar} -C ${APP_PATH} .
+		tar -czf ${src_tar} -C "${stage}" .
 
-		rm -f apkg.sign
-		rm -f apkg.xml
+		rm -rf "${stage_root}"
+	}
+
+	# Set sane permissions on every file in a directory: directories, scripts (#!) and programs (ELF) 755, the apkg.rc
+	# file 755 (as before), everything else 644
+	normalise_permissions() {
+		find "$1" -type d -exec chmod 755 {} +
+		find "$1" -type f -exec chmod 644 {} +
+		find "$1" -type f -name "apkg.rc" -exec chmod 755 {} +
+		find "$1" -type f -size +1c -print0 | while IFS= read -r -d '' file; do
+			magic="$(head -c 4 "${file}" | tr -d '\0')"
+			if [ "${magic:0:2}" = "#!" ] || [ "${magic:1:3}" = "ELF" ]; then
+				chmod 755 "${file}"
+			fi
+		done
 	}
 
 	# Restore any files temporarily imported or removed

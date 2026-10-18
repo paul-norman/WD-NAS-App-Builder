@@ -24,7 +24,11 @@ function build_valkey() {
 	tar -xf valkey.tar.gz --strip-components=1
 	rm valkey.tar.gz
 
-    make -j "$(nproc)" LDFLAGS="-s -w -static" CFLAGS="-static" USE_SYSTEMD=no BUILD_TLS=no
+	# Not fully static: ValKey 9+ finds its built-in Lua scripting engine with dlopen(NULL), which static binaries
+	# don't support. Built on Debian Bullseye instead, so the only shared libraries needed are the NAS's own glibc
+	# 2.31 (libc, libm...) - everything else (Lua, jemalloc...) is still compiled in
+	make -j "$(nproc)" USE_SYSTEMD=no BUILD_TLS=no
+	strip src/valkey-server src/valkey-cli
 }
 
 function run() {

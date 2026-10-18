@@ -1,9 +1,18 @@
-FROM alpine:3.21.0
+FROM debian:bullseye
 
 ENV LANG=C.UTF-8
 
-RUN apk upgrade --no-cache -a && \
-    apk add --no-cache ca-certificates bash curl wget git build-base pkgconf
+# Bullseye (the NAS's Debian version) is end of life, so its packages are only on the archive mirror
+RUN printf 'deb http://archive.debian.org/debian bullseye main\ndeb http://archive.debian.org/debian-security bullseye-security main\n' > /etc/apt/sources.list && \
+	rm -f /etc/apt/sources.list.d/*
+
+RUN apt-get update && \
+	DEBIAN_FRONTEND=noninteractive apt-get upgrade -yy && \
+	DEBIAN_FRONTEND=noninteractive apt-get install -yy \
+	build-essential \
+	ca-certificates \
+	pkg-config \
+	wget
 
 # Volume that will point to the whole repository
 VOLUME /data

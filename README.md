@@ -41,6 +41,8 @@ Creation of these binaries will require an extra build step *(which `./build.sh 
 
 The statically linked files will be created in `/packages/static/<static_app_name>/<version>/<arch>/*`. A file containing the most recently built version number will also be created in `/packages/static/<static_app_name>/latest`.
 
+Where a program can't work as a fully static binary *(e.g. ValKey 9+, which loads its built-in Lua engine with `dlopen`)*, it is instead built on Debian Bullseye, linked only against glibc. The NAS runs Bullseye's glibc 2.31, so those shared libraries are always present.
+
 Each `static/<static_app_name>/build.sh` must declare the version it builds on its own line as `VERSION=<version>`. A version that has already been built for an architecture is skipped, so bumping `VERSION` is all that's needed to trigger a rebuild *(delete the matching `/packages/static/...` directory to force one)*.
 
 ## Project structure

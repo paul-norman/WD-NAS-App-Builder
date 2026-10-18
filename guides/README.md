@@ -110,14 +110,14 @@ The above scripts are called in chains when certain actions are taken in the Web
 
 ### 2. Removal
 
-1. $INSTALL_PATH/`stop.sh`
-2. $INSTALL_PATH/`clean.sh`
+1. $INSTALL_PATH/`stop.sh` $INSTALL_PATH
+2. $INSTALL_PATH/`clean.sh` $INSTALL_PATH
 3. $INSTALL_PATH/`remove.sh` $INSTALL_PATH
 
 ### 3. Re-installation
 
-1. $INSTALL_PATH/`stop.sh`
-2. $INSTALL_PATH/`clean.sh`
+1. $INSTALL_PATH/`stop.sh` $INSTALL_PATH
+2. $INSTALL_PATH/`clean.sh` $INSTALL_PATH
 3. $INSTALL_PATH/`preinst.sh` $INSTALL_PATH
 4. $INSTALL_PATH/`remove.sh` $INSTALL_PATH
 5. $UPLOAD_PATH/`install.sh` $UPLOAD_PATH $INSTALL_PATH
@@ -126,11 +126,11 @@ The above scripts are called in chains when certain actions are taken in the Web
 
 ### 4. Enable
 
-1. $INSTALL_PATH/`start`.sh
+1. $INSTALL_PATH/`start.sh` $INSTALL_PATH
 
 ### 5. Disable
 
-1. $INSTALL_PATH/`stop`.sh
+1. $INSTALL_PATH/`stop.sh` $INSTALL_PATH
 
 ## Config Web Page
 
