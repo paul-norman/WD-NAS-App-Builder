@@ -5,6 +5,7 @@ cross/*/work*
 kernel/*/work*
 
 apps/*/work*
+apps/*/binaries/
 apps/*/*.sign
 apps/*/*.xml
 

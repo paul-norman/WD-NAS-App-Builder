@@ -33,13 +33,15 @@ WD NAS devices run a heavily stripped down Debian Bullseye without a package man
 
 For this reason it's possible to build "statically linked" versions of applications that you want the WD NAS device to run and then include that binary in the app package. These versions have all dependencies bundled with them and require nothing extra.
 
-Creation of these binaries will require an extra build step *(which can be called manually or from `app/<app_name>/build.sh` - e.g. `apps/nano/build.sh`)*
+Creation of these binaries will require an extra build step *(which `./build.sh <app_name>` runs automatically when a matching `static/<app_name>` directory exists, or which can be called manually)*
 
 ```bash
 ./build_static.sh <static_app_name>
 ```
 
 The statically linked files will be created in `/packages/static/<static_app_name>/<version>/<arch>/*`. A file containing the most recently built version number will also be created in `/packages/static/<static_app_name>/latest`.
+
+Each `static/<static_app_name>/build.sh` must declare the version it builds on its own line as `VERSION=<version>`. A version that has already been built for an architecture is skipped, so bumping `VERSION` is all that's needed to trigger a rebuild *(delete the matching `/packages/static/...` directory to force one)*.
 
 ## Project structure
 
@@ -71,12 +73,12 @@ The statically linked files will be created in `/packages/static/<static_app_nam
   - [ ] Create test file format / helpers
 - [ ] Find others willing to help / test *(preferably someone with an ARM based NAS device)*
 - [ ] Create some new, really simple, potentially useful, stand-alone apps. *(No need to be novel, perhaps directly out of Entware ipk files to begin with?)*. Some ideas:
-  - [x] [Node 23.5.0](https://nodejs.org/dist/v23.5.0/node-v23.5.0-linux-x64.tar.xz)
-  - [x] [Go 1.23.4](https://go.dev/dl/go1.23.4.linux-amd64.tar.gz)
-  - [x] [phpMyAdmin 5.2.1](https://files.phpmyadmin.net/phpMyAdmin/5.2.1/phpMyAdmin-5.2.1-all-languages.tar.gz)
-  - [x] [Mailpit 1.21.8](https://github.com/axllent/mailpit/releases/download/v1.21.8/mailpit-linux-amd64.tar.gz)
-  - [x] [ValKey 8.0.1](https://github.com/valkey-io/valkey/archive/refs/tags/8.0.1.tar.gz)
-  - [x] [Docker 27.4.1](https://download.docker.com/linux/static/stable/x86_64/docker-27.4.1.tgz) / [Docker-Compose 2.32.1](https://github.com/docker/compose/releases/download/v2.32.1/docker-compose-linux-x86_64) / [Portainer 2.25.1](https://github.com/portainer/portainer/releases/download/2.25.1/portainer-2.25.1-linux-amd64.tar.gz)
+  - [x] [Node 24.22.0 LTS](https://nodejs.org/dist/v24.22.0/node-v24.22.0-linux-x64.tar.xz)
+  - [x] [Go 1.27.2](https://go.dev/dl/go1.27.2.linux-amd64.tar.gz)
+  - [x] [phpMyAdmin 5.2.3](https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.tar.gz)
+  - [x] [Mailpit 1.31.6](https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-linux-amd64.tar.gz)
+  - [x] [ValKey 9.1.2](https://github.com/valkey-io/valkey/archive/refs/tags/9.1.2.tar.gz)
+  - [x] [Docker 29.9.1](https://download.docker.com/linux/static/stable/x86_64/docker-29.9.1.tgz) / [Docker-Compose 5.6.0](https://github.com/docker/compose/releases/download/v5.6.0/docker-compose-linux-x86_64) / [Portainer 2.45.2 LTS](https://github.com/portainer/portainer/releases/tag/2.45.2)
   - [ ] [PHP 8.4]
   - [ ] [Git 2.47.1](https://bin.entware.net/x64-k3.2/git_2.39.2-1_x64-3.2.ipk)
 

@@ -40,16 +40,23 @@ if [ -z ${APP_PATH+x} ]; then
 			echo -e  "\n-----------------------------------"
 			echo "BUILDING FOR: ${model} ($arch)"
 			echo -e  "-----------------------------------\n"
-			../../mksapkg-OS5 -E -s -m ${model} > /dev/null
+			if ! ../../mksapkg-OS5 -E -s -m ${model} > /dev/null; then
+				abort "mksapkg-OS5 failed to build the package for: ${model}"
+			fi
+
+			# mksapkg-OS5 names its output: <model>_<app>_<version>.bin(<date>)
+			if ! ls "${APPS_PATH}/${model}_${APP_NAME}_"*.bin* > /dev/null 2>&1; then
+				abort "mksapkg-OS5 did not create a package for: ${model}"
+			fi
 		done
-		
+
 		# Create a source bundle for this architecture
 		echo -e "\nBundle sources for ${arch} into release dir"
 		src_tar="${RELEASE_DIR}/${APP_NAME}_${APP_VERSION}_${arch}.tar.gz"
 		tar -czf ${src_tar} -C ${APP_PATH} .
 
-		rm apkg.sign
-		rm apkg.xml
+		rm -f apkg.sign
+		rm -f apkg.xml
 	}
 
 	# Restore any files temporarily imported or removed
@@ -58,16 +65,15 @@ if [ -z ${APP_PATH+x} ]; then
 		echo -e "\nHelper files removed"
 		rm -f "${APP_PATH}/helpers.sh" "${APP_PATH}/apkg_helpers.sh"
 
-		# Restore the app build instructions
-		if [ -f "${APPS_PATH}/build_${APP_NAME}.sh" ]; then
+		# Restore the app build instructions and readme file
+		#  - attempt the move rather than testing for the file first: on some Docker volume mounts (e.g. a Windows
+		#    drive under WSL) the build script, being open while it runs, isn't visible to tests after it was moved
+		if mv "${APPS_PATH}/build_${APP_NAME}.sh" "${APP_PATH}/build.sh" 2>/dev/null; then
 			echo "Build script restored"
-			mv "${APPS_PATH}/build_${APP_NAME}.sh" "${APP_PATH}/build.sh"
 		fi
 
-		# Restore the app readme file
-		if [ -f "${APPS_PATH}/README_${APP_NAME}.md" ]; then
+		if mv "${APPS_PATH}/README_${APP_NAME}.md" "${APP_PATH}/README.md" 2>/dev/null; then
 			echo "README.md restored"
-			mv "${APPS_PATH}/README_${APP_NAME}.md" "${APP_PATH}/README.md"
 		fi
 	}
 
@@ -122,6 +128,7 @@ if [ -z ${APP_PATH+x} ]; then
 		find ${APPS_PATH} -maxdepth 1 -name "*.bin*" | while read file; do
 			rm -f ${file}
 		done
+		rm -rf "${APP_PATH}/binaries" "${APP_PATH}/apkg.sign" "${APP_PATH}/apkg.xml"
 	}
 
 	# Abort the current operation

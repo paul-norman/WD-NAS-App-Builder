@@ -4,7 +4,8 @@
 # Some models use AMD64 architecture and others use ARM
 declare -A MODELS
 MODELS[x64]="MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100"
-MODELS[armv7l]="WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra"
+# Node.js 24+ no longer publishes 32-bit ARM (armv7l) builds
+#MODELS[armv7l]="WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra"
 
 for ARCH in "${!MODELS[@]}"; do
 	NODE_REPO="https://nodejs.org/dist/v${APP_VERSION}/node-v${APP_VERSION}-linux-${ARCH}.tar.xz"

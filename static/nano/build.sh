@@ -4,9 +4,9 @@ set -e
 set -o pipefail
 set -x
 
-MUSL_VERSION=1.2.5
-NCURSES_VERSION=6.3
-NANO_VERSION=8.3
+MUSL_VERSION=1.2.6
+NCURSES_VERSION=6.6
+VERSION=9.2
 
 ARCH=$(uname -m)
 if [ ${ARCH} = "x86_64" ]; then
@@ -16,7 +16,7 @@ else
 fi
 
 BUILD_PATH=/build
-OUTPUT_PATH=/data/packages/static/nano/${NANO_VERSION}/${ARCH}
+OUTPUT_PATH=/data/packages/static/nano/${VERSION}/${ARCH}
 
 function build_musl() {
 	cd ${BUILD_PATH}
@@ -37,9 +37,9 @@ function build_musl() {
 function build_ncurses() {
 	cd ${BUILD_PATH}
 
-	# Download
-	curl -LO https://invisible-island.net/datafiles/release/ncurses.tar.gz
-	tar zxvf ncurses.tar.gz
+	# Download (a pinned version: the unversioned ncurses.tar.gz always points at the newest release)
+	curl -LO https://ftp.gnu.org/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
+	tar zxvf ncurses-${NCURSES_VERSION}.tar.gz
 	cd ncurses-${NCURSES_VERSION}
 
 	# Configure
@@ -65,9 +65,9 @@ function build_nano() {
 	cd ${BUILD_PATH}
 
 	# Download
-	curl -LO https://www.nano-editor.org/dist/v${NANO_VERSION%.*}/nano-${NANO_VERSION}.tar.xz
-	tar xJvf nano-${NANO_VERSION}.tar.xz
-	cd nano-${NANO_VERSION}
+	curl -LO https://www.nano-editor.org/dist/v${VERSION%.*}/nano-${VERSION}.tar.xz
+	tar xJvf nano-${VERSION}.tar.xz
+	cd nano-${VERSION}
 	
 	# Add in missing header from OS
 	mkdir -p ${BUILD_PATH}/ncurses-install/usr/include/linux
@@ -100,14 +100,14 @@ function run() {
 	
 	# Copy to output
 	mkdir -p $OUTPUT_PATH
-	cp ${BUILD_PATH}/nano-${NANO_VERSION}/src/nano ${OUTPUT_PATH}/
+	cp ${BUILD_PATH}/nano-${VERSION}/src/nano ${OUTPUT_PATH}/
 	
 	# Create a latest release file for ease of use in packages
 	LATEST_PATH="$(dirname ${OUTPUT_PATH})"
 	LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
 	echo -e "\nCreating a latest release file: ${LATEST_PATH}"
 	rm -f ${LATEST_PATH}
-	printf "%s" "${NANO_VERSION}" > ${LATEST_PATH}
+	printf "%s" "${VERSION}" > ${LATEST_PATH}
 	
 	chown -R 1000:1000 /data/packages;
 }

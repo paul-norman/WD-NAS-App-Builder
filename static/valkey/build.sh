@@ -4,7 +4,7 @@ set -e
 set -o pipefail
 set -x
 
-VALKEY_VERSION=8.0.1
+VERSION=9.1.2
 
 ARCH=$(uname -m)
 if [ ${ARCH} = "x86_64" ]; then
@@ -14,13 +14,13 @@ else
 fi
 
 BUILD_PATH="/build"
-OUTPUT_PATH="/data/packages/static/valkey/${VALKEY_VERSION}/${ARCH}"
+OUTPUT_PATH="/data/packages/static/valkey/${VERSION}/${ARCH}"
 
 function build_valkey() {
 	cd ${BUILD_PATH}
 
 	# Download
-	wget "https://github.com/valkey-io/valkey/archive/refs/tags/${VALKEY_VERSION}.tar.gz" -O valkey.tar.gz
+	wget "https://github.com/valkey-io/valkey/archive/refs/tags/${VERSION}.tar.gz" -O valkey.tar.gz
 	tar -xf valkey.tar.gz --strip-components=1
 	rm valkey.tar.gz
 
@@ -46,7 +46,7 @@ function run() {
 	LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
 	echo -e "\nCreating a latest release file: ${LATEST_PATH}"
 	rm -f ${LATEST_PATH}
-	printf "%s" "${VALKEY_VERSION}" > ${LATEST_PATH}
+	printf "%s" "${VERSION}" > ${LATEST_PATH}
 	
 	chown -R 1000:1000 /data/packages;
 }
