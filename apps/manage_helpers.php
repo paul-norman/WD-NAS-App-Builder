@@ -120,6 +120,7 @@ function manage_styles($id)
 		{$s} input[type=text] { width: 22rem; max-width: 100%; padding: 0.3rem; }
 		{$s} input::placeholder { color: #b0b0b0; opacity: 1; }
 		{$s} button, {$s} a.mg-button { display: inline-block; margin: 0.2rem 0.4rem 0.2rem 0; padding: 0.3rem 0.8rem; cursor: pointer; }
+		{$s} [hidden] { display: none !important; }
 		{$s} .mg-ok { color: #2e7d32; }
 		{$s} .mg-bad { color: #c62828; }
 		{$s} .mg-note { opacity: 0.75; font-size: 0.9em; }

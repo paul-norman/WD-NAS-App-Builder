@@ -59,12 +59,14 @@ if [ ! -x "${OPT_ROOT}/bin/opkg" ]; then
 
 	log "Installing Entware into: ${OPT_ROOT}"
 	sh "${APP_PATH}/installer/generic.sh" >> ${LOG} 2>&1
+fi
 
-	# The installer bootstraps over plain HTTP (no CA certificates yet), so switch package downloads to HTTPS
-	if /opt/bin/opkg install wget-ssl ca-bundle >> ${LOG} 2>&1; then
-		log "Switching Entware package downloads to HTTPS"
-		sed -i 's|http://bin.entware.net|https://bin.entware.net|g' /opt/etc/opkg.conf
-	else
-		log "Could not install wget-ssl, so Entware packages are still downloaded over HTTP"
+# Entware's installer bootstraps over plain HTTP (no CA certificates yet), and older installs taken over above may still
+# use it, so switch package downloads to HTTPS (if that fails, the management page can retry it)
+if grep -q "http://bin.entware.net" "${OPT_ROOT}/etc/opkg.conf" 2>/dev/null; then
+	if ! grep -q " /opt " /proc/mounts; then
+		mount --bind "${OPT_ROOT}" /opt
 	fi
+	log "Switching Entware package downloads to HTTPS"
+	sh "${APP_PATH}/use_https.sh" >> ${LOG} 2>&1
 fi

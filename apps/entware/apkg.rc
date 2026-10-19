@@ -6,7 +6,7 @@ Homepage:			https://entware.net/
 Description:		Entware: the opkg package manager, with thousands of extra command line tools for the NAS.
 Icon:				entware.svg
 AddonShowName:		Entware
-AddonIndexPage:		index.html
+AddonIndexPage:		index.php
 AddonUsedPort:
 AddonDefaultPort:
 AddonDefaultGroup:
@@ -15,7 +15,7 @@ InstDepend:
 InstConflict:
 StartDepend:
 StartConflict:
-CenterType:			0
+CenterType:			1
 UserControl:		1
 MinFWVer:			5.27.157
 MaxFWVer:
