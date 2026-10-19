@@ -20,3 +20,7 @@
 # --------------------------------------------------------------------
 # Cleanup script to revert the init.sh steps. Ensures a clean shutdown
 # --------------------------------------------------------------------
+
+# Remove the management page (the web path is removed by stop.sh)
+log "removing management path: ${APP_MANAGE_PATH}"
+rm -rf ${APP_MANAGE_PATH}

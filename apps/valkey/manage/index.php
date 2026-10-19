@@ -6,20 +6,7 @@ header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store');
 ?>
 <div id="valkey-manage">
-	<style>
-		/* Everything is scoped to #valkey-manage: this page is injected into the dashboard's own window */
-		#valkey-manage { font-family: inherit; color: inherit; max-width: 46rem; padding: 0.5rem 0; line-height: 1.5; }
-		#valkey-manage h2 { font-size: 1.3em; margin: 0 0 0.75rem; }
-		#valkey-manage h3 { font-size: 1.05em; margin: 1.25rem 0 0.5rem; }
-		#valkey-manage table { border-collapse: collapse; }
-		#valkey-manage td { padding: 0.15rem 1rem 0.15rem 0; vertical-align: top; }
-		#valkey-manage code { background: rgba(127, 127, 127, 0.15); border-radius: 4px; padding: 0.1rem 0.35rem; word-break: break-all; }
-		#valkey-manage input[type=text] { width: 22rem; max-width: 100%; padding: 0.3rem; }
-		#valkey-manage button { margin: 0.2rem 0.4rem 0.2rem 0; padding: 0.3rem 0.8rem; cursor: pointer; }
-		#valkey-manage .vk-ok { color: #2e7d32; }
-		#valkey-manage .vk-bad { color: #c62828; }
-		#valkey-manage .vk-note { opacity: 0.75; font-size: 0.9em; }
-	</style>
+	<?php manage_styles('valkey-manage'); ?>
 
 	<h2>ValKey</h2>
 	<table>
@@ -31,10 +18,10 @@ header('Cache-Control: no-store');
 	<h3>Password</h3>
 	<p>Clients connect with: <code data-vk="password">••••••••••••</code>
 		<button type="button" data-vk-action="show">Show</button></p>
-	<p class="vk-note">e.g. <code>REDISCLI_AUTH=&lt;password&gt; valkey-cli</code> over SSH, or the password setting of your app's Redis / ValKey client.</p>
+	<p class="mg-note">e.g. <code>REDISCLI_AUTH=&lt;password&gt; valkey-cli</code> over SSH, or the password setting of your app's Redis / ValKey client.</p>
 	<p><input type="text" data-vk="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
 		<button type="button" data-vk-action="set">Change password</button></p>
-	<p class="vk-note">The new password takes effect immediately, so update your clients too. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
+	<p class="mg-note">The new password takes effect immediately, so update your clients too. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
 	<p data-vk="message"></p>
 
 	<script>
@@ -49,7 +36,7 @@ header('Cache-Control: no-store');
 		function say(text, good) {
 			var message = part('message');
 			message.textContent = text;
-			message.className = good ? 'vk-ok' : 'vk-bad';
+			message.className = good ? 'mg-ok' : 'mg-bad';
 		}
 
 		// API calls carry X-Requested-With (nasAdmin requires it) and this page's CSRF token
@@ -70,7 +57,7 @@ header('Cache-Control: no-store');
 				if (!d.ok) { say(d.error, false); return; }
 				var status = part('status');
 				status.textContent = d.running ? 'Running' : 'Stopped';
-				status.className = d.running ? 'vk-ok' : 'vk-bad';
+				status.className = d.running ? 'mg-ok' : 'mg-bad';
 				part('version').textContent = d.version || 'unknown';
 				part('listen').textContent = (d.bind || 'all interfaces') + ', port ' + d.port + (d.has_password ? ' (password required)' : ' (no password!)');
 			});

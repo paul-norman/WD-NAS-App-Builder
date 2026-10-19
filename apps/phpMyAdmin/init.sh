@@ -50,3 +50,8 @@ log "creating MySQL system users";
 mysql --user=root --password= -N -e "CREATE USER IF NOT EXISTS 'admin'@'localhost' IDENTIFIED BY '${ADMIN_PASSWORD}';";
 mysql --user=root --password= -N -e "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, DELETE HISTORY ON *.* TO 'admin'@'localhost' WITH GRANT OPTION;";
 mysql --user=root --password= -N -e "FLUSH PRIVILEGES;";
+
+# The management page (shown in the NAS dashboard) only goes where nasAdmin requires a NAS login
+log "linking management page from: ${APP_PATH}/manage/* to: ${APP_MANAGE_PATH}"
+mkdir -p ${APP_MANAGE_PATH}
+ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1

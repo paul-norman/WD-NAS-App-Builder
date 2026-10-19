@@ -8,6 +8,10 @@ Log in as `admin`. A random password is generated on first install and saved, re
 
 ### Changing the admin password
 
+The easiest way is phpMyAdmin's page in the NAS dashboard *(Apps → phpMyAdmin)*: it shows the password and can change it - to one you choose, or a generated one - and also links to phpMyAdmin itself. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+
+It can also be done in phpMyAdmin itself:
+
 1. Log in to phpMyAdmin as `admin`.
 2. On the home page, under **General settings**, click **Change password**, enter the new password and click **Go**.
 3. Over SSH, put the new password in the password file so it stays in sync *(edit it with `vi` rather than `echo`, to keep the password out of your shell history)*:
