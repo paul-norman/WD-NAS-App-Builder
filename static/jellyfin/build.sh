@@ -7,6 +7,7 @@
 #  - libva.so.2, libva-drm.so.2, libdrm.so.2 - newer than the NAS's (libva 2.10, libdrm 2.4.104), which
 #                      jellyfin-ffmpeg's portable build needs for VA-API hardware transcoding. libva uses the NAS's own
 #                      Intel i965 driver from /usr/lib/x86_64-linux-gnu/dri
+#  - vainfo - lists what the GPU can decode and encode, so that the app can pick Jellyfin's transcoding settings
 
 set -e
 set -o pipefail
@@ -17,6 +18,7 @@ VERSION=12.2
 SQLITE_VERSION=3530300
 SQLITE_YEAR=2026
 LIBVA_VERSION=2.24.1
+LIBVA_UTILS_VERSION=2.24.0
 LIBDRM_VERSION=2.4.134
 
 ARCH=$(uname -m)
@@ -96,6 +98,20 @@ function build_libva() {
 	ninja -C build install
 }
 
+function build_libva_utils() {
+	cd ${BUILD_PATH}
+
+	# Download
+	wget -q "https://github.com/intel/libva-utils/archive/refs/tags/${LIBVA_UTILS_VERSION}.tar.gz" -O libva-utils.tar.gz
+	tar -xf libva-utils.tar.gz
+	cd "libva-utils-${LIBVA_UTILS_VERSION}"
+
+	# Only vainfo is used, over DRM (no X11 / Wayland)
+	PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig meson setup build --prefix=${PREFIX} --buildtype=release \
+		-Ddrm=true -Dx11=false -Dwayland=false -Dtests=false
+	ninja -C build vainfo/vainfo
+}
+
 function run() {
 	# Clean start
 	if [ -d ${BUILD_PATH} ]; then
@@ -106,12 +122,14 @@ function run() {
 	build_sqlite
 	build_libdrm
 	build_libva
+	build_libva_utils
 
 	# Copy to output (the real files, under the names they are loaded by)
 	mkdir -p ${OUTPUT_PATH}
 	cp ${BUILD_PATH}/sqlite-amalgamation-${SQLITE_VERSION}/libe_sqlite3.so ${OUTPUT_PATH}/
 	cp -L ${PREFIX}/lib/libdrm.so.2 ${PREFIX}/lib/libva.so.2 ${PREFIX}/lib/libva-drm.so.2 ${OUTPUT_PATH}/
-	strip ${OUTPUT_PATH}/libdrm.so.2 ${OUTPUT_PATH}/libva.so.2 ${OUTPUT_PATH}/libva-drm.so.2
+	cp ${BUILD_PATH}/libva-utils-${LIBVA_UTILS_VERSION}/build/vainfo/vainfo ${OUTPUT_PATH}/
+	strip ${OUTPUT_PATH}/libdrm.so.2 ${OUTPUT_PATH}/libva.so.2 ${OUTPUT_PATH}/libva-drm.so.2 ${OUTPUT_PATH}/vainfo
 
 	# Create a latest release file for ease of use in packages
 	LATEST_PATH="$(dirname ${OUTPUT_PATH})"

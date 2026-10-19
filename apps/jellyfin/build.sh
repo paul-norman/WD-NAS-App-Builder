@@ -17,9 +17,9 @@ for ARCH in "${!MODELS[@]}"; do
 	# The libraries the portable releases need, built for the NAS's glibc by static/jellyfin (which the root build.sh
 	# runs first). libe_sqlite3.so must match this Jellyfin version's bundled SQLite, so they are built per version
 	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
-	for lib in libe_sqlite3.so libva.so.2 libva-drm.so.2 libdrm.so.2; do
+	for lib in libe_sqlite3.so libva.so.2 libva-drm.so.2 libdrm.so.2 vainfo; do
 		if [ ! -f "${STATIC_PATH}/${lib}" ]; then
-			abort "${lib} not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+			abort "${lib} not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH} - delete that folder first if it is from an older build)"
 		fi
 	done
 
@@ -44,6 +44,7 @@ for ARCH in "${!MODELS[@]}"; do
 	# Replace Jellyfin's SQLite (built for a newer glibc) and give ffmpeg its newer libva / libdrm
 	cp "${STATIC_PATH}/libe_sqlite3.so" jellyfin/libe_sqlite3.so
 	cp "${STATIC_PATH}/libva.so.2" "${STATIC_PATH}/libva-drm.so.2" "${STATIC_PATH}/libdrm.so.2" ffmpeg/lib/
+	cp "${STATIC_PATH}/vainfo" ffmpeg/
 
 	cd ../
 

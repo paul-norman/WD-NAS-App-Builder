@@ -37,6 +37,13 @@ fi
 ulimit -n 65536 2>/dev/null
 export TMPDIR="${APP_PERSISTENT_DATA_PATH}/tmp"
 
+# A fresh install: start with hardware transcoding set up for this NAS's GPU (Jellyfin fills in the other settings)
+ENCODING_FILE="${APP_PERSISTENT_DATA_PATH}/config/encoding.xml"
+if [ ! -f "${ENCODING_FILE}" ]; then
+	log "setting up transcoding for this NAS's GPU in: ${ENCODING_FILE}"
+	sh "${APP_PATH}/transcoding.sh" apply "${ENCODING_FILE}" >> ${LOG} 2>&1
+fi
+
 # bin/ffmpeg is a wrapper that runs jellyfin-ffmpeg with the newer libva / libdrm it needs (the NAS's are too old)
 log "starting Jellyfin (output: ${JELLYFIN_LOG})"
 "${APP_PATH}/binaries/jellyfin/jellyfin" \
