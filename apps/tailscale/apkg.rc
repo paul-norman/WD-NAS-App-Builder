@@ -1,0 +1,23 @@
+Package:			tailscale
+Version:			1.104.1
+Packager:			PDN
+Email:
+Homepage:			https://tailscale.com/
+Description:		Tailscale: secure, private access to the NAS from anywhere, over WireGuard.
+Icon:				tailscale.svg
+AddonShowName:		Tailscale
+AddonIndexPage:		index.html
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

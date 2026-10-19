@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Tailscale</title>
+	<style>
+		body { font-family: sans-serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #222; }
+		code, pre { background: #f2f4f7; border-radius: 4px; padding: 0.1rem 0.3rem; }
+		pre { padding: 0.75rem; overflow-x: auto; }
+	</style>
+</head>
+<body>
+	<h1>Tailscale</h1>
+	<p>Tailscale connects the NAS to your private Tailscale network (tailnet), so you can reach it securely from anywhere. It is set up over SSH:</p>
+	<pre>tailscale up              # log in - open the link it shows to add the NAS to your tailnet
+tailscale status          # show the NAS's Tailscale address and connected devices
+tailscale ip -4           # show the NAS's Tailscale IPv4 address</pre>
+	<p>The NAS stays logged in and reconnects by itself after a restart. Options such as sharing your home network (<code>--advertise-routes</code>) or acting as an exit node (<code>--advertise-exit-node</code>) are added to <code>tailscale up</code>, or changed later with <code>tailscale set</code>.</p>
+	<p>See the <a href="https://tailscale.com/kb" target="_blank" rel="noopener">Tailscale documentation</a> for more.</p>
+</body>
+</html>
