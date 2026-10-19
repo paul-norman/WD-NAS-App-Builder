@@ -9,6 +9,9 @@ MODELS[armhf]="WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100
 COMPOSE_VERSION=5.6.0
 
 for ARCH in "${!MODELS[@]}"; do
+	# Skip architectures without a wanted model (MODEL_OVERRIDE)
+	models_wanted ${MODELS[${ARCH}]} || continue
+
 	ARCH1=$ARCH
 	ARCH2=$ARCH
 	if [ "$ARCH" = "armhf" ]; then

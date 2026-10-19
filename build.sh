@@ -50,7 +50,7 @@ if ! docker build --platform linux/amd64 -f docker/build.Dockerfile -t wd_builde
 fi
 
 # Create packages for app (output ownership is handed back even if the build fails)
-docker run --rm ${DOCKER_TTY} --platform linux/amd64 -v "$(pwd)":/data wd_builder:latest /bin/bash -c "\
+docker run --rm ${DOCKER_TTY} --platform linux/amd64 -e MODEL_OVERRIDE -v "$(pwd)":/data wd_builder:latest /bin/bash -c "\
 	cd /data;\
 	find -type f -name \"*.sh\" -exec chmod +x {} +;\
 	find -type f -name \"*.rc\" -exec chmod +x {} +;\

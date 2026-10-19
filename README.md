@@ -12,7 +12,9 @@ To build an existing app, there is a build script in the root directory that wil
 ./build.sh <app_name>
 ```
 
-The WD bin files will be created in `/packages/<app_name>/<version>/*`. A file containing the most recently built version number will also be created in `/packages/<app_name>/latest`.
+The WD bin files will be created in `/packages/<app_name>/<version>/*`.
+
+To build for a single model only *(much quicker while developing)*, set `MODEL_OVERRIDE` to its model name, e.g. `MODEL_OVERRIDE=MyCloudPR4100 ./build.sh <app_name>`. Each build replaces that version's release directory, so run a normal build again before publishing all models. A file containing the most recently built version number will also be created in `/packages/<app_name>/latest`.
 
 If you don't have docker installed, see the [guide](docker/README.md) in the `docker` directory. If you're on Windows 10 or 11, see the [Windows guide](docker/WINDOWS.md) for WSL / docker installation.
 

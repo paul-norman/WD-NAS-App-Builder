@@ -43,6 +43,18 @@ In addition to these, build scripts also load in all [APKG helpers](#apkg-helper
 build "MyCloudPR4100" "MyCloudPR2100" "WDMyCloudDL4100" "WDMyCloudDL2100" "amd64"
 ```
 
+`models_wanted()` - succeeds if any of the given models will be built. Build loops use it to skip downloads for architectures that `MODEL_OVERRIDE` excludes.
+
+```bash
+models_wanted ${MODELS[${ARCH}]} || continue
+```
+
+`download()` - downloads a file once into `packages/cache/` and copies it into the current directory *(later builds reuse the cached copy)*. Give it a file name that includes the version, as the cache is keyed by name.
+
+```bash
+download "https://example.com/app-1.2.3.tar.gz" "app-1.2.3.tar.gz" || abort "download failed"
+```
+
 `abort()` - stops execution and restores any temporarily moved files with an error message.
 
 ```bash

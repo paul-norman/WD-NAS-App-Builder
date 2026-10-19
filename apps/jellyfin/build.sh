@@ -8,6 +8,9 @@ MODELS[amd64]="MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100"
 FFMPEG_VERSION=8.1.3-1
 
 for ARCH in "${!MODELS[@]}"; do
+	# Skip architectures without a wanted model (MODEL_OVERRIDE)
+	models_wanted ${MODELS[${ARCH}]} || continue
+
 	JELLYFIN_REPO="https://repo.jellyfin.org/files/server/linux/stable/v${APP_VERSION}/${ARCH}/jellyfin_${APP_VERSION}-${ARCH}.tar.gz"
 	FFMPEG_REPO="https://github.com/jellyfin/jellyfin-ffmpeg/releases/download/v${FFMPEG_VERSION}/jellyfin-ffmpeg_${FFMPEG_VERSION}_portable_linux64-gpl.tar.xz"
 
@@ -25,16 +28,18 @@ for ARCH in "${!MODELS[@]}"; do
 	cd binaries
 
 	# Download and extract Jellyfin (the server and its web client, with their own .NET runtime)
-	if ! wget -q ${JELLYFIN_REPO} -O jellyfin.tar.gz || ! tar -xzf jellyfin.tar.gz || [ ! -x jellyfin/jellyfin ]; then
+	JELLYFIN_FILE="jellyfin_${APP_VERSION}-${ARCH}.tar.gz"
+	if ! download "${JELLYFIN_REPO}" "${JELLYFIN_FILE}" || ! tar -xzf "${JELLYFIN_FILE}" || [ ! -x jellyfin/jellyfin ]; then
 		abort "Jellyfin could not be downloaded or extracted from: ${JELLYFIN_REPO}"
 	fi
-	rm jellyfin.tar.gz
+	rm "${JELLYFIN_FILE}"
 
 	# Download and extract jellyfin-ffmpeg (ffmpeg and ffprobe)
-	if ! wget -q ${FFMPEG_REPO} -O ffmpeg.tar.xz || ! tar -xJf ffmpeg.tar.xz -C ffmpeg || [ ! -x ffmpeg/ffmpeg ]; then
+	FFMPEG_FILE="jellyfin-ffmpeg_${FFMPEG_VERSION}_portable_linux64-gpl.tar.xz"
+	if ! download "${FFMPEG_REPO}" "${FFMPEG_FILE}" || ! tar -xJf "${FFMPEG_FILE}" -C ffmpeg || [ ! -x ffmpeg/ffmpeg ]; then
 		abort "jellyfin-ffmpeg could not be downloaded or extracted from: ${FFMPEG_REPO}"
 	fi
-	rm ffmpeg.tar.xz
+	rm "${FFMPEG_FILE}"
 
 	# Replace Jellyfin's SQLite (built for a newer glibc) and give ffmpeg its newer libva / libdrm
 	cp "${STATIC_PATH}/libe_sqlite3.so" jellyfin/libe_sqlite3.so

@@ -15,6 +15,40 @@ if [ -z ${APP_PATH+x} ]; then
 
 	# DECLARE FUNCTIONS --------------------------------------------------------
 
+	# For build loops: succeeds if any of the given models will be built (so downloads for other architectures can be
+	# skipped when MODEL_OVERRIDE is set)
+	models_wanted() {
+		if [ -z "${MODEL_OVERRIDE}" ]; then
+			return 0
+		fi
+		for model in "$@"; do
+			if [ "${model}" = "${MODEL_OVERRIDE}" ]; then
+				return 0
+			fi
+		done
+		return 1
+	}
+
+	# Downloads a file once into packages/cache (reused by later builds) and copies it into the current directory
+	download() {
+		local url=$1
+		local file=${2:-$(basename "$1")}
+		local cache="${REPO_PATH}/packages/cache"
+
+		mkdir -p "${cache}"
+		if [ ! -s "${cache}/${file}" ]; then
+			echo "Downloading: ${url}"
+			if ! wget -q "${url}" -O "${cache}/${file}.part"; then
+				rm -f "${cache}/${file}.part"
+				return 1
+			fi
+			mv "${cache}/${file}.part" "${cache}/${file}"
+		else
+			echo "Using cached download: ${file}"
+		fi
+		cp "${cache}/${file}" "${file}"
+	}
+
 	# Build function accepts an array of WD NAS device models and builds for all of them
 	build() {
 		models=("$@")
@@ -33,6 +67,15 @@ if [ -z ${APP_PATH+x} ]; then
 			arch="armhf"
 		elif [ "$arch" = "arm" ]; then
 			arch="armhf"
+		fi
+
+		# MODEL_OVERRIDE builds only that one model (e.g. MODEL_OVERRIDE=MyCloudPR4100 ./build.sh nano)
+		if [ -n "${MODEL_OVERRIDE}" ]; then
+			if ! models_wanted "${models[@]}"; then
+				echo "Skipping ${arch} models (MODEL_OVERRIDE=${MODEL_OVERRIDE})"
+				return 0
+			fi
+			models=("${MODEL_OVERRIDE}")
 		fi
 
 		# Package from a copy on the container's own file system, so that the packaged file permissions are correct
@@ -129,6 +172,10 @@ if [ -z ${APP_PATH+x} ]; then
 	# Move the files to the release location with sensible names
 	move_binaries_to_release_dir() {	
 		echo -e "\nMoving binaries to release dir"
+		if ! ls ${APPS_PATH}/*.bin* > /dev/null 2>&1; then
+			echo "CRITICAL ERROR: no packages were built (does MODEL_OVERRIDE=${MODEL_OVERRIDE} match one of the app's models?)"
+			exit 1
+		fi
 		find ${APPS_PATH} -maxdepth 1 -name "*.bin*" | while read file; do
 			file=${file/${APPS_PATH}\//}
 			parts=(${file//_${APP_NAME}_/ })
@@ -152,7 +199,7 @@ if [ -z ${APP_PATH+x} ]; then
 		find ${APPS_PATH} -maxdepth 1 -name "*.bin*" | while read file; do
 			rm -f ${file}
 		done
-		rm -rf "${APP_PATH}/binaries" "${APP_PATH}/modules" "${APP_PATH}/apkg.sign" "${APP_PATH}/apkg.xml"
+		rm -rf "${APP_PATH}/binaries" "${APP_PATH}/modules" "${APP_PATH}/installer" "${APP_PATH}/apkg.sign" "${APP_PATH}/apkg.xml"
 	}
 
 	# Abort the current operation

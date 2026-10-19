@@ -8,6 +8,9 @@ MODELS[amd64]="MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100"
 #MODELS[armhf]="WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra"
 
 for ARCH in "${!MODELS[@]}"; do
+	# Skip architectures without a wanted model (MODEL_OVERRIDE)
+	models_wanted ${MODELS[${ARCH}]} || continue
+
 	# The statically linked binaries are built beforehand by build_static.sh (the root build.sh runs it)
 	STATIC_VERSION=$(cat "${REPO_PATH}/packages/static/${APP_NAME}/latest" 2>/dev/null)
 	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${STATIC_VERSION}/${ARCH}"
