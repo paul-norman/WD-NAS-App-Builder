@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Node.js: the JavaScript runtime, with npm, to run JavaScript applications on the NAS.</en-US>
+	<fr-FR>Node.js : l'environnement d'exécution JavaScript, avec npm, pour exécuter des applications JavaScript sur le NAS.</fr-FR>
+	<es-ES>Node.js: el entorno de ejecución de JavaScript, con npm, para ejecutar aplicaciones JavaScript en el NAS.</es-ES>
+	<de-DE>Node.js: die JavaScript-Laufzeitumgebung, mit npm, um JavaScript-Anwendungen auf dem NAS auszuführen.</de-DE>
+</config>

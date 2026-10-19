@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
 	<en-US>Tailscale: secure, private access to the NAS from anywhere, over WireGuard.</en-US>
+	<fr-FR>Tailscale : un accès sécurisé et privé au NAS depuis n'importe où, via WireGuard.</fr-FR>
+	<es-ES>Tailscale: acceso seguro y privado al NAS desde cualquier lugar, mediante WireGuard.</es-ES>
+	<de-DE>Tailscale: sicherer, privater Zugriff auf das NAS von überall, über WireGuard.</de-DE>
 </config>

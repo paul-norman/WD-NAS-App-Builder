@@ -3,7 +3,7 @@ Version:			29.9.1
 Packager:			PDN
 Email:
 Homepage:			https://docker.com
-Description:		Docker is a set of platform as a service (PaaS) products that use OS-level virtualisation to deliver software in packages called containers.
+Description:		Docker: run applications in containers on the NAS, with Docker Compose and the Portainer web UI.
 Icon:				logo.svg
 AddonShowName:		Docker
 AddonIndexPage:		index.php

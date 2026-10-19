@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
 	<en-US>Entware: the opkg package manager, with thousands of extra command line tools for the NAS.</en-US>
+	<fr-FR>Entware : le gestionnaire de paquets opkg, avec des milliers d'outils en ligne de commande supplémentaires pour le NAS.</fr-FR>
+	<es-ES>Entware: el gestor de paquetes opkg, con miles de herramientas de línea de comandos adicionales para el NAS.</es-ES>
+	<de-DE>Entware: der Paketmanager opkg, mit Tausenden zusätzlicher Kommandozeilenwerkzeuge für das NAS.</de-DE>
 </config>

@@ -3,7 +3,7 @@ Version:			12.2
 Packager:			PDN
 Email:
 Homepage:			https://jellyfin.org
-Description:		The Free Software Media System
+Description:		Jellyfin: the free media server - stream your films, TV, music and photos, with hardware transcoding.
 Icon:				jellyfin.svg
 AddonShowName:		Jellyfin Media Server
 AddonIndexPage:		index.php

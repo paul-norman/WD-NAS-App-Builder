@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Docker: run applications in containers on the NAS, with Docker Compose and the Portainer web UI.</en-US>
+	<fr-FR>Docker : exécutez des applications dans des conteneurs sur le NAS, avec Docker Compose et l'interface web Portainer.</fr-FR>
+	<es-ES>Docker: ejecuta aplicaciones en contenedores en el NAS, con Docker Compose y la interfaz web Portainer.</es-ES>
+	<de-DE>Docker: Anwendungen in Containern auf dem NAS ausführen, mit Docker Compose und der Weboberfläche Portainer.</de-DE>
+</config>

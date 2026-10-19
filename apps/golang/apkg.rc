@@ -3,7 +3,7 @@ Version:			1.27.2
 Packager:			PDN
 Email:
 Homepage:			https://go.dev/
-Description:		A programming language to build simple, secure, scalable systems.
+Description:		Go: the Go programming language and tools, to build and run Go programs on the NAS.
 Icon:				logo.svg
 AddonShowName:		GoLang
 AddonIndexPage:		index.php

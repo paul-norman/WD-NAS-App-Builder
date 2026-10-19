@@ -3,7 +3,7 @@ Version:			24.22.0
 Packager:			PDN
 Email:
 Homepage:			https://nodejs.org
-Description:		Node.js® is an open-source, cross-platform JavaScript runtime environment.
+Description:		Node.js: the JavaScript runtime, with npm, to run JavaScript applications on the NAS.
 Icon:				logo.svg
 AddonShowName:		Node.js
 AddonIndexPage:		index.php

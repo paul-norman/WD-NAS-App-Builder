@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
 	<en-US>Syncthing: continuous, private, peer-to-peer file synchronisation between your devices.</en-US>
+	<fr-FR>Syncthing : synchronisation de fichiers continue, privée et pair à pair entre vos appareils.</fr-FR>
+	<es-ES>Syncthing: sincronización de archivos continua, privada y entre pares (P2P) entre tus dispositivos.</es-ES>
+	<de-DE>Syncthing: kontinuierliche, private Peer-to-Peer-Dateisynchronisierung zwischen Ihren Geräten.</de-DE>
 </config>

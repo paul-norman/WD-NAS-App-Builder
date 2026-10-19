@@ -3,7 +3,7 @@ Version:			5.2.3
 Packager:			PDN
 Email:
 Homepage:			https://www.phpmyadmin.net/
-Description:		A free software tool written in PHP, intended to handle the administration of MySQL over the Web.
+Description:		phpMyAdmin: manage the NAS's MySQL (MariaDB) databases from a web interface.
 Icon:				logo.png
 AddonShowName:		phpMyAdmin
 AddonIndexPage:		index.php

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Go: the Go programming language and tools, to build and run Go programs on the NAS.</en-US>
+	<fr-FR>Go : le langage de programmation Go et ses outils, pour compiler et exécuter des programmes Go sur le NAS.</fr-FR>
+	<es-ES>Go: el lenguaje de programación Go y sus herramientas, para compilar y ejecutar programas Go en el NAS.</es-ES>
+	<de-DE>Go: die Programmiersprache Go und ihre Werkzeuge, um Go-Programme auf dem NAS zu kompilieren und auszuführen.</de-DE>
+</config>

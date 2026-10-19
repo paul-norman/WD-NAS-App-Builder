@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>ValKey: a fast in-memory key/value database, and a drop-in replacement for Redis.</en-US>
+	<fr-FR>ValKey : une base de données clé-valeur rapide en mémoire, et un remplaçant direct de Redis.</fr-FR>
+	<es-ES>ValKey: una base de datos clave-valor en memoria muy rápida, y un sustituto directo de Redis.</es-ES>
+	<de-DE>ValKey: eine schnelle In-Memory-Schlüssel-Wert-Datenbank und ein direkter Ersatz für Redis.</de-DE>
+</config>

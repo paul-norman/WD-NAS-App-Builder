@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>phpMyAdmin: manage the NAS's MySQL (MariaDB) databases from a web interface.</en-US>
+	<fr-FR>phpMyAdmin : gérez les bases de données MySQL (MariaDB) du NAS depuis une interface web.</fr-FR>
+	<es-ES>phpMyAdmin: administra las bases de datos MySQL (MariaDB) del NAS desde una interfaz web.</es-ES>
+	<de-DE>phpMyAdmin: die MySQL-Datenbanken (MariaDB) des NAS über eine Weboberfläche verwalten.</de-DE>
+</config>

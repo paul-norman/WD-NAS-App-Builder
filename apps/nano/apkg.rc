@@ -3,7 +3,7 @@ Version:			9.2
 Packager:			PDN
 Email:
 Homepage:			https://www.nano-editor.org/
-Description:		GNU nano was designed to be a free replacement for the Pico text editor.
+Description:		GNU nano: a small, easy to use command line text editor.
 Icon:				nano.png
 AddonShowName:		Nano Editor
 AddonIndexPage:

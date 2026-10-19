@@ -21,6 +21,7 @@ If you don't have docker installed, see the [guide](../../docker/README.md) in t
 - Edit the `apps/new_app/apkg.rc` file to have a `Package` value which exactly matches the new directory name.
   - e.g. `sed -i 's/Package:.*/Package:\t\t\tnew_app/' apps/new_app/apkg.rc`
   - Other options `apkg.rc` are explained in the [guide](../../guides/README.md).
+- Edit `web/desc.xml` with the app's description in each language *(shown in the NAS web UI; the template has English, French, Spanish and German)*, and use the English text for `Description` in `apkg.rc` too.
 - The `apps/new_app/build.sh` script runs locally to package your app. Customise it to your app's needs *(e.g. if you need to package downloaded binaries)*.
   - If you're downloading the application files on the WD NAS device itself, you can leave this file alone.
 - All other shell scripts (`apps/new_app/*.sh`) run on the WD NAS device itself to perform the actions that are required. See the [overview](../../guides/README.md) and the [script helpers guide](../README.md#script-helpers).

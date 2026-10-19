@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Mailpit: catches the emails your apps send and shows them in a web interface, for testing.</en-US>
+	<fr-FR>Mailpit : intercepte les e-mails envoyés par vos applications et les affiche dans une interface web, pour les tests.</fr-FR>
+	<es-ES>Mailpit: captura los correos que envían tus aplicaciones y los muestra en una interfaz web, para hacer pruebas.</es-ES>
+	<de-DE>Mailpit: fängt die E-Mails Ihrer Anwendungen ab und zeigt sie zum Testen in einer Weboberfläche an.</de-DE>
+</config>

@@ -3,7 +3,7 @@ Version:			0.0.1
 Packager:			PDN
 Email:
 Homepage:
-Description:		A blank template app from which to begin development of new apps.
+Description:		A blank template app from which to begin developing new apps.
 Icon:				logo.svg
 AddonShowName:		Template
 AddonIndexPage:		index.php
