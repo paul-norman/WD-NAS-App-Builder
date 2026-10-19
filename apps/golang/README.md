@@ -2,6 +2,8 @@
 
 This app provides the Go compiler to allow running and building of Go files directly on the WD NAS device.
 
+The app's page in the NAS dashboard *(Apps → GoLang)* shows the Go version and its telemetry setting *(with a button to turn it off again, should it ever be turned on)*, and a small test server's status *(port `30289`)*, with a link to it and a restart button. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+
 Go's telemetry is turned off for `root` when the app starts *(Go only records usage statistics locally by default, and only uploads them after `go telemetry on`)*, and anything already recorded is deleted.
 
 ## Building the GoLang app
