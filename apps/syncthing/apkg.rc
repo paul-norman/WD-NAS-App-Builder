@@ -1,0 +1,23 @@
+Package:			syncthing
+Version:			2.1.6
+Packager:			PDN
+Email:
+Homepage:			https://syncthing.net/
+Description:		Syncthing: continuous, private, peer-to-peer file synchronisation between your devices.
+Icon:				syncthing.svg
+AddonShowName:		Syncthing
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
