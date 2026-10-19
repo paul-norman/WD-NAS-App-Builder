@@ -21,9 +21,9 @@
 # Cleanup script to revert the init.sh steps. Ensures a clean shutdown
 # --------------------------------------------------------------------
 
-# Remove the web path
-log "removing web path: ${APP_WEB_PATH}"
-rm -rf ${APP_WEB_PATH}
+# Remove the web and management paths
+log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
+rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
 
 log "removing config file link: /etc/${APP_NAME}/${APP_NAME}.conf";
 rm -rf "/etc/${APP_NAME}/${APP_NAME}.conf"

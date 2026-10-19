@@ -6,7 +6,7 @@ Homepage:			https://valkey.io/
 Description:		ValKey: a fast in-memory key/value database, and a drop-in replacement for Redis.
 Icon:				logo.svg
 AddonShowName:		ValKey
-AddonIndexPage:
+AddonIndexPage:		index.php
 AddonUsedPort:
 AddonDefaultPort:
 AddonDefaultGroup:
@@ -15,7 +15,7 @@ InstDepend:
 InstConflict:
 StartDepend:
 StartConflict:
-CenterType:			0
+CenterType:			1
 UserControl:		0
 MinFWVer:			5.27.157
 MaxFWVer:

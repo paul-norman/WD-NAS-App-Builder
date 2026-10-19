@@ -29,6 +29,11 @@ mkdir -p ${APP_WEB_PATH}
 log "linking redirect page from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
 ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 
+# The management page (shown in the NAS dashboard) only goes where nasAdmin requires a NAS login
+log "linking management page from: ${APP_PATH}/manage/* to: ${APP_MANAGE_PATH}"
+mkdir -p ${APP_MANAGE_PATH}
+ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
+
 # Setup a persistent data directory
 if [ -d ${APP_PERSISTENT_DATA_PATH} ]; then
 	log "found existing ${APP_NAME} data directory, reusing it"

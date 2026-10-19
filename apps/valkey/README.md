@@ -14,7 +14,9 @@ Connect with `REDISCLI_AUTH=<password> valkey-cli`, or run `valkey-cli` and type
 
 ### Changing the password
 
-Passwords can only be changed over SSH. A config page in the NAS web UI would be reachable by anyone on the network without logging in *(app web pages bypass the NAS login and run as root)*, so this app deliberately doesn't have one.
+The easiest way is ValKey's page in the NAS dashboard *(Apps → ValKey)*: it shows the password and can change it - to one you choose, or a generated one. The change takes effect immediately and is saved, so update your clients too. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+
+It can also be done over SSH:
 
 1. Generate a new password *(or choose your own, letters and numbers only)*:
 
