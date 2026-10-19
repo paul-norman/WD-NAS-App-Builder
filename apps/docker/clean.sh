@@ -32,9 +32,9 @@ rm -f /sbin/runc
 log "unloading the app's kernel modules"
 rmmod overlay iptable_raw 2>/dev/null
 
-# Remove the web path
-log "removing web path: ${APP_WEB_PATH}"
-rm -rf ${APP_WEB_PATH}
+# Remove the web and management paths
+log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
+rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
 
 # Remove mountpoint (needed?)
 log "removing: /var/lib/docker"

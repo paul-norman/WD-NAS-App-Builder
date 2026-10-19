@@ -19,17 +19,27 @@ Installs the Docker engine, Docker Compose and the [Portainer](https://www.porta
 - If loading a module ever crashes the NAS, it isn't tried again: a marker file *(`_docker/.loading-<module>`)* left behind by the crash makes Docker fall back to `vfs`. Delete the marker to try again.
 - Each storage driver keeps its own images and containers, so after a switch between `overlay2` and `vfs` the other driver's images and containers aren't visible *(re-pull them; delete the unused `vfs` or `overlay2` directory to free its space)*.
 - Docker is limited to half of the NAS's memory *(a third on devices with 1GB or less)*, shared by all containers.
-- Portainer is created on first start and is available on port `9000` *(HTTP)* and `9443` *(HTTPS)*. The **Open** button in the NAS web UI redirects to port `9000`.
+- Portainer is created on first start and is available on port `9000` *(HTTP)* and `9443` *(HTTPS)*.
+
+## Management page
+
+Docker's page in the NAS dashboard *(Apps → Docker)* shows:
+
+- whether Docker is running, its version and storage driver, and whether the kernel modules loaded *(and if not, why: another model or firmware, or a crash marker)*
+- Portainer's status, with a link to it, a restart button and, until its admin account is created, the setup token
+- the containers and the disk space used by images, containers, volumes and the build cache
+
+It can restart Docker *(every container stops, and only those set to restart automatically start again)* and, after a crash marker stopped the modules from loading, retry loading them. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
 
 ## Portainer
 
-Portainer has full control of Docker, and through it the NAS itself, so give it a strong admin password. The setup page asks for a **setup token**, which Portainer prints to its log when it starts:
+Portainer has full control of Docker, and through it the NAS itself, so give it a strong admin password. The setup page asks for a **setup token**, which Docker's management page shows. Portainer prints it to its log when it starts, so it can also be found over SSH:
 
 ```sh
 docker logs portainer 2>&1 | grep -i token
 ```
 
-Setup must be completed within a few minutes of Portainer starting; if the page says it has timed out, restart Portainer *(`docker restart portainer`)*, which also prints a new token, and try again.
+Setup must be completed within a few minutes of Portainer starting; if the page says it has timed out, restart Portainer *(from the management page, or `docker restart portainer`)*, which also prints a new token, and try again.
 
 Portainer is only created if no container named `portainer` exists, so upgrading the app doesn't upgrade an existing Portainer. To upgrade it, remove the container *(its settings are kept in the `portainer_data` volume)*, then disable and re-enable the app:
 
