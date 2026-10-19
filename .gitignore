@@ -8,6 +8,7 @@ apps/*/work*
 apps/*/binaries/
 apps/*/modules/
 apps/*/installer/
+apps/*/manage/manage_helpers.php
 apps/*/*.sign
 apps/*/*.xml
 

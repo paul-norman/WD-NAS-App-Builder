@@ -8,8 +8,15 @@ APP_PATH="$(dirname $1)";
 . "${APP_PATH}/apkg_helpers.sh"
 
 APP_NAME="${APKG_PACKAGE}"
+
+# Without a name, paths such as /var/www/${APP_NAME} would point at whole system folders (which scripts remove)
+if [ -z "${APP_NAME}" ]; then
+	echo "$(date '+%Y-%m-%d %H:%M:%S') ${APP_SCRIPT}: no Package name found in ${APP_PATH}/apkg.rc - stopping" >> ${LOG}
+	exit 1
+fi
 APP_VERSION="${APKG_VERSION}"
 APP_WEB_PATH="/var/www/${APP_NAME}";
+APP_MANAGE_PATH="/var/www/apps/${APP_NAME}";	# management pages: only here does nasAdmin require a NAS login
 APP_PORT="${APKG_ADDON_USED_PORT}"
 
 # Extra variable is available for the install script only, so make variables consistent for all scripts
@@ -163,6 +170,7 @@ if [ ${APP_SCRIPT} == "install.sh" ]; then
 	log "APP_PATH:                 ${APP_PATH}";
 	log "APPS_PATH:                ${APPS_PATH}";
 	log "APP_WEB_PATH:             ${APP_WEB_PATH}";
+	log "APP_MANAGE_PATH:          ${APP_MANAGE_PATH}";
 	log "APP_PERSISTENT_DATA_PATH: ${APP_PERSISTENT_DATA_PATH}"
 	log "APP_PORT:                 ${APP_PORT}";
 	log "";

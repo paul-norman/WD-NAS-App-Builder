@@ -130,7 +130,7 @@ if [ -z ${APP_PATH+x} ]; then
 	restore_files() {
 		# Clean up the helpers file
 		echo -e "\nHelper files removed"
-		rm -f "${APP_PATH}/helpers.sh" "${APP_PATH}/apkg_helpers.sh"
+		rm -f "${APP_PATH}/helpers.sh" "${APP_PATH}/apkg_helpers.sh" "${APP_PATH}/manage/manage_helpers.php"
 
 		# Restore the app build instructions and readme file
 		#  - attempt the move rather than testing for the file first: on some Docker volume mounts (e.g. a Windows
@@ -150,6 +150,11 @@ if [ -z ${APP_PATH+x} ]; then
 		echo -e "\nHelper files imported"
 		cp "${APPS_PATH}/helpers.sh" .
 		cp "${APPS_PATH}/apkg_helpers.sh" .
+
+		# Apps with management pages get the shared security checks too
+		if [ -d "${APP_PATH}/manage" ]; then
+			cp "${APPS_PATH}/manage_helpers.php" "${APP_PATH}/manage/"
+		fi
 
 		# We don't need to build our build file, let's keep the files packaged to those actually needed
 		echo "Build script removed"

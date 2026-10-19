@@ -77,6 +77,7 @@ In addition to these, all scripts also load in all [APKG helpers](#apkg-helpers)
 | `${APP_PATH}`                 | The absolute path to where the app is *(or will be)* installed   | `/mnt/HD/HD_a2/Nas_Prog/template`  |
 | `${APP_VERSION}`              | The version of the app                                           | `0.0.1`                            |
 | `${APP_WEB_PATH}`             | The location of the web path that this app will use              | `/var/www/template`                |
+| `${APP_MANAGE_PATH}`          | Where management pages go: only here does the NAS require a login *(see [Management pages](#management-pages))* | `/var/www/apps/template` |
 | `${APP_PORT}`                 | The port that this app will listen on                            | `1234`                             |
 | `${APP_UPLOAD_PATH}`          | The path where the app will be initially uploaded                | `/mnt/HD/HD_a2/Nas_Prog/_install`  |
 | `${APPS_PATH}`                | The path where all apps will be installed                        | `/mnt/HD/HD_a2/Nas_Prog`           |
@@ -118,6 +119,22 @@ stop_process "/var/run/${APP_NAME}.pid" 30
 ```
 
 If `AddonDefaultGroup` / `AddonDefaultUser` are set in `apkg.rc`, `init.sh` also creates that group and a locked user *(no password, no login shell)* when they don't already exist. Existing users and groups are never removed or changed.
+
+## Management pages
+
+An app can have a management page in the NAS dashboard *(e.g. ValKey's, to show and change its password)*. This needs care, because app pages run PHP **as root**, and pages under `/var/www/<app>/` can be opened **without logging in** to the NAS. The one place the NAS itself requires a login is `/var/www/apps/<app>/` *(`${APP_MANAGE_PATH}`)*: `nasAdmin` only passes requests there with a valid login token *(its signature, expiry, client IP and origin are checked)*.
+
+To add one:
+
+- Put the page and its API in the app's `manage/` folder *(e.g. `manage/index.php` and `manage/api.php`)*. The build adds `manage_helpers.php` to it.
+- Set `CenterType: 1` and `AddonIndexPage: index.php` in `apkg.rc`, so the dashboard shows the page.
+- In `init.sh`, link `manage/*` *(and `web/*`, for the icon)* into `${APP_MANAGE_PATH}` - never into `${APP_WEB_PATH}`. Remove `${APP_MANAGE_PATH}` in `clean.sh`.
+- Start every PHP file with `require __DIR__ . '/manage_helpers.php';` and `manage_require_admin('<app>');`, which only allows NAS admins *(the `administrators` group, from WD's own server-side session)* and only under `/apps/<app>/`.
+- Start every action that changes or reveals something with `manage_require_action('<app>');`, which requires a POST with the page's CSRF token *(from `manage_csrf_token('<app>')`)*.
+- Run commands with `manage_run()` *(no shell, secrets via stdin or the environment)* and write files with `manage_write_file()`.
+- The dashboard injects the page into its own window, so scope all CSS to the page's own element, wrap the script in a closure *(a global `$` breaks the dashboard's jQuery)*, and send `X-Requested-With: XMLHttpRequest` with every request *(`nasAdmin` refuses requests without it)*.
+
+Never trust the `login_username` cookie: browsers can set it to anything.
 
 ## APKG Helpers
 
