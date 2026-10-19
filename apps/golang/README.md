@@ -2,6 +2,8 @@
 
 This app provides the Go compiler to allow running and building of Go files directly on the WD NAS device.
 
+Go's telemetry is turned off for `root` when the app starts *(Go only records usage statistics locally by default, and only uploads them after `go telemetry on`)*, and anything already recorded is deleted.
+
 ## Building the GoLang app
 
 From the project root directory:

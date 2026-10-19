@@ -33,3 +33,9 @@ ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 log "linking core binaries to path: ${APP_PATH}/binaries/bin/* to: /usr/bin"
 ln -sf ${APP_PATH}/binaries/bin/go /usr/bin/go >> ${LOG} 2>&1
 ln -sf ${APP_PATH}/binaries/bin/gofmt /usr/bin/gofmt >> ${LOG} 2>&1
+
+# Go records usage statistics locally by default (it only uploads them after "go telemetry on"): switch that off for
+# root and delete anything already recorded. On every boot, as root's home folder may be reset (e.g. without Entware)
+log "turning off Go's telemetry for root"
+HOME=/home/root "${APP_PATH}/binaries/bin/go" telemetry off >> ${LOG} 2>&1
+rm -rf /home/root/.config/go/telemetry/local
