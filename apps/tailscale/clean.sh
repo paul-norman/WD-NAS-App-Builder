@@ -21,9 +21,9 @@
 # Cleanup script to revert the init.sh steps. Ensures a clean shutdown
 # --------------------------------------------------------------------
 
-# Remove the web path and the tailscale command
-log "removing web path: ${APP_WEB_PATH}"
-rm -rf ${APP_WEB_PATH}
+# Remove the web and management paths and the tailscale command
+log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
+rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
 rm -f /usr/bin/tailscale
 
 # Remove the update check

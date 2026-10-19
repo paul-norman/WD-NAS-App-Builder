@@ -34,6 +34,13 @@ if is_running "${PID_FILE}"; then
 	exit 0
 fi
 
+# Privacy: logs and diagnostics are only uploaded to Tailscale when allowed (on the management page), which their
+# support needs
+LOG_OPTION="--no-logs-no-support"
+if [ -f "${APP_PERSISTENT_DATA_PATH}/upload_logs" ]; then
+	LOG_OPTION=""
+fi
+
 # The daemon remembers its login and settings, and reconnects by itself (log in once with: tailscale up). The socket is
 # where the tailscale command expects it
 mkdir -p "$(dirname "${SOCKET}")"
@@ -41,7 +48,18 @@ log "starting tailscaled (output: ${TAILSCALE_LOG})"
 "${APP_PATH}/binaries/tailscaled" \
 	--statedir="${APP_PERSISTENT_DATA_PATH}" \
 	--socket="${SOCKET}" \
-	--port=41641 > "${TAILSCALE_LOG}" 2>&1 &
+	--port=41641 ${LOG_OPTION} > "${TAILSCALE_LOG}" 2>&1 &
 echo $! > ${PID_FILE}
 
 log "tailscaled started with PID: $(cat ${PID_FILE})"
+
+# Sharing networks or acting as an exit node needs IP forwarding, which resets on boot (Docker turns it on too)
+for i in 1 2 3 4 5 6 7 8 9 10; do
+	[ -S "${SOCKET}" ] && break
+	sleep 1
+done
+if "${APP_PATH}/binaries/tailscale" debug prefs 2>/dev/null | grep -q '"AdvertiseRoutes": \['; then
+	log "turning on IP forwarding (the NAS shares networks or is an exit node)"
+	echo 1 > /proc/sys/net/ipv4/ip_forward
+	echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+fi

@@ -6,7 +6,7 @@ Homepage:			https://tailscale.com/
 Description:		Tailscale: secure, private access to the NAS from anywhere, over WireGuard.
 Icon:				tailscale.svg
 AddonShowName:		Tailscale
-AddonIndexPage:		index.html
+AddonIndexPage:		index.php
 AddonUsedPort:
 AddonDefaultPort:
 AddonDefaultGroup:
@@ -15,7 +15,7 @@ InstDepend:
 InstConflict:
 StartDepend:
 StartConflict:
-CenterType:			0
+CenterType:			1
 UserControl:		1
 MinFWVer:			5.27.157
 MaxFWVer:

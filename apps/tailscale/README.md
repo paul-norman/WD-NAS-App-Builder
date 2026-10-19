@@ -4,16 +4,28 @@
 
 ## Setting up
 
-Log in over SSH, then open the link it shows to add the NAS to your tailnet:
+Open Tailscale's page in the NAS dashboard *(Apps → Tailscale)*, click **Log in**, then open the link it shows and sign in. The page also shows the NAS's Tailscale addresses and your other devices, can share your home network with the tailnet *(subnet router)* or offer the NAS as an exit node, and can log the NAS out. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+
+The NAS stays logged in and reconnects by itself after restarts and app updates. Shared networks and exit nodes must also be approved in the [Tailscale admin console](https://login.tailscale.com/admin/machines).
+
+It can all be done over SSH too:
 
 ```sh
-tailscale up
-tailscale status          # the NAS's Tailscale address and connected devices
+tailscale up                                            # log in - open the link it shows
+tailscale status                                        # the NAS's Tailscale address and connected devices
+tailscale set --advertise-routes=192.168.1.0/24         # share the home network
+tailscale set --advertise-exit-node                     # offer the NAS as an exit node
 ```
 
-The NAS stays logged in and reconnects by itself after restarts and app updates. Options such as sharing your home network *(`--advertise-routes=192.168.1.0/24`)* or acting as an exit node *(`--advertise-exit-node`)* are added to `tailscale up`, or changed later with `tailscale set`.
+## Privacy
 
-The app's page in the NAS web UI only explains this - logging in is deliberately done over SSH, as app pages can be reached without logging in to the NAS *(anyone who opened the login link could add the NAS to their own tailnet)*.
+The app is set up to share as little as possible with Tailscale *(the company)*:
+
+- **No log uploads:** `tailscaled` runs with `--no-logs-no-support`, so it doesn't send its logs and diagnostics to Tailscale. Tailscale's support needs them, so they can be turned on from the management page when asking for help.
+- **The NAS keeps its own DNS:** logging in uses `--accept-dns=false`, so the NAS doesn't switch to Tailscale's MagicDNS *(its DNS lookups keep going to your own DNS server, e.g. a Pi-hole)*. Other devices are still reachable by their Tailscale addresses.
+- **Your own coordination server:** the login form accepts the address of a self-hosted [Headscale](https://headscale.net/) server, an open-source replacement for Tailscale's coordination server. With it, no company knows about your devices *(to switch an existing NAS to it, log out, then log in with the new server)*.
+
+Traffic between your devices is always end-to-end encrypted with WireGuard *(Tailscale's relay servers, used when two devices can't connect directly, only see encrypted packets)*. What Tailscale's own coordination server does know is your devices, their names and IP addresses, when they're online, and the account *(Google, Microsoft, GitHub...)* you logged in with. It also hands out your devices' keys - if you use it, consider turning on [Tailnet Lock](https://tailscale.com/kb/1226/tailnet-lock), so that new devices must also be signed by one of your own.
 
 ## How it works
 
