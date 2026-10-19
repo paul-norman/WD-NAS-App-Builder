@@ -94,19 +94,30 @@ function manage_run(array $command, array $env = [], $input = '')
 }
 
 // Sends a request to a service on the NAS itself (e.g. http://127.0.0.1:8096/health) with the NAS's own curl, as WD's
-// PHP has allow_url_fopen turned off. Returns [HTTP status, body], or [0, ''] if it couldn't be reached
-function manage_http_request($method, $url, $body = null, $timeout = 3)
+// PHP has allow_url_fopen turned off. Headers (e.g. API keys) go via a root-only file rather than the command line, which
+// other processes can see. Returns [HTTP status, body], or [0, ''] if it couldn't be reached
+function manage_http_request($method, $url, $body = null, $timeout = 3, array $headers = [])
 {
 	$command = ['curl', '-s', '-m', (string)$timeout, '-X', $method, '-w', '\n%{http_code}'];
 	if ($body !== null) {
 		$command = array_merge($command, ['-H', 'Content-Type: application/json', '--data-binary', '@-']);
 	}
+	$header_file = null;
+	if ($headers) {
+		$header_file = tempnam(sys_get_temp_dir(), 'manage');
+		chmod($header_file, 0600);
+		file_put_contents($header_file, implode("\n", $headers) . "\n");
+		$command = array_merge($command, ['-H', '@' . $header_file]);
+	}
 	list($code, $output) = manage_run(array_merge($command, [$url]), [], (string)$body);
-	$at = strrpos($output, "\n");
-	if ($code !== 0 || $at === false) {
+	if ($header_file !== null) {
+		unlink($header_file);
+	}
+	// The status code comes last, after a newline (which manage_run trims away when the body is empty)
+	if ($code !== 0 || !preg_match('/^(.*?)\n?(\d{3})$/s', $output, $m)) {
 		return [0, ''];
 	}
-	return [(int)substr($output, $at + 1), substr($output, 0, $at)];
+	return [(int)$m[2], $m[1]];
 }
 
 function manage_http_get($url, $timeout = 3)

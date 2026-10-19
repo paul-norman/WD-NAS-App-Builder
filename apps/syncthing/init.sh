@@ -28,8 +28,13 @@ PASSWORD_FILE="${APP_PERSISTENT_DATA_PATH}/gui_password"
 log "creating web path: ${APP_WEB_PATH}"
 mkdir -p ${APP_WEB_PATH}
 
-log "linking redirect page from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
+log "linking web files from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
 ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
+
+# The management page (shown in the NAS dashboard) only goes where nasAdmin requires a NAS login
+log "linking management page from: ${APP_PATH}/manage/* to: ${APP_MANAGE_PATH}"
+mkdir -p ${APP_MANAGE_PATH}
+ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 
 # Syncthing's configuration, keys and database live in the persistent path (kept across reinstalls)
 mkdir -p "${APP_PERSISTENT_DATA_PATH}"
@@ -42,6 +47,8 @@ if [ ! -f "${APP_PERSISTENT_DATA_PATH}/config.xml" ]; then
 	chmod 600 "${PASSWORD_FILE}"
 	STNODEFAULTFOLDER=1 "${APP_PATH}/binaries/syncthing" generate --home="${APP_PERSISTENT_DATA_PATH}" \
 		--gui-user=admin --gui-password="$(cat "${PASSWORD_FILE}")" >> ${LOG} 2>&1
+	# Privacy: decline anonymous usage reporting (rather than Syncthing asking when its GUI is first opened)
+	sed -i 's|<urAccepted>0</urAccepted>|<urAccepted>-1</urAccepted>|' "${APP_PERSISTENT_DATA_PATH}/config.xml"
 	chmod 600 "${APP_PERSISTENT_DATA_PATH}/config.xml"
 fi
 
