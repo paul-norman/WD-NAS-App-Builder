@@ -1,0 +1,23 @@
+Package:			entware
+Version:			26.10.19
+Packager:			PDN
+Email:
+Homepage:			https://entware.net/
+Description:		Entware: the opkg package manager, with thousands of extra command line tools for the NAS.
+Icon:				entware.svg
+AddonShowName:		Entware
+AddonIndexPage:		index.html
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			0
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

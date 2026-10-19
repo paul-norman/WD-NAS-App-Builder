@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Entware</title>
+	<style>
+		body { font-family: sans-serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #222; }
+		code, pre { background: #f2f4f7; border-radius: 4px; padding: 0.1rem 0.3rem; }
+		pre { padding: 0.75rem; overflow-x: auto; }
+	</style>
+</head>
+<body>
+	<h1>Entware</h1>
+	<p>Entware adds the <code>opkg</code> package manager to the NAS, with thousands of extra command line tools. It is used over SSH:</p>
+	<pre>opkg update               # refresh the package list
+opkg find '*name*'        # search for a package
+opkg install &lt;package&gt;    # install a package
+opkg list-installed       # show installed packages
+opkg upgrade              # update installed packages</pre>
+	<p>Packages are kept in <code>Nas_Prog/_entware/opt</code> (mounted on <code>/opt</code>) and root's home folder in <code>Nas_Prog/_entware/home</code>, both of which survive reinstalls. The NAS shows an alert when package updates are available.</p>
+	<p>See the <a href="https://github.com/Entware/Entware/wiki" target="_blank" rel="noopener">Entware wiki</a> for more.</p>
+</body>
+</html>

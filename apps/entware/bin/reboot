@@ -1,0 +1,12 @@
+#!/bin/sh
+# Linked as /opt/sbin/reboot, which comes before the system's own reboot in the PATH: stops Entware's services and
+# unmounts /opt before handing over to the NAS's reboot
+if [ -x /opt/etc/init.d/rc.unslung ]; then
+	/opt/etc/init.d/rc.unslung stop
+fi
+
+PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/sbin:/usr/local/bin"
+cd /
+umount /opt 2>/dev/null || umount -l /opt 2>/dev/null
+
+exec reboot "$@"
