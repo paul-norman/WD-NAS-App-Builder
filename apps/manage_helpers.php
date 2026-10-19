@@ -104,3 +104,23 @@ function manage_write_file($file, $contents)
 	}
 	return true;
 }
+
+// The shared look of management pages, scoped to the page's own element (pages are injected into the dashboard's window,
+// so unscoped rules would restyle the dashboard itself)
+function manage_styles($id)
+{
+	$s = '#' . $id;
+	echo "<style>
+		{$s} { font-family: inherit; color: inherit; max-width: 46rem; padding: 0.5rem 0; line-height: 1.5; }
+		{$s} h2 { font-size: 1.3em; margin: 0 0 0.75rem; }
+		{$s} h3 { font-size: 1.05em; margin: 1.25rem 0 0.5rem; }
+		{$s} table { border-collapse: collapse; }
+		{$s} td { padding: 0.15rem 1rem 0.15rem 0; vertical-align: top; }
+		{$s} code { background: rgba(127, 127, 127, 0.15); border-radius: 4px; padding: 0.1rem 0.35rem; word-break: break-all; }
+		{$s} input[type=text] { width: 22rem; max-width: 100%; padding: 0.3rem; }
+		{$s} button, {$s} a.mg-button { display: inline-block; margin: 0.2rem 0.4rem 0.2rem 0; padding: 0.3rem 0.8rem; cursor: pointer; }
+		{$s} .mg-ok { color: #2e7d32; }
+		{$s} .mg-bad { color: #c62828; }
+		{$s} .mg-note { opacity: 0.75; font-size: 0.9em; }
+	</style>\n";
+}
