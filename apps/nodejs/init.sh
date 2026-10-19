@@ -26,8 +26,13 @@
 log "creating web path: ${APP_WEB_PATH}"
 mkdir -p ${APP_WEB_PATH}
 
-log "linking redirect page from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
+log "linking web files from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
 ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
+
+# The management page (shown in the NAS dashboard) only goes where nasAdmin requires a NAS login
+log "linking management page from: ${APP_PATH}/manage/* to: ${APP_MANAGE_PATH}"
+mkdir -p ${APP_MANAGE_PATH}
+ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 
 # Link the core features into the global path
 log "linking core binaries to path: ${APP_PATH}/binaries/bin/* to: /usr/bin"

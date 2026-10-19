@@ -4,7 +4,9 @@ This app provides `node`, `npm`, `npx` and `corepack` binaries to allow installi
 
 `pnpm` and `yarn` are available through `corepack`, which downloads them on first use *(e.g. `corepack pnpm install`)*.
 
-A small test server is started on port `30290` *(the **Open** button in the NAS web UI redirects to it)*, with its output in `test_server.log` in the app's install directory.
+A small test server is started on port `30290`, with its output in `test_server.log` in the app's install directory.
+
+The app's page in the NAS dashboard *(Apps → Node.js)* shows the versions of Node.js, npm and Corepack, and the test server's status, with a link to it and a restart button. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
 
 ## Building the Node.js app
 

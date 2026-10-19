@@ -93,16 +93,32 @@ function manage_run(array $command, array $env = [], $input = '')
 	return [proc_close($process), trim($output)];
 }
 
-// Fetches a page from a service on the NAS itself (e.g. http://127.0.0.1:8096/health) with the NAS's own curl, as WD's
+// Sends a request to a service on the NAS itself (e.g. http://127.0.0.1:8096/health) with the NAS's own curl, as WD's
 // PHP has allow_url_fopen turned off. Returns [HTTP status, body], or [0, ''] if it couldn't be reached
-function manage_http_get($url, $timeout = 3)
+function manage_http_request($method, $url, $body = null, $timeout = 3)
 {
-	list($code, $output) = manage_run(['curl', '-s', '-m', (string)$timeout, '-w', '\n%{http_code}', $url]);
+	$command = ['curl', '-s', '-m', (string)$timeout, '-X', $method, '-w', '\n%{http_code}'];
+	if ($body !== null) {
+		$command = array_merge($command, ['-H', 'Content-Type: application/json', '--data-binary', '@-']);
+	}
+	list($code, $output) = manage_run(array_merge($command, [$url]), [], (string)$body);
 	$at = strrpos($output, "\n");
 	if ($code !== 0 || $at === false) {
 		return [0, ''];
 	}
 	return [(int)substr($output, $at + 1), substr($output, 0, $at)];
+}
+
+function manage_http_get($url, $timeout = 3)
+{
+	return manage_http_request('GET', $url, null, $timeout);
+}
+
+// Whether the process in a PID file (e.g. /var/run/mailpit.pid) is running
+function manage_pid_running($pid_file)
+{
+	$pid = (int)@file_get_contents($pid_file);
+	return $pid > 0 && file_exists('/proc/' . $pid);
 }
 
 // Replaces a file's contents in one step (a temporary file in the same folder, renamed over it), keeping its mode
