@@ -67,12 +67,8 @@ function docker_modules($app_path, $docker_root, array $names)
 // Asks Portainer (on the NAS itself) whether its admin account has been created yet: true, false or null (unknown)
 function portainer_has_admin()
 {
-	$context = stream_context_create(['http' => ['timeout' => 3, 'ignore_errors' => true]]);
-	if (@file_get_contents('http://127.0.0.1:9000/api/users/admin/check', false, $context) === false || empty($http_response_header)) {
-		return null;
-	}
-	preg_match('#^HTTP/\S+ (\d+)#', $http_response_header[0], $m);
-	return isset($m[1]) ? ($m[1] === '204' ? true : ($m[1] === '404' ? false : null)) : null;
+	list($status) = manage_http_get('http://127.0.0.1:9000/api/users/admin/check');
+	return $status === 204 ? true : ($status === 404 ? false : null);
 }
 
 $action = isset($_GET['action']) ? $_GET['action'] : 'status';

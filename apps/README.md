@@ -131,7 +131,7 @@ To add one:
 - In `init.sh`, link `manage/*` *(and `web/*`, for the icon)* into `${APP_MANAGE_PATH}` - never into `${APP_WEB_PATH}`. Remove `${APP_MANAGE_PATH}` in `clean.sh`.
 - Start every PHP file with `require __DIR__ . '/manage_helpers.php';` and `manage_require_admin('<app>');`, which only allows NAS admins *(the `administrators` group, from WD's own server-side session)* and only under `/apps/<app>/`.
 - Start every action that changes or reveals something with `manage_require_action('<app>');`, which requires a POST with the page's CSRF token *(from `manage_csrf_token('<app>')`)*.
-- Run commands with `manage_run()` *(no shell, secrets via stdin or the environment)* and write files with `manage_write_file()`.
+- Run commands with `manage_run()` *(no shell, secrets via stdin or the environment)* and write files with `manage_write_file()`. Fetch pages from the app's own web server with `manage_http_get()`: WD's PHP has `allow_url_fopen` turned off, so `file_get_contents()` can't fetch URLs.
 - The dashboard injects the page into its own window, so scope all CSS to the page's own element, wrap the script in a closure *(a global `$` breaks the dashboard's jQuery)*, and send `X-Requested-With: XMLHttpRequest` with every request *(`nasAdmin` refuses requests without it)*.
 
 Never trust the `login_username` cookie: browsers can set it to anything.

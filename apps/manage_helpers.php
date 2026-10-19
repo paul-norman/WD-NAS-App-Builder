@@ -93,6 +93,18 @@ function manage_run(array $command, array $env = [], $input = '')
 	return [proc_close($process), trim($output)];
 }
 
+// Fetches a page from a service on the NAS itself (e.g. http://127.0.0.1:8096/health) with the NAS's own curl, as WD's
+// PHP has allow_url_fopen turned off. Returns [HTTP status, body], or [0, ''] if it couldn't be reached
+function manage_http_get($url, $timeout = 3)
+{
+	list($code, $output) = manage_run(['curl', '-s', '-m', (string)$timeout, '-w', '\n%{http_code}', $url]);
+	$at = strrpos($output, "\n");
+	if ($code !== 0 || $at === false) {
+		return [0, ''];
+	}
+	return [(int)substr($output, $at + 1), substr($output, 0, $at)];
+}
+
 // Replaces a file's contents in one step (a temporary file in the same folder, renamed over it), keeping its mode
 function manage_write_file($file, $contents)
 {
