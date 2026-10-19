@@ -22,5 +22,5 @@
 # --------------------------------------------------------------------
 
 # Remove the web path
-log "removing web path: ${APP_WEB_PATH}"
-rm -rf ${APP_WEB_PATH}
+log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
+rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
