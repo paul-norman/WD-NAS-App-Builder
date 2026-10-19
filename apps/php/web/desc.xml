@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>PHP 8.5: replaces the NAS's own PHP 7.4, for its web interface and its PHP scripts (Intel models).</en-US>
+	<fr-FR>PHP 8.5 : remplace le PHP 7.4 du NAS, pour son interface web et ses scripts PHP (modèles Intel).</fr-FR>
+	<es-ES>PHP 8.5: sustituye al PHP 7.4 del NAS, para su interfaz web y sus scripts PHP (modelos Intel).</es-ES>
+	<de-DE>PHP 8.5: ersetzt das PHP 7.4 des NAS, für seine Weboberfläche und seine PHP-Skripte (Intel-Modelle).</de-DE>
+</config>
