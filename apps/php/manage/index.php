@@ -31,7 +31,7 @@ header('Cache-Control: no-store');
 	<p class="mg-note">Only real errors are logged (not deprecations or notices), to <code>Nas_Prog/_php/php-errors.log</code>,
 		which is rotated once it reaches 256KB.</p>
 
-	<details>
+	<details class="mg-section">
 		<summary>Built-in extensions</summary>
 		<p data-ph="extensions">…</p>
 	</details>

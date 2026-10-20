@@ -144,6 +144,69 @@ function manage_write_file($file, $contents)
 	return true;
 }
 
+// JavaScript for showing a secret (a password or token) on request, to echo inside a page's script (its closure):
+//     var secret = mgSecret(codeElement, showButton, copyButton, load);
+// load() returns a promise of the secret (or null, e.g. after saying why it failed). Show fetches and displays it, and
+// becomes Hide (which puts the dots back); Copy copies it without showing it. secret.set(value) shows a new value (e.g.
+// after changing a password), secret.reset() hides it and forgets it (e.g. after a new token was issued)
+function manage_secret_script()
+{
+	echo <<<'JS'
+		function mgCopy(text) {
+			// The clipboard API only exists on secure (https) pages - the dashboard is often plain http
+			if (navigator.clipboard && window.isSecureContext) {
+				return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return false; });
+			}
+			var area = document.createElement('textarea');
+			area.value = text;
+			area.setAttribute('readonly', '');
+			area.style.position = 'fixed';
+			area.style.left = '-9999px';
+			document.body.appendChild(area);
+			area.select();
+			var ok = false;
+			try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+			document.body.removeChild(area);
+			return Promise.resolve(ok);
+		}
+
+		function mgSecret(code, show, copy, load) {
+			var dots = code.textContent;
+			var value = null;
+			var shown = false;
+			function display(on) {
+				shown = on;
+				code.textContent = on ? value : dots;
+				show.textContent = on ? 'Hide' : 'Show';
+			}
+			function get() {
+				return value !== null ? Promise.resolve(value) : load().then(function (secret) {
+					if (secret !== null && secret !== undefined) { value = secret; }
+					return value;
+				});
+			}
+			show.addEventListener('click', function () {
+				if (shown) { display(false); return; }
+				get().then(function (secret) { if (secret !== null) { display(true); } });
+			});
+			copy.addEventListener('click', function () {
+				get().then(function (secret) {
+					if (secret === null) { return; }
+					mgCopy(secret).then(function (ok) {
+						copy.textContent = ok ? 'Copied' : 'Copy failed';
+						setTimeout(function () { copy.textContent = 'Copy'; }, 1500);
+					});
+				});
+			});
+			return {
+				set: function (secret) { value = secret; display(true); },
+				reset: function () { value = null; display(false); }
+			};
+		}
+
+JS;
+}
+
 // The shared look of management pages, scoped to the page's own element (pages are injected into the dashboard's window,
 // so unscoped rules would restyle the dashboard itself)
 function manage_styles($id)
@@ -151,8 +214,10 @@ function manage_styles($id)
 	$s = '#' . $id;
 	echo "<style>
 		{$s} { font-family: inherit; color: inherit; max-width: 46rem; padding: 0.5rem 0; line-height: 1.5; }
-		{$s} h2 { font-size: 1.3em; margin: 0 0 0.75rem; }
-		{$s} h3 { font-size: 1.05em; margin: 1.25rem 0 0.5rem; }
+		{$s} h2 { font-size: 1.3em; font-weight: bold; margin: 0 0 0.75rem; }
+		{$s} h3 { font-size: 1.05em; font-weight: bold; margin: 2rem 0 0.75rem; padding-top: 1.25rem; border-top: 1px solid rgba(127, 127, 127, 0.3); }
+		{$s} .mg-section { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid rgba(127, 127, 127, 0.3); }
+		{$s} p { margin: 0.6rem 0; }
 		{$s} table { border-collapse: collapse; }
 		{$s} td { padding: 0.15rem 1rem 0.15rem 0; vertical-align: top; }
 		{$s} code { background: rgba(127, 127, 127, 0.15); border-radius: 4px; padding: 0.1rem 0.35rem; word-break: break-all; }

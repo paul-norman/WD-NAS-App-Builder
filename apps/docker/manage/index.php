@@ -26,7 +26,8 @@ header('Cache-Control: no-store');
 	<div data-dk="setup-box" hidden>
 		<p>Portainer's admin account hasn't been created yet. Its setup page asks for a setup token, and must be completed
 			within a few minutes of Portainer starting (restart Portainer if it has timed out).</p>
-		<p><button type="button" data-dk-action="token">Show the setup token</button> <code data-dk="token" hidden></code></p>
+		<p>Setup token: <code data-dk="token">••••••••••••</code> <button type="button" data-dk-action="token">Show</button>
+			<button type="button" data-dk-action="copy-token">Copy</button></p>
 	</div>
 
 	<h3>Containers</h3>
@@ -45,6 +46,7 @@ header('Cache-Control: no-store');
 		var root = document.getElementById('docker-manage');
 		var api = '/apps/docker/api.php';
 		var csrf = <?php echo json_encode(manage_csrf_token('docker')); ?>;
+		<?php manage_secret_script(); ?>
 		var moduleStates = { loaded: 'loaded', not_built: 'not built for this model', wrong_firmware: 'built for another firmware',
 			crashed: 'not loaded: a previous attempt never finished (the NAS may have crashed)', not_loaded: 'not loaded (see /tmp/debug_apkg)' };
 
@@ -186,17 +188,17 @@ header('Cache-Control: no-store');
 			say('Restarting Portainer…', true);
 			call('restart_portainer', { confirm: 1 }).then(function (d) {
 				if (!d.ok) { say(d.error, false); return; }
-				part('token').hidden = true;
-				say('Portainer restarted.', true);
+				token.reset();
+				say('Portainer restarted - it has a new setup token.', true);
 				refresh();
 			});
 		});
 
-		button('token').addEventListener('click', function () {
-			call('setup_token', { show: 1 }).then(function (d) {
-				if (!d.ok) { say(d.error, false); return; }
-				part('token').textContent = d.token;
-				part('token').hidden = false;
+		// Portainer's setup token: Show / Hide and Copy (fetched when first needed, again after Portainer restarts)
+		var token = mgSecret(part('token'), button('token'), button('copy-token'), function () {
+			return call('setup_token', { show: 1 }).then(function (d) {
+				if (!d.ok) { say(d.error, false); return null; }
+				return d.token;
 			});
 		});
 

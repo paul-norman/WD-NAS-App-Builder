@@ -41,7 +41,7 @@ header('Cache-Control: no-store');
 		Names are lower case letters, digits and _.</p>
 
 	<h3>The <code>postgres</code> superuser</h3>
-	<p>Password: <code data-pg="password">••••••••••••</code> <button type="button" data-pg-action="show">Show</button></p>
+	<p>Password: <code data-pg="password">••••••••••••</code> <button type="button" data-pg-action="show">Show</button> <button type="button" data-pg-action="copy">Copy</button></p>
 	<p><input type="text" data-pg="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
 		<button type="button" data-pg-action="set">Change password</button></p>
 	<p data-pg="password-message"></p>
@@ -54,6 +54,7 @@ header('Cache-Control: no-store');
 		var root = document.getElementById('postgresql-manage');
 		var api = '/apps/postgresql/api.php';
 		var csrf = <?php echo json_encode(manage_csrf_token('postgresql')); ?>;
+		<?php manage_secret_script(); ?>
 
 		function part(name) { return root.querySelector('[data-pg="' + name + '"]'); }
 		function button(name) { return root.querySelector('[data-pg-action="' + name + '"]'); }
@@ -127,9 +128,11 @@ header('Cache-Control: no-store');
 			});
 		});
 
-		button('show').addEventListener('click', function () {
-			call('password', { show: 1 }).then(function (d) {
-				if (d.ok) { part('password').textContent = d.password; } else { say('password-message', d.error, false); }
+		// The password: Show / Hide and Copy (fetched when first needed)
+		var secret = mgSecret(part('password'), button('show'), button('copy'), function () {
+			return call('password', { show: 1 }).then(function (d) {
+				if (!d.ok) { say('password-message', d.error, false); return null; }
+				return d.password || '';
 			});
 		});
 
@@ -138,7 +141,7 @@ header('Cache-Control: no-store');
 			call('set_password', { password: part('new').value }).then(function (d) {
 				if (!d.ok) { say('password-message', d.error, false); return; }
 				part('new').value = '';
-				part('password').textContent = d.password;
+				secret.set(d.password);
 				say('password-message', 'Password changed.', true);
 			});
 		});

@@ -46,7 +46,7 @@ header('Cache-Control: no-store');
 
 	<p data-ew="message"></p>
 
-	<details>
+	<details class="mg-section">
 		<summary>Using Entware over SSH</summary>
 		<pre>opkg update               # refresh the package list
 opkg find '*name*'        # search for a package

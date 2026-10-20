@@ -17,7 +17,7 @@ header('Cache-Control: no-store');
 
 	<h3>Password</h3>
 	<p>Clients connect with: <code data-vk="password">••••••••••••</code>
-		<button type="button" data-vk-action="show">Show</button></p>
+		<button type="button" data-vk-action="show">Show</button> <button type="button" data-vk-action="copy">Copy</button></p>
 	<p class="mg-note">e.g. <code>REDISCLI_AUTH=&lt;password&gt; valkey-cli</code> over SSH, or the password setting of your app's Redis / ValKey client.</p>
 	<p><input type="text" data-vk="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
 		<button type="button" data-vk-action="set">Change password</button></p>
@@ -30,6 +30,7 @@ header('Cache-Control: no-store');
 		var root = document.getElementById('valkey-manage');
 		var api = '/apps/valkey/api.php';
 		var csrf = <?php echo json_encode(manage_csrf_token('valkey')); ?>;
+		<?php manage_secret_script(); ?>
 
 		function part(name) { return root.querySelector('[data-vk="' + name + '"]'); }
 
@@ -63,9 +64,11 @@ header('Cache-Control: no-store');
 			});
 		}
 
-		root.querySelector('[data-vk-action="show"]').addEventListener('click', function () {
-			call('password', { show: 1 }).then(function (d) {
-				if (d.ok) { part('password').textContent = d.password || '(none)'; } else { say(d.error, false); }
+		// The password: Show / Hide and Copy (fetched when first needed)
+		var secret = mgSecret(part('password'), root.querySelector('[data-vk-action="show"]'), root.querySelector('[data-vk-action="copy"]'), function () {
+			return call('password', { show: 1 }).then(function (d) {
+				if (!d.ok) { say(d.error, false); return null; }
+				return d.password || '(none)';
 			});
 		});
 
@@ -75,7 +78,7 @@ header('Cache-Control: no-store');
 			call('set_password', { password: input.value }).then(function (d) {
 				if (!d.ok) { say(d.error, false); return; }
 				input.value = '';
-				part('password').textContent = d.password;
+				secret.set(d.password);
 				say(d.applied ? 'Password changed - it is now in use.' : 'Password saved - it will be used when ValKey next starts.', true);
 				refresh();
 			});

@@ -19,7 +19,7 @@ header('Cache-Control: no-store');
 
 	<h3>The <code>admin</code> account</h3>
 	<p>Log in to phpMyAdmin as <code>admin</code> with: <code data-pma="password">••••••••••••</code>
-		<button type="button" data-pma-action="show">Show</button></p>
+		<button type="button" data-pma-action="show">Show</button> <button type="button" data-pma-action="copy">Copy</button></p>
 	<p><input type="text" data-pma="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
 		<button type="button" data-pma-action="set">Change password</button></p>
 	<p class="mg-note">The new password takes effect immediately, and is kept if the app is reinstalled. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
@@ -32,6 +32,7 @@ header('Cache-Control: no-store');
 		var root = document.getElementById('phpmyadmin-manage');
 		var api = '/apps/phpMyAdmin/api.php';
 		var csrf = <?php echo json_encode(manage_csrf_token('phpMyAdmin')); ?>;
+		<?php manage_secret_script(); ?>
 
 		function part(name) { return root.querySelector('[data-pma="' + name + '"]'); }
 
@@ -65,9 +66,11 @@ header('Cache-Control: no-store');
 			});
 		}
 
-		root.querySelector('[data-pma-action="show"]').addEventListener('click', function () {
-			call('password', { show: 1 }).then(function (d) {
-				if (d.ok) { part('password').textContent = d.password || '(none)'; } else { say(d.error, false); }
+		// The password: Show / Hide and Copy (fetched when first needed)
+		var secret = mgSecret(part('password'), root.querySelector('[data-pma-action="show"]'), root.querySelector('[data-pma-action="copy"]'), function () {
+			return call('password', { show: 1 }).then(function (d) {
+				if (!d.ok) { say(d.error, false); return null; }
+				return d.password || '(none)';
 			});
 		});
 
@@ -77,7 +80,7 @@ header('Cache-Control: no-store');
 			call('set_password', { password: input.value }).then(function (d) {
 				if (!d.ok) { say(d.error, false); return; }
 				input.value = '';
-				part('password').textContent = d.password;
+				secret.set(d.password);
 				say('Password changed - use it to log in to phpMyAdmin.', true);
 			});
 		});

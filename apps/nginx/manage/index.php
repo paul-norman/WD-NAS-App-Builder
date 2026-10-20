@@ -110,7 +110,7 @@ header('Cache-Control: no-store');
 		local DNS, the same records can go in the domain's public DNS (only reachable inside your network, but some routers
 		block such answers).</p>
 
-	<details>
+	<details class="mg-section">
 		<summary>Nginx's error log</summary>
 		<pre data-ng="error-log">…</pre>
 		<p><button type="button" data-ng-action="clear-error-log">Clear the log</button></p>

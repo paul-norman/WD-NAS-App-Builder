@@ -27,7 +27,7 @@ header('Cache-Control: no-store');
 
 	<h3>Logging in</h3>
 	<p>Log in to Syncthing as <code data-st="user">admin</code> with: <code data-st="password">••••••••••••</code>
-		<button type="button" data-st-action="show">Show</button></p>
+		<button type="button" data-st-action="show">Show</button> <button type="button" data-st-action="copy">Copy</button></p>
 	<p><input type="text" data-st="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
 		<button type="button" data-st-action="set">Change password</button></p>
 	<p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters: letters, digits and . _ ~ -
@@ -41,6 +41,7 @@ header('Cache-Control: no-store');
 		var root = document.getElementById('syncthing-manage');
 		var api = '/apps/syncthing/api.php';
 		var csrf = <?php echo json_encode(manage_csrf_token('syncthing')); ?>;
+		<?php manage_secret_script(); ?>
 		var states = { idle: 'up to date', scanning: 'scanning', 'scan-waiting': 'waiting to scan', syncing: 'syncing',
 			'sync-waiting': 'waiting to sync', 'sync-preparing': 'preparing to sync', cleaning: 'cleaning up', error: 'error', paused: 'paused' };
 
@@ -142,9 +143,11 @@ header('Cache-Control: no-store');
 			});
 		});
 
-		button('show').addEventListener('click', function () {
-			call('password', { show: 1 }).then(function (d) {
-				if (d.ok) { part('password').textContent = d.password || '(none saved)'; } else { say(d.error, false); }
+		// The password: Show / Hide and Copy (fetched when first needed)
+		var secret = mgSecret(part('password'), button('show'), button('copy'), function () {
+			return call('password', { show: 1 }).then(function (d) {
+				if (!d.ok) { say(d.error, false); return null; }
+				return d.password || '(none saved)';
 			});
 		});
 
@@ -154,7 +157,7 @@ header('Cache-Control: no-store');
 			call('set_password', { password: input.value }).then(function (d) {
 				if (!d.ok) { say(d.error, false); return; }
 				input.value = '';
-				part('password').textContent = d.password;
+				secret.set(d.password);
 				say('Password changed - use it to log in to Syncthing.', true);
 			});
 		});
