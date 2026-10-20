@@ -1,0 +1,23 @@
+Package:			postgresql
+Version:			18.6
+Packager:			PDN
+Email:
+Homepage:			https://www.postgresql.org/
+Description:		PostgreSQL 18: the advanced open source database, for apps on the NAS or the network (Intel models).
+Icon:				logo.svg
+AddonShowName:		PostgreSQL
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

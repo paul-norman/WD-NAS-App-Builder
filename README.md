@@ -90,6 +90,7 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
   - [x] [PHP 8.5.11](https://www.php.net/releases/8.5/) *(`php` app: replaces the NAS's own PHP 7.4, static build with static-php-cli)*
   - [x] [Nginx 1.30.6](https://nginx.org/) *(`nginx` app: HTTPS reverse proxy for the apps, with certificates from Let's Encrypt via lego - static build with Brotli)*
   - [x] [MariaDB 11.8.9 LTS](https://mariadb.org/) *(`mariadb` app: replaces the NAS's own MariaDB 10.5, on a copy of its data)*
+  - [x] [PostgreSQL 18.6](https://www.postgresql.org/) *(`postgresql` app: built on Bullseye with bundled libraries, runs as its own user - with PostGIS, pgvector, pg_cron, pg_partman and pgaudit)*
   - [ ] [Git 2.47.1](https://bin.entware.net/x64-k3.2/git_2.39.2-1_x64-3.2.ipk)
 
 ## Where to find other apps?
