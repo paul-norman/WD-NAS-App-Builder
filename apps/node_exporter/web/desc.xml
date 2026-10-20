@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Node Exporter: the NAS's hardware, system and WD storage metrics for Prometheus and Grafana.</en-US>
+	<fr-FR>Node Exporter : les métriques matérielles, système et de stockage WD du NAS pour Prometheus et Grafana.</fr-FR>
+	<es-ES>Node Exporter: métricas de hardware, sistema y almacenamiento WD del NAS para Prometheus y Grafana.</es-ES>
+	<de-DE>Node Exporter: Hardware-, System- und WD-Speichermetriken des NAS für Prometheus und Grafana.</de-DE>
+</config>
