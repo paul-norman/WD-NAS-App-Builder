@@ -1,5 +1,6 @@
 {
 	"features": {
 		"containerd-snapshotter": false
-	}
+	},
+	"userland-proxy": false
 }

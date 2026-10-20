@@ -18,6 +18,7 @@ Installs the Docker engine, Docker Compose and the [Portainer](https://www.porta
 - On any other model or firmware *(e.g. after a firmware update)* Docker falls back to the `vfs` storage driver, which works everywhere but makes every image layer a full copy *(much more disk space, slow with large images)*. The log says when this happens; rebuild the app with `VERSION` set to the new firmware *(and its GPL source date)* to restore `overlay2`.
 - If loading a module ever crashes the NAS, it isn't tried again: a marker file *(`_docker/.loading-<module>`)* left behind by the crash makes Docker fall back to `vfs`. Delete the marker to try again.
 - Each storage driver keeps its own images and containers, so after a switch between `overlay2` and `vfs` the other driver's images and containers aren't visible *(re-pull them; delete the unused `vfs` or `overlay2` directory to free its space)*.
+- Containers' published ports are forwarded by the firewall, also for connections from the NAS itself *(`"userland-proxy": false` in `daemon.json`)*: Docker's `docker-proxy` helper, which would otherwise handle connections to `127.0.0.1`, accepts them but never passes them on, on WD's NAS - so e.g. the Nginx app couldn't reach Portainer at `127.0.0.1:9000`.
 - Docker is limited to half of the NAS's memory *(a third on devices with 1GB or less)*, shared by all containers.
 - Portainer is created on first start and is available on port `9000` *(HTTP)* and `9443` *(HTTPS)*.
 
