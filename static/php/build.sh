@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Builds PHP's CLI and FPM as fully static binaries with static-php-cli, with every extension built in: those of the
-# NAS's own PHP 7.4 (so that it can replace it), plus opcache, intl, redis (for ValKey), sodium, zip, sockets and pcntl.
+# NAS's own PHP 7.4 (so that it can replace it), plus opcache, intl, redis (for ValKey), sodium, zip, sockets and pcntl,
+# and the other extensions popular PHP apps ask for (WordPress, Nextcloud, Laravel, Drupal...): PostgreSQL drivers, gmp,
+# ldap, igbinary (also used by redis), xsl, soap, calendar, ftp, shared memory / semaphores, tidy and yaml.
 # Static binaries can't load extensions from .so files, so none are needed (or possible)
 
 set -e
@@ -14,6 +16,7 @@ SPC_VERSION=2.8.5
 # The NAS's PHP 7.4 extensions, then the extras
 EXTENSIONS="apcu,bcmath,bz2,ctype,curl,dom,exif,fileinfo,filter,gd,gettext,iconv,mbstring,mysqli,mysqlnd,openssl,pdo,pdo_mysql,pdo_sqlite,posix,readline,session,simplexml,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zlib"
 EXTENSIONS="${EXTENSIONS},opcache,intl,redis,sodium,zip,sockets,pcntl"
+EXTENSIONS="${EXTENSIONS},pgsql,pdo_pgsql,gmp,ldap,igbinary,xsl,soap,calendar,ftp,shmop,sysvsem,sysvshm,sysvmsg,tidy,yaml"
 # Image formats for gd
 LIBS="freetype,libjpeg,libpng,libwebp"
 
