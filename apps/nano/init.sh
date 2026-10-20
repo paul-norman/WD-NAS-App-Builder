@@ -30,7 +30,9 @@ log "linking redirect page from: ${APP_PATH}/web/* to: ${APP_WEB_PATH}"
 ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 
 # Fix the global terminal setting (marked so that clean.sh can remove it again)
-if ! grep -q "# added by the nano app" /etc/profile; then
-	log "setting TERM=xterm in: /etc/profile"
-	echo "export TERM=xterm # added by the nano app" >> /etc/profile
+# nano has the common terminal types built in, so the TERM=xterm that older versions of the app put in /etc/profile
+# (which took colours away from every other program too) is no longer needed
+if grep -q "# added by the nano app" /etc/profile; then
+	log "removing the TERM setting older versions added to: /etc/profile"
+	sed -i "/# added by the nano app/d" /etc/profile
 fi
