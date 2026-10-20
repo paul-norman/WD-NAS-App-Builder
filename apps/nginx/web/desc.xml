@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Nginx: HTTPS for the NAS's apps (e.g. https://jellyfin.example.com), with free certificates from Let's Encrypt.</en-US>
+	<fr-FR>Nginx : HTTPS pour les applications du NAS (p. ex. https://jellyfin.example.com), avec des certificats gratuits de Let's Encrypt.</fr-FR>
+	<es-ES>Nginx: HTTPS para las aplicaciones del NAS (p. ej. https://jellyfin.example.com), con certificados gratuitos de Let's Encrypt.</es-ES>
+	<de-DE>Nginx: HTTPS für die Apps des NAS (z. B. https://jellyfin.example.com), mit kostenlosen Zertifikaten von Let's Encrypt.</de-DE>
+</config>

@@ -88,6 +88,7 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
   - [x] [ValKey 9.1.2](https://github.com/valkey-io/valkey/archive/refs/tags/9.1.2.tar.gz)
   - [x] [Docker 29.9.1](https://download.docker.com/linux/static/stable/x86_64/docker-29.9.1.tgz) / [Docker-Compose 5.6.0](https://github.com/docker/compose/releases/download/v5.6.0/docker-compose-linux-x86_64) / [Portainer 2.45.2 LTS](https://github.com/portainer/portainer/releases/tag/2.45.2)
   - [x] [PHP 8.5.11](https://www.php.net/releases/8.5/) *(`php` app: replaces the NAS's own PHP 7.4, static build with static-php-cli)*
+  - [x] [Nginx 1.30.6](https://nginx.org/) *(`nginx` app: HTTPS reverse proxy for the apps, with certificates from Let's Encrypt via lego - static build with Brotli)*
   - [ ] [Git 2.47.1](https://bin.entware.net/x64-k3.2/git_2.39.2-1_x64-3.2.ipk)
 
 ## Where to find other apps?

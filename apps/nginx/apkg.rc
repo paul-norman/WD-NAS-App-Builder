@@ -1,0 +1,23 @@
+Package:			nginx
+Version:			1.30.6
+Packager:			PDN
+Email:
+Homepage:			https://nginx.org/
+Description:		Nginx: HTTPS for the NAS's apps (e.g. https://jellyfin.example.com), with free certificates from Let's Encrypt.
+Icon:				logo.svg
+AddonShowName:		Nginx
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
