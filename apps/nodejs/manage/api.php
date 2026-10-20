@@ -13,7 +13,7 @@ $action = isset($_GET['action']) ? $_GET['action'] : 'status';
 
 if ($action === 'status') {
 	$versions = [];
-	foreach (['node', 'npm', 'corepack'] as $tool) {
+	foreach (['node', 'npm', 'corepack', 'pnpm'] as $tool) {
 		list($code, $output) = manage_run([$bin_path . '/' . $tool, '--version'], $env);
 		$versions[$tool] = $code === 0 ? ltrim($output, 'v') : '';
 	}

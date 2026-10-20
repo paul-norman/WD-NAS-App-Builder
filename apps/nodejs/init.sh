@@ -40,3 +40,6 @@ ln -sf ${APP_PATH}/binaries/bin/node /usr/bin/node >> ${LOG} 2>&1
 ln -sf ${APP_PATH}/binaries/bin/npm /usr/bin/npm >> ${LOG} 2>&1
 ln -sf ${APP_PATH}/binaries/bin/npx /usr/bin/npx >> ${LOG} 2>&1
 ln -sf ${APP_PATH}/binaries/bin/corepack /usr/bin/corepack >> ${LOG} 2>&1
+for name in pnpm pnpx pn pnx; do
+	ln -sf ${APP_PATH}/binaries/bin/${name} /usr/bin/${name} >> ${LOG} 2>&1
+done

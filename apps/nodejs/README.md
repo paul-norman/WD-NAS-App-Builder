@@ -1,8 +1,9 @@
 # Node.js App
 
-This app provides `node`, `npm`, `npx` and `corepack` binaries to allow installing and running Node.js projects directly on the WD NAS device.
+This app provides `node`, `npm`, `npx`, `pnpm`, `pnpx` and `corepack` binaries to allow installing and running Node.js projects directly on the WD NAS device.
 
-`pnpm` and `yarn` are available through `corepack`, which downloads them on first use *(e.g. `corepack pnpm install`)*.
+- **pnpm** *(and `pnpx`, plus the short `pn` / `pnx`)* is included: since pnpm 11 it's a native program rather than JavaScript *(its npm package only wraps it, and would download it on first use)*, so the build installs it the way pnpm's own install script does - the wrapper package in Node's global `lib/node_modules/pnpm`, with its placeholder `pnpm` replaced by the native program *(checked against npm's published integrity, like the wrapper)*.
+- **Yarn** is available through `corepack`, which downloads it on first use *(e.g. `corepack yarn install`)*.
 
 A small test server is started on port `30290`, with its output in `test_server.log` in the app's install directory.
 

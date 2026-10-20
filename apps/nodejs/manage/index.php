@@ -13,8 +13,9 @@ header('Cache-Control: no-store');
 		<tr><td>Node.js</td><td data-pg="node">…</td></tr>
 		<tr><td>npm</td><td data-pg="npm">…</td></tr>
 		<tr><td>Corepack</td><td data-pg="corepack">…</td></tr>
+		<tr><td>pnpm</td><td data-pg="pnpm">…</td></tr>
 	</table>
-	<p class="mg-note"><code>node</code>, <code>npm</code>, <code>npx</code> and <code>corepack</code> can be used over SSH.</p>
+	<p class="mg-note"><code>node</code>, <code>npm</code>, <code>npx</code>, <code>pnpm</code>, <code>pnpx</code> and <code>corepack</code> can be used over SSH.</p>
 
 	<h3>Test server</h3>
 	<p>A small example server on port <code>30290</code>, showing that Node.js works on the NAS: <span data-pg="server">…</span></p>
@@ -55,7 +56,7 @@ header('Cache-Control: no-store');
 		function refresh() {
 			return call('status').then(function (d) {
 				if (!d.ok) { say(d.error, false); return; }
-				['node', 'npm', 'corepack'].forEach(function (tool) { part(tool).textContent = d.versions[tool] || 'not found'; });
+				['node', 'npm', 'corepack', 'pnpm'].forEach(function (tool) { part(tool).textContent = d.versions[tool] || 'not found'; });
 				var server = part('server');
 				server.textContent = d.test_server;
 				server.className = d.test_server === 'running' ? 'mg-ok' : 'mg-bad';
