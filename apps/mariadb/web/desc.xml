@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>MariaDB 11.8 LTS: replaces the NAS's own MariaDB 10.5 (on a copy of its data), e.g. for phpMyAdmin (Intel models).</en-US>
+	<fr-FR>MariaDB 11.8 LTS : remplace le MariaDB 10.5 du NAS (sur une copie de ses données), p. ex. pour phpMyAdmin (modèles Intel).</fr-FR>
+	<es-ES>MariaDB 11.8 LTS: sustituye al MariaDB 10.5 del NAS (sobre una copia de sus datos), p. ej. para phpMyAdmin (modelos Intel).</es-ES>
+	<de-DE>MariaDB 11.8 LTS: ersetzt das MariaDB 10.5 des NAS (auf einer Kopie seiner Daten), z. B. für phpMyAdmin (Intel-Modelle).</de-DE>
+</config>
