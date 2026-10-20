@@ -14,6 +14,8 @@ RUN apt-get update && \
 	curl \
 	wget \
 	git \
+	ncurses-bin \
+	ncurses-term \
 	pkg-config
 
 # Volume that will point to the whole repository

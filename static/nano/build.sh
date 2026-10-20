@@ -34,6 +34,9 @@ function build_musl() {
 	make install
 }
 
+# The common terminal types are built in (--with-fallbacks, from the build machine's terminfo): the NAS has hardly any
+# terminfo files, so e.g. SSH clients announcing xterm-256color would otherwise stop nano from starting. Others are
+# looked for in the usual folders, and Entware's
 function build_ncurses() {
 	cd ${BUILD_PATH}
 
@@ -53,7 +56,8 @@ function build_ncurses() {
 		--without-debug \
 		--without-ada \
 		--with-default-terminfo=/usr/share/terminfo \
-		--with-terminfo-dirs="/etc/terminfo:/lib/terminfo:/usr/share/terminfo:/usr/lib/terminfo"
+		--with-terminfo-dirs="/etc/terminfo:/lib/terminfo:/usr/share/terminfo:/usr/lib/terminfo:/opt/share/terminfo" \
+		--with-fallbacks="xterm-256color,xterm,screen-256color,screen,tmux-256color,tmux,linux,vt100,vt220,ansi"
 
 	# Make
 	mkdir "${BUILD_PATH}/ncurses-install"
