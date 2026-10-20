@@ -27,4 +27,4 @@
 
 # Back to WD's own PHP 7.4 (php-fpm switches over gracefully)
 log "switching the NAS back to PHP 7.4"
-sh "${APP_PATH}/php_swap.sh" restore >> ${LOG} 2>&1
+sh "${APP_PATH}/php_swap.sh" restore > /dev/null 2>> ${LOG}

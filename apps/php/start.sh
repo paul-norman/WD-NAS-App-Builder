@@ -28,4 +28,4 @@
 # PHP 8.5 becomes the NAS's own PHP (php-fpm switches over gracefully, so that the NAS's web interface carries on). If
 # it can't be switched, WD's PHP 7.4 carries on
 log "switching the NAS to PHP 8.5"
-sh "${APP_PATH}/php_swap.sh" swap >> ${LOG} 2>&1
+sh "${APP_PATH}/php_swap.sh" swap > /dev/null 2>> ${LOG}
