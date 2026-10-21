@@ -304,9 +304,24 @@ docker_cleanup() {
 	/usr/sbin/cgroupfs-umount
 }
 
-set_docker_cgroup() {
-	ONE_G_KB=1048576
+# The share of the NAS's memory that Docker and all its containers may use, in percent: the one chosen on the management
+# page (saved in _docker/memory_limit), otherwise half - a third on devices with 1GB or less
+docker_memory_percent() {
+	percent="$(cat "${DOCKER_ROOT}/memory_limit" 2>/dev/null)"
+	case "${percent}" in
+		[1-9][0-9])
+			echo "${percent}"
+			return
+			;;
+	esac
+	if [ "$1" -gt 1048576 ]; then
+		echo 50
+	else
+		echo 33
+	fi
+}
 
+set_docker_cgroup() {
 	mem_quota=0
 	mem_total_kb=`grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}'`
 
@@ -317,11 +332,8 @@ set_docker_cgroup() {
 			;;
 	esac
 
-	if [ ${mem_total_kb} -gt ${ONE_G_KB} ]; then
-		mem_quota=$((mem_total_kb/2))
-	else
-		mem_quota=$((mem_total_kb/3))
-	fi
+	mem_percent="$(docker_memory_percent "${mem_total_kb}")"
+	mem_quota=$((mem_total_kb * mem_percent / 100))
 
 	log "Total RAM: ${mem_total_kb} KB"
 
@@ -333,12 +345,15 @@ set_docker_cgroup() {
 		return 1
 	fi
 
-	log "Docker quota: ${mem_quota} KB"
-	if echo "${mem_quota}K" > /sys/fs/cgroup/memory/docker/memory.limit_in_bytes ; then
-		# Docker and all containers use the same memory limit
-		echo 1 > /sys/fs/cgroup/memory/docker/memory.use_hierarchy
-		log "Set memory quota for docker: $(cat /sys/fs/cgroup/memory/docker/memory.limit_in_bytes)"
+	log "Docker quota: ${mem_quota} KB (${mem_percent}%)"
+	# Can fail while Docker is running, if its containers already use more than a lower limit and can't give it back
+	if ! echo "${mem_quota}K" > /sys/fs/cgroup/memory/docker/memory.limit_in_bytes; then
+		log "Could not set the memory quota (in use: $(cat /sys/fs/cgroup/memory/docker/memory.usage_in_bytes) bytes)"
+		return 1
 	fi
+	# Docker and all containers use the same memory limit
+	echo 1 > /sys/fs/cgroup/memory/docker/memory.use_hierarchy 2>/dev/null
+	log "Set memory quota for docker: $(cat /sys/fs/cgroup/memory/docker/memory.limit_in_bytes)"
 }
 
 case $1 in
@@ -373,6 +388,10 @@ case $1 in
 	shutdown)
 		docker_stop
 		docker_cleanup
+		;;
+	memory)
+		# Applies the memory limit (e.g. after it was changed on the management page) without restarting Docker
+		set_docker_cgroup || exit 1
 		;;
 	*)
 		log "Invalid command!"

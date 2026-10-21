@@ -14,10 +14,16 @@ header('Cache-Control: no-store');
 		<tr><td>Version</td><td data-dk="version">-</td></tr>
 		<tr><td>Storage driver</td><td data-dk="driver">-</td></tr>
 		<tr><td>Kernel modules</td><td data-dk="modules">-</td></tr>
+		<tr><td>Memory</td><td data-dk="memory">-</td></tr>
 	</table>
 	<p class="mg-note" data-dk="driver-note" hidden></p>
 	<p><button type="button" data-dk-action="restart">Restart Docker</button>
 		<button type="button" data-dk-action="retry" hidden>Retry loading the modules</button></p>
+	<p><label>Memory for Docker <select data-dk="memory-percent"></select></label>
+		<button type="button" data-dk-action="memory">Save</button></p>
+	<p class="mg-note">Docker and all its containers share this part of the NAS's memory; the rest is left for the NAS itself
+		and its other apps (e.g. Plex). Leave the NAS enough: when it runs short, it starts stopping processes. A container
+		that needs more than Docker's share is stopped instead.</p>
 
 	<h3>Portainer</h3>
 	<p data-dk="portainer">-</p>
@@ -47,6 +53,7 @@ header('Cache-Control: no-store');
 		var api = '/apps/docker/api.php';
 		var csrf = <?php echo json_encode(manage_csrf_token('docker')); ?>;
 		<?php manage_secret_script(); ?>
+		var memoryLoaded = false;
 		var moduleStates = { loaded: 'loaded', not_built: 'not built for this model', wrong_firmware: 'built for another firmware',
 			crashed: 'not loaded: a previous attempt never finished (the NAS may have crashed)', not_loaded: 'not loaded (see /tmp/debug_apkg)' };
 
@@ -99,6 +106,26 @@ header('Cache-Control: no-store');
 			});
 		}
 
+		function gb(bytes) { return (bytes / 1073741824).toFixed(1) + ' GB'; }
+
+		// Docker's memory: the limit in force, what its containers use, and the shares to choose from (filled in once, so
+		// a refresh doesn't undo a choice being made)
+		function showMemory(memory, choices) {
+			part('memory').textContent = (memory.limit ? 'up to ' + gb(memory.limit) + ' of the NAS\'s ' + gb(memory.total) +
+				' (' + Math.round(100 * memory.limit / memory.total) + '%)' : gb(memory.total) + ' in the NAS') +
+				(memory.limit ? ' - containers use ' + gb(memory.usage) : '') + ', ' + gb(memory.available) + ' free in the NAS';
+			if (memoryLoaded) { return; }
+			var select = part('memory-percent');
+			choices.forEach(function (percent) {
+				var option = document.createElement('option');
+				option.value = percent;
+				option.textContent = percent + '% (' + gb(memory.total * percent / 100) + ')';
+				option.selected = percent === memory.percent;
+				select.appendChild(option);
+			});
+			memoryLoaded = true;
+		}
+
 		function showKernel(kernel) {
 			var anyCrashed = false;
 			part('modules').textContent = kernel.modules.map(function (module) {
@@ -131,6 +158,7 @@ header('Cache-Control: no-store');
 				driver.textContent = d.driver ? d.driver + (d.driver === 'vfs' ? ' (every image layer is a full copy - uses much more disk space)' : '') : '-';
 				driver.className = d.driver === 'vfs' ? 'mg-bad' : '';
 				showKernel(d.kernel);
+				showMemory(d.memory, d.memory_choices);
 				if (d.unused_driver) {
 					var note = part('driver-note');
 					note.textContent = (note.textContent ? note.textContent + ' ' : '') + 'Images stored with ' + d.unused_driver +
@@ -182,6 +210,16 @@ header('Cache-Control: no-store');
 
 		button('retry').addEventListener('click', function () {
 			restart({ retry_modules: 1 }, 'Retry loading the kernel modules? Docker restarts. If loading them crashes the NAS again, they will not be tried again.');
+		});
+
+		button('memory').addEventListener('click', function () {
+			var percent = part('memory-percent').value;
+			call('memory', { percent: percent }).then(function (d) {
+				if (!d.ok) { say(d.error, false); return; }
+				say(d.applied ? 'Docker can now use ' + percent + '% of the NAS\'s memory.' :
+					'Saved - it takes effect when Docker next restarts (its containers use more than that right now, or Docker isn\'t set up yet).', d.applied);
+				refresh();
+			});
 		});
 
 		button('restart-portainer').addEventListener('click', function () {

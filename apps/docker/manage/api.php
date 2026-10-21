@@ -9,6 +9,10 @@ $docker = $app_path . '/binaries/docker';
 $docker_root = dirname($app_path) . '/_docker';
 $restart_pid_file = '/var/run/docker_manage_restart.pid';
 $app_modules = ['overlay', 'iptable_raw'];
+$memory_file = $docker_root . '/memory_limit';
+$memory_cgroup = '/sys/fs/cgroup/memory/docker';
+// The shares of the NAS's memory the page offers for Docker (in percent)
+$memory_choices = [25, 33, 50, 60, 70, 75, 80, 90];
 
 // Runs a docker command that prints one JSON object per line (--format '{{json .}}'), returning them (or null)
 function docker_json_lines($docker, array $args)
@@ -64,6 +68,25 @@ function docker_modules($app_path, $docker_root, array $names)
 	return ['model' => $model, 'firmware' => $firmware, 'built_for' => $built_for, 'modules' => $modules];
 }
 
+// Docker's memory: the NAS's total and available memory, the share chosen for Docker (as daemon.sh works it out), the
+// limit actually in force and what Docker's containers use (without reclaimable file cache, as "docker stats" counts it)
+function docker_memory($memory_file, $cgroup)
+{
+	$meminfo = (string)@file_get_contents('/proc/meminfo');
+	$total = preg_match('/^MemTotal:\s+(\d+)/m', $meminfo, $m) ? (int)$m[1] * 1024 : 0;
+	$available = preg_match('/^MemAvailable:\s+(\d+)/m', $meminfo, $m) ? (int)$m[1] * 1024 : 0;
+	$saved = trim((string)@file_get_contents($memory_file));
+	$percent = preg_match('/^[1-9][0-9]$/', $saved) ? (int)$saved : ($total > 1073741824 ? 50 : 33);
+	$limit = (int)trim((string)@file_get_contents($cgroup . '/memory.limit_in_bytes'));
+	$usage = (int)trim((string)@file_get_contents($cgroup . '/memory.usage_in_bytes'));
+	$stat = (string)@file_get_contents($cgroup . '/memory.stat');
+	if (preg_match('/^total_inactive_file (\d+)/m', $stat, $m)) {
+		$usage = max(0, $usage - (int)$m[1]);
+	}
+	return ['total' => $total, 'available' => $available, 'percent' => $percent,
+		'limit' => $limit > 0 && $limit < $total * 2 ? $limit : 0, 'usage' => $usage];
+}
+
 // Asks Portainer (on the NAS itself) whether its admin account has been created yet: true, false or null (unknown)
 function portainer_has_admin()
 {
@@ -114,6 +137,8 @@ if ($action === 'status') {
 		'portainer' => $portainer,
 		'portainer_has_admin' => $portainer === 'running' ? portainer_has_admin() : null,
 		'kernel' => docker_modules($app_path, $docker_root, $app_modules),
+		'memory' => docker_memory($memory_file, $memory_cgroup),
+		'memory_choices' => $memory_choices,
 	]);
 }
 
@@ -153,6 +178,20 @@ if ($action === 'restart_portainer') {
 		manage_fail(500, 'Portainer could not be restarted: ' . $output);
 	}
 	manage_json([]);
+}
+
+if ($action === 'memory') {
+	$percent = isset($_POST['percent']) ? (int)$_POST['percent'] : 0;
+	if (!in_array($percent, $memory_choices, true)) {
+		manage_fail(400, 'Choose one of: ' . implode('%, ', $memory_choices) . '%');
+	}
+	if (!manage_write_file($memory_file, $percent . "\n")) {
+		manage_fail(500, 'The setting could not be saved in: ' . $memory_file);
+	}
+	// Applied straight away when Docker is set up; otherwise (or if the containers already use more than a lower limit)
+	// it takes effect when Docker next starts
+	list($code) = manage_run(['/bin/sh', $app_path . '/daemon.sh', 'memory']);
+	manage_json(['applied' => $code === 0]);
 }
 
 if ($action === 'restart') {

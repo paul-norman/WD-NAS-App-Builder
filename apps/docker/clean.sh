@@ -27,6 +27,8 @@ rm -f /sbin/containerd*
 rm -f /sbin/ctr
 rm -f /sbin/docker*
 rm -f /sbin/runc
+rm -f /usr/libexec/docker/cli-plugins/docker-compose
+rmdir /usr/libexec/docker/cli-plugins /usr/libexec/docker 2>/dev/null
 
 # Unload the app's own kernel modules (Docker has stopped by now)
 log "unloading the app's kernel modules"

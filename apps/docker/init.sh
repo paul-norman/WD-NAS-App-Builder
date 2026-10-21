@@ -38,6 +38,12 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 log "linking ${APP_NAME} binaries"
 ln -sf ${APP_PATH}/binaries/* /sbin
 
+# Compose is also a Docker CLI plugin, so "docker compose" works as well as "docker-compose" (/usr is in RAM, so this is
+# redone on every boot)
+log "linking docker-compose as a Docker CLI plugin"
+mkdir -p /usr/libexec/docker/cli-plugins
+ln -sf ${APP_PATH}/binaries/docker-compose /usr/libexec/docker/cli-plugins/docker-compose
+
 # Setup a persistent data directory
 if [ -d ${APP_PERSISTENT_DATA_PATH} ]; then
 	if [ -d ${APP_PERSISTENT_DATA_PATH}/devicemapper ]; then

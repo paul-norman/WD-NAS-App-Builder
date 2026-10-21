@@ -2,7 +2,7 @@
 
 Installs the Docker engine, Docker Compose and the [Portainer](https://www.portainer.io/) web UI from Docker's static binaries, so containers can be run natively on the NAS without an outdated Docker package.
 
-- `docker`, `dockerd`, `docker-compose` and the other binaries are linked into `/sbin`.
+- `docker`, `dockerd`, `docker-compose` and the other binaries are linked into `/sbin`. Compose is also installed as a Docker CLI plugin, so both `docker compose` *(as most guides write it)* and `docker-compose` work.
 - Images, containers and volumes are stored next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_docker` *(linked to `/var/lib/docker`)*, and are kept across reinstalls.
 - The WD kernel *(4.14)* has no `overlay` file system, so the app includes an `overlay.ko` kernel module *(plus `iptable_raw.ko`, which Docker 28+ uses to block access to unpublished container ports)*, built from WD's own GPL source by `static/docker`. With it, Docker uses the efficient `overlay2` storage driver.
 - A kernel module only fits the exact kernel it was built for, so each model gets its own build, and the modules are **only loaded on the model and firmware they were built for** *(see `MODELS` and `VERSION` in `static/docker/build.sh`)*:
@@ -19,7 +19,7 @@ Installs the Docker engine, Docker Compose and the [Portainer](https://www.porta
 - If loading a module ever crashes the NAS, it isn't tried again: a marker file *(`_docker/.loading-<module>`)* left behind by the crash makes Docker fall back to `vfs`. Delete the marker to try again.
 - Each storage driver keeps its own images and containers, so after a switch between `overlay2` and `vfs` the other driver's images and containers aren't visible *(re-pull them; delete the unused `vfs` or `overlay2` directory to free its space)*.
 - Containers' published ports are forwarded by the firewall, also for connections from the NAS itself *(`"userland-proxy": false` in `daemon.json`)*: Docker's `docker-proxy` helper, which would otherwise handle connections to `127.0.0.1`, accepts them but never passes them on, on WD's NAS - so e.g. the Nginx app couldn't reach Portainer at `127.0.0.1:9000`.
-- Docker is limited to half of the NAS's memory *(a third on devices with 1GB or less)*, shared by all containers.
+- Docker and all its containers share a limited part of the NAS's memory: half by default *(a third on devices with 1GB or less)*, adjustable on the management page from 25% to 90% *(e.g. after a memory upgrade)*. The rest is left for the NAS itself and its other apps.
 - Portainer is created on first start and is available on port `9000` *(HTTP)* and `9443` *(HTTPS)*.
 
 ## Management page
@@ -27,6 +27,7 @@ Installs the Docker engine, Docker Compose and the [Portainer](https://www.porta
 Docker's page in the NAS dashboard *(Apps → Docker)* shows:
 
 - whether Docker is running, its version and storage driver, and whether the kernel modules loaded *(and if not, why: another model or firmware, or a crash marker)*
+- Docker's memory limit, what its containers use and the NAS's free memory, with a choice of how much of the NAS's memory Docker may use *(applied straight away; a lower limit than the containers already use takes effect when Docker next restarts)*
 - Portainer's status, with a link to it, a restart button and, until its admin account is created, the setup token
 - the containers and the disk space used by images, containers, volumes and the build cache
 
@@ -53,7 +54,7 @@ docker rm -f portainer
 - App script log: `/tmp/debug_apkg`
 - Docker daemon log: `/mnt/HD/HD_a2/Nas_Prog/_docker/docker.log` *(adjust the volume to match your install)*
 
-The daemon can also be controlled directly over SSH with `daemon.sh` in the app's install directory, e.g. `/mnt/HD/HD_a2/Nas_Prog/docker/daemon.sh status`. It accepts `setup`, `start`, `stop`, `shutdown` *(stop and unmount everything)*, `status` and `issetup`.
+The daemon can also be controlled directly over SSH with `daemon.sh` in the app's install directory, e.g. `/mnt/HD/HD_a2/Nas_Prog/docker/daemon.sh status`. It accepts `setup`, `start`, `stop`, `shutdown` *(stop and unmount everything)*, `status`, `issetup` and `memory` *(apply the memory limit without restarting Docker)*.
 
 ## Building the Docker app
 
