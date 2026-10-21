@@ -1,0 +1,23 @@
+Package:			uptime-kuma
+Version:			2.5.6
+Packager:			PDN
+Email:
+Homepage:			https://github.com/louislam/uptime-kuma
+Description:		Uptime Kuma: monitors your websites, services and devices, and alerts you when they go down.
+Icon:				uptime-kuma.svg
+AddonShowName:		Uptime Kuma
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
