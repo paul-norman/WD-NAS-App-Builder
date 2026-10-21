@@ -1,0 +1,23 @@
+Package:			ntfy
+Version:			2.32.0
+Packager:			PDN
+Email:
+Homepage:			https://ntfy.sh/
+Description:		ntfy: push notifications to your phone and browser, from the NAS's apps and scripts.
+Icon:				ntfy.svg
+AddonShowName:		ntfy (notifications)
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

@@ -98,6 +98,7 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
   - [x] [Grafana 13.2.4](https://grafana.com/oss/grafana/) *(`grafana` app: dashboards and alerts, with the Prometheus app as its data source and WD NAS + Node Exporter Full dashboards - trimmed official release, own user, daily backups)*
   - [x] [Loki 3.7.9](https://grafana.com/oss/loki/) + [Vector 0.60.0](https://vector.dev/) *(`loki` app: collects the NAS's, apps' and Docker containers' logs, searchable in the Grafana app with a NAS logs dashboard)*
   - [x] [Kopia 0.23.1](https://kopia.io/) *(`kopia` app: encrypted, deduplicated, versioned backups to the cloud, another server or a USB drive - HTTPS-only through the Nginx app by default)*
+  - [x] [ntfy 2.32.0](https://ntfy.sh/) *(`ntfy` app: push notifications to phones and browsers from the NAS's apps and scripts - login required, optional iPhone relay)*
   - [ ] [Git 2.47.1](https://bin.entware.net/x64-k3.2/git_2.39.2-1_x64-3.2.ipk)
 
 ## Where to find other apps?
