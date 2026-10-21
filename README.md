@@ -92,6 +92,7 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
   - [x] [MariaDB 11.8.9 LTS](https://mariadb.org/) *(`mariadb` app: replaces the NAS's own MariaDB 10.5, on a copy of its data)*
   - [x] [PostgreSQL 18.6](https://www.postgresql.org/) *(`postgresql` app: built on Bullseye with bundled libraries, runs as its own user - with PostGIS, pgvector, pg_cron, pg_partman and pgaudit)*
   - [x] [Node Exporter 1.12.1](https://github.com/prometheus/node_exporter) *(`node_exporter` app: system metrics for Prometheus / Grafana, plus WD's disk, RAID and volume health as `wd_` metrics)*
+  - [x] [Vaultwarden 1.37.4](https://github.com/dani-garcia/vaultwarden) *(`vaultwarden` app: native Bitwarden-compatible server with SQLite, served over HTTPS by the Nginx app, runs as its own user - daily backups)*
   - [ ] [Git 2.47.1](https://bin.entware.net/x64-k3.2/git_2.39.2-1_x64-3.2.ipk)
 
 ## Where to find other apps?

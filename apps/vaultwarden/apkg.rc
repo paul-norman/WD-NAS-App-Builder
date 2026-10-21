@@ -1,0 +1,23 @@
+Package:			vaultwarden
+Version:			1.37.4
+Packager:			PDN
+Email:
+Homepage:			https://github.com/dani-garcia/vaultwarden
+Description:		Vaultwarden: a lightweight Bitwarden-compatible password manager server, for all your devices.
+Icon:				vaultwarden.svg
+AddonShowName:		Vaultwarden
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:			nginx
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

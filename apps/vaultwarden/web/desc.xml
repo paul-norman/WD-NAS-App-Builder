@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Vaultwarden: a lightweight Bitwarden-compatible password manager server, for all your devices.</en-US>
+	<fr-FR>Vaultwarden : un serveur de gestionnaire de mots de passe léger, compatible Bitwarden, pour tous vos appareils.</fr-FR>
+	<es-ES>Vaultwarden: un servidor de gestor de contraseñas ligero y compatible con Bitwarden, para todos tus dispositivos.</es-ES>
+	<de-DE>Vaultwarden: ein schlanker, Bitwarden-kompatibler Passwortmanager-Server für alle Ihre Geräte.</de-DE>
+</config>
