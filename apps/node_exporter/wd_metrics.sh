@@ -5,12 +5,18 @@
 #
 # Usage: wd_metrics.sh <output dir> [<seconds between runs>]  (without the interval, it writes wd.prom once)
 #  - CAP_LOG=<file> also keeps that file (Node Exporter's log) under 1MB, between runs
-#  - WD_METRICS_SOURCE=<dir> reads disks.xml, raids.xml and vols.xml from <dir> instead (for tests)
+#  - WD_METRICS_SOURCE=<dir> reads disks.xml, raids.xml and vols.xml from <dir> instead (for tests), and each disk's
+#    smartctl output from <dir>/smart-<disk>.txt
+#
+# Every 10th run (and the first) it also reads each disk's SMART health and attributes with smartctl (the app's own, or
+# the NAS's) into smart.prom. With -n standby a sleeping disk isn't woken: its last reading is kept until it wakes
 
 OUT_DIR="$1"
 INTERVAL="$2"
 SOCKET="/var/run/xmldb_sock_sysinfo"
 WORK="/tmp/node_exporter-wd"
+SMARTCTL="$(dirname "$(readlink -f "$0")")/binaries/smartctl"
+[ -x "${SMARTCTL}" ] || SMARTCTL="$(command -v smartctl)"
 
 collect() {
 	mkdir -p "${WORK}"
@@ -142,16 +148,87 @@ collect() {
 	mv -f "${OUT_DIR}/wd.prom.$$" "${OUT_DIR}/wd.prom"
 }
 
+# SMART: each disk in WD's records, read with smartctl (each reading is kept in ${WORK}/smart-<disk>.txt, so that a
+# sleeping disk's last one is still exported)
+collect_smart() {
+	[ -n "${SMARTCTL}" ] || [ -n "${WD_METRICS_SOURCE}" ] || return 0
+	awk -F'[<>"]' '/<disk id="/ { bay = $3 } /<name>/ { print $3 " " bay }' "${WORK}/disks.xml" 2>/dev/null | while read -r disk bay; do
+		cache="${WORK}/smart-${disk}.txt"
+		if [ -n "${WD_METRICS_SOURCE}" ]; then
+			out="$(cat "${WD_METRICS_SOURCE}/smart-${disk}.txt" 2>/dev/null)"
+		else
+			out="$("${SMARTCTL}" -n standby -H -A "/dev/${disk}" 2>&1)"
+		fi
+		asleep=0
+		if echo "${out}" | grep -q 'ID# ATTRIBUTE_NAME\|SMART overall-health'; then
+			printf '%s\n' "${out}" > "${cache}"
+		elif echo "${out}" | grep -qi 'standby'; then
+			asleep=1
+		fi
+		# A header (disk, bay, when it was read, whether it's asleep now), then the reading
+		if [ -f "${cache}" ]; then
+			echo "### ${disk} ${bay} $(stat -c %Y "${cache}") ${asleep}"
+			cat "${cache}"
+		fi
+	done | awk '
+	function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); return s }
+	# Samples are kept per metric, so each metric is written as one block with its HELP and TYPE lines (braces in a
+	# variable: BusyBox awk before 1.34 takes a name followed by a bracket for a function call)
+	function add(name, help, labels, value) {
+		if (!(name in samples)) { order[++count] = name; helps[name] = help; samples[name] = "" }
+		braced = labels == "" ? "" : "{" labels "}"
+		samples[name] = samples[name] name braced " " value "\n"
+	}
+	/^### / {
+		l = "disk=\"" esc($2) "\",bay=\"" esc($3) "\""
+		add("wd_smart_last_read_timestamp_seconds", "When the SMART values were last read", l, $4)
+		add("wd_smart_asleep", "Whether the disk was asleep at the last attempt (its last reading is shown, the disk is not woken)", l, $5)
+		disks++
+		next
+	}
+	/SMART overall-health self-assessment test result:/ {
+		add("wd_smart_healthy", "The disk'"'"'s own SMART health assessment: 1 passed, 0 failed", l, ($NF == "PASSED") ? 1 : 0)
+		next
+	}
+	# An attribute: ID NAME FLAG VALUE WORST THRESHOLD TYPE UPDATED WHEN_FAILED RAW (the raw value'"'"'s first number)
+	/^ *[0-9]+ +[^ ]+ +0x[0-9a-fA-F]+ / {
+		raw = $10
+		sub(/[^0-9].*$/, "", raw)
+		a = l ",id=\"" $1 "\",attribute=\"" esc($2) "\""
+		add("wd_smart_attribute_raw", "A SMART attribute'"'"'s raw value (e.g. sectors, hours, degrees)", a, (raw == "") ? 0 : raw)
+		add("wd_smart_attribute_value", "A SMART attribute'"'"'s normalised value (higher is better)", a, $4 + 0)
+		add("wd_smart_attribute_threshold", "The normalised value at or below which the attribute counts as failing", a, $6 + 0)
+		add("wd_smart_attribute_failing", "Whether the attribute is failing now or has failed before", a, ($9 == "-") ? 0 : 1)
+		next
+	}
+	END {
+		add("wd_smart_success", "Whether SMART values could be read for at least one disk", "", (disks > 0) ? 1 : 0)
+		for (i = 1; i <= count; i++) {
+			name = order[i]
+			print "# HELP " name " " helps[name]
+			print "# TYPE " name " gauge"
+			printf "%s", samples[name]
+		}
+	}' > "${OUT_DIR}/smart.prom.$$"
+	mv -f "${OUT_DIR}/smart.prom.$$" "${OUT_DIR}/smart.prom"
+}
+
 mkdir -p "${OUT_DIR}"
 if [ -z "${INTERVAL}" ]; then
 	collect
+	collect_smart
 	exit 0
 fi
 
 # Runs until stopped, removing its files on the way out
-trap 'rm -f "${OUT_DIR}/wd.prom" "${OUT_DIR}"/wd.prom.*; rm -rf "${WORK}"; exit 0' TERM INT
+trap 'rm -f "${OUT_DIR}/wd.prom" "${OUT_DIR}"/wd.prom.* "${OUT_DIR}/smart.prom" "${OUT_DIR}"/smart.prom.*; rm -rf "${WORK}"; exit 0' TERM INT
+runs=0
 while :; do
 	collect
+	if [ $((runs % 10)) = 0 ]; then
+		collect_smart
+	fi
+	runs=$((runs + 1))
 	# Keeps Node Exporter's log (CAP_LOG, in RAM) under 1MB
 	if [ -n "${CAP_LOG}" ] && [ "$(wc -c < "${CAP_LOG}" 2>/dev/null || echo 0)" -gt 1048576 ]; then
 		: > "${CAP_LOG}"

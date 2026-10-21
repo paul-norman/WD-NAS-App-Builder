@@ -10,6 +10,7 @@ $settings_file = $data_path . '/settings';
 $password_file = $data_path . '/password';
 $web_config = $data_path . '/web-config.yml';
 $wd_file = '/tmp/node_exporter-textfile/wd.prom';
+$smart_file = '/tmp/node_exporter-textfile/smart.prom';
 $log_file = '/tmp/node_exporter.log';
 $auth_user = 'prometheus';
 
@@ -107,6 +108,20 @@ if ($action === 'status') {
 			$health = $value;
 		} elseif ($name === 'wd_collector_success') {
 			$collected = $value === 1;
+		}
+	}
+
+	// Each disk's SMART health, and its problem sectors (reallocated, pending and uncorrectable - any above 0 deserve
+	// attention), from the readings the script last wrote
+	foreach (ne_wd_samples($smart_file) as list($name, $labels, $value)) {
+		if (!isset($labels['disk'], $disks[$labels['disk']])) {
+			continue;
+		}
+		$key = $labels['disk'];
+		if ($name === 'wd_smart_healthy') {
+			$disks[$key]['smart_healthy'] = $value;
+		} elseif ($name === 'wd_smart_attribute_raw' && in_array($labels['id'], ['5', '197', '198'], true)) {
+			$disks[$key]['bad_sectors'] = (isset($disks[$key]['bad_sectors']) ? $disks[$key]['bad_sectors'] : 0) + $value;
 		}
 	}
 

@@ -162,11 +162,16 @@ header('Cache-Control: no-store');
 				part('health').textContent = health[0];
 				part('health').className = health[1];
 
-				fillTable(part('disks'), ['Bay', 'Disk', 'Model', 'Temperature', 'State'], d.disks.map(function (disk) {
+				fillTable(part('disks'), ['Bay', 'Disk', 'Model', 'Temperature', 'State', 'SMART'], d.disks.map(function (disk) {
 					var state = disk.failed ? { text: 'failed', className: 'mg-bad' } :
 						(!disk.healthy || disk.over_temperature ? { text: disk.over_temperature ? 'too hot' : 'unhealthy', className: 'mg-bad' } :
 						{ text: disk.sleeping ? 'healthy (asleep)' : 'healthy', className: 'mg-ok' });
-					return [disk.bay, disk.disk, disk.info || '', disk.temperature_celsius !== undefined ? disk.temperature_celsius + ' °C' : '-', state];
+					// The disk's own SMART assessment, and its problem sectors (reallocated, pending, uncorrectable)
+					var smart = disk.smart_healthy === undefined ? { text: 'not read yet', className: 'mg-note' } :
+						(!disk.smart_healthy ? { text: 'failed', className: 'mg-bad' } : (disk.bad_sectors ?
+						{ text: 'passed, ' + disk.bad_sectors + ' problem sector' + (disk.bad_sectors === 1 ? '' : 's'), className: 'mg-bad' } :
+						{ text: 'passed', className: 'mg-ok' }));
+					return [disk.bay, disk.disk, disk.info || '', disk.temperature_celsius !== undefined ? disk.temperature_celsius + ' °C' : '-', state, smart];
 				}), 'No disks found');
 				fillTable(part('raids'), ['RAID', 'Level', 'Disks', 'State'], d.raids.filter(function (raid) { return !raid.system; }).map(function (raid) {
 					var disks = raid.disks_working + ' of ' + raid.disks_total + ' working';

@@ -33,9 +33,25 @@ A small script reads WD's records of the disks, RAID arrays and volumes every 30
 
 Disk serial numbers are left out. For alerts, e.g. `wd_health > 0`, `wd_disk_temperature_celsius > 55` or `wd_raid_disks{state="failed"} > 0`.
 
+## SMART metrics
+
+WD's records only say whether a disk has passed or failed. Every 5 minutes the script also reads each disk's own SMART data with `smartctl` *(smartmontools 7.5, built static by `static/node_exporter` for the Intel models - the ARM models use the NAS's own `smartctl`, if it has one)*, with `-n standby`: a sleeping disk isn't woken, and its last reading is kept until it wakes.
+
+| Metric | Labels | Value |
+|---|---|---|
+| `wd_smart_healthy` | `disk`, `bay` | The disk's own health assessment: `1` passed, `0` failed |
+| `wd_smart_attribute_raw` | `disk`, `bay`, `id`, `attribute` | Each attribute's raw value *(its first number - e.g. sectors, hours, degrees)* |
+| `wd_smart_attribute_value`, `wd_smart_attribute_threshold` | the same | The normalised value *(higher is better)*, and the threshold at or below which it counts as failing |
+| `wd_smart_attribute_failing` | the same | `1` if the attribute is failing now or has failed before |
+| `wd_smart_last_read_timestamp_seconds` | `disk`, `bay` | When the values were last read |
+| `wd_smart_asleep` | `disk`, `bay` | `1` if the disk was asleep at the last attempt *(so the values are from before)* |
+| `wd_smart_success` | | Whether SMART values could be read for at least one disk |
+
+The attributes that warn of a failing disk are **5** *(Reallocated_Sector_Ct)*, **197** *(Current_Pending_Sector)* and **198** *(Offline_Uncorrectable)* - any above 0 deserves attention, and a rising count means trouble - and **199** *(UDMA_CRC_Error_Count: cable or connection errors)*. For alerts, e.g. `wd_smart_attribute_raw{id=~"5|197|198"} > 0` or `wd_smart_healthy == 0`. The Grafana app's WD NAS dashboard shows them per disk, and Node Exporter's page shows each disk's SMART health and problem sectors.
+
 ## Management page
 
-Node Exporter's page in the NAS dashboard *(Apps → Node Exporter)* shows whether it's running, its version and metrics address, and the storage as WD sees it *(disks with temperatures, RAID arrays, volumes and overall health)*. It changes the port, can require a password *(see below)*, gives a `prometheus.yml` snippet to copy, and shows Node Exporter's latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+Node Exporter's page in the NAS dashboard *(Apps → Node Exporter)* shows whether it's running, its version and metrics address, and the storage as WD sees it *(disks with temperatures and SMART health, RAID arrays, volumes and overall health)*. It changes the port, can require a password *(see below)*, gives a `prometheus.yml` snippet to copy, and shows Node Exporter's latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
 
 ## Password
 

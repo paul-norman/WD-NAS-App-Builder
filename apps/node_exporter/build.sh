@@ -33,6 +33,16 @@ for ARCH in "${!MODELS[@]}"; do
 	rm -rf "${NE_NAME}" "${NE_NAME}.tar.gz" "node_exporter-${APP_VERSION}-sha256sums.txt"
 	cd ../
 
+	# smartctl, for the disks' SMART attributes: built static by static/node_exporter (which the root build.sh runs first)
+	# for the Intel models - the ARM models use the NAS's own smartctl, if it has one
+	if [ "${ARCH}" = "amd64" ]; then
+		STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
+		if [ ! -x "${STATIC_PATH}/smartctl" ]; then
+			abort "smartctl not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+		fi
+		cp "${STATIC_PATH}/smartctl" binaries/
+	fi
+
 	# Build the archive for all models of this architecture
 	build ${MODELS[${ARCH}]} ${ARCH}
 

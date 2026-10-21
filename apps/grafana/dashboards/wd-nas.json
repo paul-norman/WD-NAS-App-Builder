@@ -1185,8 +1185,8 @@
 			}
 		},
 		{
-			"type": "timeseries",
-			"title": "CPU",
+			"type": "table",
+			"title": "SMART",
 			"id": 13,
 			"datasource": {
 				"type": "prometheus",
@@ -1195,6 +1195,508 @@
 			"gridPos": {
 				"x": 0,
 				"y": 19,
+				"w": 15,
+				"h": 7
+			},
+			"description": "The disks' own SMART health and the attributes that warn of a failing disk: reallocated, pending and uncorrectable sectors (any above 0 deserve attention), and cable / connection errors (CRC). Read every 5 minutes; a sleeping disk isn't woken",
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_smart_healthy{instance=\"$instance\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "B",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_smart_attribute_raw{instance=\"$instance\", id=\"9\"}) * 3600",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "C",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_smart_attribute_raw{instance=\"$instance\", id=\"5\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "D",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_smart_attribute_raw{instance=\"$instance\", id=\"197\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "E",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_smart_attribute_raw{instance=\"$instance\", id=\"198\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "F",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_smart_attribute_raw{instance=\"$instance\", id=\"199\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "G",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_smart_attribute_raw{instance=\"$instance\", id=\"193\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "H",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "time() - max by (bay, disk) (wd_smart_last_read_timestamp_seconds{instance=\"$instance\"})",
+					"instant": true,
+					"format": "table"
+				}
+			],
+			"transformations": [
+				{
+					"id": "merge",
+					"options": {}
+				},
+				{
+					"id": "organize",
+					"options": {
+						"excludeByName": {
+							"Time": true
+						},
+						"indexByName": {
+							"bay": 0,
+							"disk": 1,
+							"Value #A": 2,
+							"Value #B": 3,
+							"Value #C": 4,
+							"Value #D": 5,
+							"Value #E": 6,
+							"Value #F": 7,
+							"Value #G": 8,
+							"Value #H": 9
+						},
+						"renameByName": {
+							"bay": "Bay",
+							"disk": "Disk",
+							"Value #A": "Health",
+							"Value #B": "Powered on",
+							"Value #C": "Reallocated",
+							"Value #D": "Pending",
+							"Value #E": "Uncorrectable",
+							"Value #F": "CRC errors",
+							"Value #G": "Load cycles",
+							"Value #H": "Read"
+						}
+					}
+				},
+				{
+					"id": "sortBy",
+					"options": {
+						"sort": [
+							{
+								"field": "Bay"
+							}
+						]
+					}
+				}
+			],
+			"options": {
+				"showHeader": true,
+				"cellHeight": "sm"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"custom": {
+						"align": "auto"
+					}
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Bay"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 50
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Disk"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 55
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Health"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 75
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Powered on"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 100
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Reallocated"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 100
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Pending"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 80
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Uncorrectable"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 115
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "CRC errors"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 95
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Load cycles"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 95
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Health"
+						},
+						"properties": [
+							{
+								"id": "mappings",
+								"value": [
+									{
+										"type": "value",
+										"options": {
+											"0": {
+												"text": "Failed",
+												"color": "red",
+												"index": 0
+											},
+											"1": {
+												"text": "Passed",
+												"color": "green",
+												"index": 1
+											}
+										}
+									}
+								]
+							},
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Powered on"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "dtdurations"
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Reallocated"
+						},
+						"properties": [
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							},
+							{
+								"id": "thresholds",
+								"value": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": null
+										},
+										{
+											"color": "red",
+											"value": 1
+										}
+									]
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Pending"
+						},
+						"properties": [
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							},
+							{
+								"id": "thresholds",
+								"value": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": null
+										},
+										{
+											"color": "red",
+											"value": 1
+										}
+									]
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Uncorrectable"
+						},
+						"properties": [
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							},
+							{
+								"id": "thresholds",
+								"value": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": null
+										},
+										{
+											"color": "red",
+											"value": 1
+										}
+									]
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "CRC errors"
+						},
+						"properties": [
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							},
+							{
+								"id": "thresholds",
+								"value": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": null
+										},
+										{
+											"color": "orange",
+											"value": 1
+										}
+									]
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Read"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "s"
+							},
+							{
+								"id": "decimals",
+								"value": 0
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"type": "timeseries",
+			"title": "Problem sectors",
+			"id": 14,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 15,
+				"y": 19,
+				"w": 9,
+				"h": 7
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "sum by (disk) (wd_smart_attribute_raw{instance=\"$instance\", id=~\"5|197|198\"})",
+					"legendFormat": "{{disk}}"
+				}
+			],
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short",
+					"custom": {
+						"lineWidth": 2,
+						"fillOpacity": 10,
+						"showPoints": "never",
+						"stacking": {
+							"mode": "none"
+						}
+					},
+					"min": 0
+				},
+				"overrides": []
+			},
+			"description": "Each disk's reallocated, pending and uncorrectable sectors together, over time (the SMART table has them separately): rising counts are an early sign of a failing disk"
+		},
+		{
+			"type": "timeseries",
+			"title": "CPU",
+			"id": 15,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 0,
+				"y": 26,
 				"w": 8,
 				"h": 8
 			},
@@ -1239,14 +1741,14 @@
 		{
 			"type": "timeseries",
 			"title": "Memory",
-			"id": 14,
+			"id": 16,
 			"datasource": {
 				"type": "prometheus",
 				"uid": "${datasource}"
 			},
 			"gridPos": {
 				"x": 8,
-				"y": 19,
+				"y": 26,
 				"w": 8,
 				"h": 8
 			},
@@ -1300,14 +1802,14 @@
 		{
 			"type": "timeseries",
 			"title": "Disk throughput",
-			"id": 15,
+			"id": 17,
 			"datasource": {
 				"type": "prometheus",
 				"uid": "${datasource}"
 			},
 			"gridPos": {
 				"x": 16,
-				"y": 19,
+				"y": 26,
 				"w": 8,
 				"h": 8
 			},
