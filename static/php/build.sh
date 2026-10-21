@@ -10,7 +10,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=8.5.11
+VERSION=8.5.12
+# php.net's published SHA256 of the source (php-${VERSION}.tar.gz), checked before building
+PHP_SHA256=81a0f450349e84b08eb43faa85f8a4c835684f3cc1c50471775d1317a046c525
 SPC_VERSION=2.8.5
 
 # The NAS's PHP 7.4 extensions, then the extras
@@ -42,6 +44,8 @@ function build_php() {
 	./spc doctor --auto-fix
 	./spc download --for-extensions="${EXTENSIONS}" --for-libs="${LIBS}" \
 		--custom-url="php-src:https://www.php.net/distributions/php-${VERSION}.tar.gz" --prefer-pre-built
+	# (stops the build if the source isn't there under its own name, rather than skipping the check)
+	echo "${PHP_SHA256}  downloads/php-${VERSION}.tar.gz" | sha256sum -c -
 	./spc build "${EXTENSIONS}" --with-libs="${LIBS}" --build-cli --build-fpm
 }
 
