@@ -217,7 +217,7 @@ header('Cache-Control: no-store');
 				if (!d.ok) { say(d.error, false); return; }
 				part('auth-password').value = '';
 				secret.reset();
-				say('Saved - Node Exporter restarted. Update Prometheus to match.', true);
+				say('Saved - Node Exporter restarted. The Prometheus app follows by itself; update any other Prometheus to match.', true);
 				setTimeout(refresh, 2000);
 			});
 		});
@@ -232,12 +232,12 @@ header('Cache-Control: no-store');
 
 		button('set').addEventListener('click', function () {
 			var input = part('new');
-			if (!window.confirm('Change the password? Prometheus will need the new one.')) { return; }
+			if (!window.confirm('Change the password? Any Prometheus scraping the NAS needs the new one (the Prometheus app follows by itself).')) { return; }
 			call('set_password', { password: input.value }).then(function (d) {
 				if (!d.ok) { say(d.error, false); return; }
 				input.value = '';
 				secret.set(d.password);
-				say('Password changed - update Prometheus to match.', true);
+				say('Password changed. The Prometheus app follows by itself; update any other Prometheus to match.', true);
 			});
 		});
 

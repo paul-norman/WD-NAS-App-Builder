@@ -1,0 +1,23 @@
+Package:			grafana
+Version:			13.2.4
+Packager:			PDN
+Email:
+Homepage:			https://grafana.com/oss/grafana/
+Description:		Grafana: dashboards and alerts for the NAS's metrics (from the Prometheus app) and other data sources.
+Icon:				grafana.svg
+AddonShowName:		Grafana
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

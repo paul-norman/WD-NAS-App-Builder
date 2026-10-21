@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Prometheus: collects and stores the NAS's metrics (from the Node Exporter app and others), for Grafana and alerts.</en-US>
+	<fr-FR>Prometheus : collecte et stocke les métriques du NAS (de l'app Node Exporter et d'autres), pour Grafana et les alertes.</fr-FR>
+	<es-ES>Prometheus: recopila y almacena las métricas del NAS (de la app Node Exporter y otras), para Grafana y alertas.</es-ES>
+	<de-DE>Prometheus: sammelt und speichert die Metriken des NAS (von der Node-Exporter-App und anderen) für Grafana und Warnungen.</de-DE>
+</config>

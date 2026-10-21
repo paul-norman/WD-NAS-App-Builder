@@ -1,0 +1,23 @@
+Package:			loki
+Version:			3.7.9
+Packager:			PDN
+Email:
+Homepage:			https://grafana.com/oss/loki/
+Description:		Loki and Vector: collect the NAS's and apps' logs, searchable in Grafana.
+Icon:				loki.svg
+AddonShowName:		Loki (logs)
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

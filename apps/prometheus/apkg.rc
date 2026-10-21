@@ -1,0 +1,23 @@
+Package:			prometheus
+Version:			3.15.0
+Packager:			PDN
+Email:
+Homepage:			https://prometheus.io/
+Description:		Prometheus: collects and stores the NAS's metrics (from the Node Exporter app and others), for Grafana and alerts.
+Icon:				prometheus.svg
+AddonShowName:		Prometheus
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Grafana: dashboards and alerts for the NAS's metrics (from the Prometheus app) and other data sources.</en-US>
+	<fr-FR>Grafana : tableaux de bord et alertes pour les métriques du NAS (de l'app Prometheus) et d'autres sources de données.</fr-FR>
+	<es-ES>Grafana: paneles y alertas para las métricas del NAS (de la app Prometheus) y otras fuentes de datos.</es-ES>
+	<de-DE>Grafana: Dashboards und Warnungen für die Metriken des NAS (von der Prometheus-App) und andere Datenquellen.</de-DE>
+</config>

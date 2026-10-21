@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Loki and Vector: collect the NAS's and apps' logs, searchable in Grafana.</en-US>
+	<fr-FR>Loki et Vector : collectent les journaux du NAS et des apps, consultables dans Grafana.</fr-FR>
+	<es-ES>Loki y Vector: recopilan los registros del NAS y de las apps, consultables en Grafana.</es-ES>
+	<de-DE>Loki und Vector: sammeln die Protokolle des NAS und der Apps, durchsuchbar in Grafana.</de-DE>
+</config>

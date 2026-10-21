@@ -43,6 +43,16 @@ function ne_restart()
 	}
 }
 
+// The Prometheus app (if installed) scrapes Node Exporter with its port and password: it rewrites its configuration
+function ne_update_prometheus()
+{
+	global $app_path;
+	$ctl = dirname($app_path) . '/prometheus/prom_ctl.sh';
+	if (is_file($ctl)) {
+		manage_run(['/bin/sh', $ctl, 'reload']);
+	}
+}
+
 // The samples of WD's metrics file, as [name, labels, value] (only the app's own simple format is parsed)
 function ne_wd_samples($file)
 {
@@ -139,6 +149,7 @@ if ($action === 'set_password') {
 		manage_fail(500, 'The password could not be saved in: ' . $data_path);
 	}
 	// Node Exporter rereads its web config on every request, so no restart is needed
+	ne_update_prometheus();
 	manage_json(['password' => $new]);
 }
 
@@ -163,6 +174,7 @@ if ($action === 'settings') {
 		manage_fail(500, 'The settings could not be saved in: ' . $settings_file);
 	}
 	ne_restart();
+	ne_update_prometheus();
 	manage_json([]);
 }
 

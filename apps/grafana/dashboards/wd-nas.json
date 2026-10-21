@@ -1,0 +1,1362 @@
+{
+	"title": "WD NAS",
+	"uid": "wd-nas",
+	"tags": [
+		"nas",
+		"wd"
+	],
+	"editable": false,
+	"schemaVersion": 39,
+	"version": 1,
+	"time": {
+		"from": "now-24h",
+		"to": "now"
+	},
+	"refresh": "1m",
+	"timezone": "browser",
+	"description": "WD My Cloud OS5 NAS: storage health from WD's own records (the Node Exporter app's wd_ metrics) and the main system metrics",
+	"templating": {
+		"list": [
+			{
+				"name": "datasource",
+				"label": "Data source",
+				"type": "datasource",
+				"query": "prometheus",
+				"current": {},
+				"hide": 0
+			},
+			{
+				"name": "instance",
+				"label": "NAS",
+				"type": "query",
+				"datasource": {
+					"type": "prometheus",
+					"uid": "${datasource}"
+				},
+				"query": {
+					"query": "label_values(wd_health, instance)",
+					"refId": "A"
+				},
+				"definition": "label_values(wd_health, instance)",
+				"refresh": 1,
+				"current": {},
+				"hide": 0,
+				"sort": 1
+			}
+		]
+	},
+	"panels": [
+		{
+			"type": "stat",
+			"title": "Storage health",
+			"id": 1,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 0,
+				"y": 0,
+				"w": 3,
+				"h": 4
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "wd_health{instance=\"$instance\"}",
+					"instant": true,
+					"legendFormat": "__auto"
+				}
+			],
+			"options": {
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"colorMode": "background",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"textMode": "value",
+				"orientation": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"mappings": [
+						{
+							"type": "value",
+							"options": {
+								"0": {
+									"text": "Healthy",
+									"color": "green",
+									"index": 0
+								},
+								"1": {
+									"text": "Degraded",
+									"color": "orange",
+									"index": 1
+								},
+								"2": {
+									"text": "Critical",
+									"color": "red",
+									"index": 2
+								}
+							}
+						}
+					],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "orange",
+								"value": 1
+							},
+							{
+								"color": "red",
+								"value": 2
+							}
+						]
+					},
+					"color": {
+						"mode": "thresholds"
+					}
+				},
+				"overrides": []
+			},
+			"description": "From WD's own records: degraded = e.g. a disk too hot or a RAID rebuilding; critical = a failed disk, a degraded RAID or a volume not mounted"
+		},
+		{
+			"type": "stat",
+			"title": "RAID",
+			"id": 2,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 3,
+				"y": 0,
+				"w": 3,
+				"h": 4
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "wd_raid_state{instance=\"$instance\"} * on(instance, raid) group_left(level) wd_raid_info{instance=\"$instance\", system=\"0\"}",
+					"instant": true,
+					"legendFormat": "{{level}} {{state}}"
+				}
+			],
+			"options": {
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"colorMode": "none",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"textMode": "name",
+				"orientation": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"mappings": [],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "text",
+								"value": null
+							}
+						]
+					},
+					"color": {
+						"mode": "thresholds"
+					}
+				},
+				"overrides": []
+			},
+			"description": "The data RAID's level and state (WD's small system RAID is left out)"
+		},
+		{
+			"type": "stat",
+			"title": "Hottest disk",
+			"id": 3,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 6,
+				"y": 0,
+				"w": 3,
+				"h": 4
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max(wd_disk_temperature_celsius{instance=\"$instance\"})",
+					"instant": true,
+					"legendFormat": "__auto"
+				}
+			],
+			"options": {
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"colorMode": "background",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"textMode": "value",
+				"orientation": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"mappings": [],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "orange",
+								"value": 50
+							},
+							{
+								"color": "red",
+								"value": 58
+							}
+						]
+					},
+					"color": {
+						"mode": "thresholds"
+					},
+					"unit": "celsius"
+				},
+				"overrides": []
+			},
+			"description": "WD Red drives are rated to 65 °C: orange from 50, red from 58"
+		},
+		{
+			"type": "stat",
+			"title": "Failed disks",
+			"id": 4,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 9,
+				"y": 0,
+				"w": 3,
+				"h": 4
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "sum(wd_disk_failed{instance=\"$instance\"}) + sum(wd_raid_disks{instance=\"$instance\", state=\"failed\"} * on(instance, raid) group_left wd_raid_info{instance=\"$instance\", system=\"0\"})",
+					"instant": true,
+					"legendFormat": "__auto"
+				}
+			],
+			"options": {
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"colorMode": "background",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"textMode": "value",
+				"orientation": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"mappings": [],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "red",
+								"value": 1
+							}
+						]
+					},
+					"color": {
+						"mode": "thresholds"
+					}
+				},
+				"overrides": []
+			},
+			"description": "Disks WD marked as failed, plus failed disks in the data RAID"
+		},
+		{
+			"type": "stat",
+			"title": "Volume used",
+			"id": 5,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 12,
+				"y": 0,
+				"w": 3,
+				"h": 4
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "100 * sum(wd_volume_used_bytes{instance=\"$instance\"}) / sum(wd_volume_size_bytes{instance=\"$instance\"})",
+					"instant": true,
+					"legendFormat": "__auto"
+				}
+			],
+			"options": {
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"colorMode": "background",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"textMode": "value",
+				"orientation": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"mappings": [],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "orange",
+								"value": 80
+							},
+							{
+								"color": "red",
+								"value": 90
+							}
+						]
+					},
+					"color": {
+						"mode": "thresholds"
+					},
+					"unit": "percent",
+					"decimals": 1
+				},
+				"overrides": []
+			}
+		},
+		{
+			"type": "stat",
+			"title": "Disks asleep",
+			"id": 6,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 15,
+				"y": 0,
+				"w": 3,
+				"h": 4
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "sum(wd_disk_sleeping{instance=\"$instance\"})",
+					"instant": true,
+					"legendFormat": "__auto"
+				}
+			],
+			"options": {
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"colorMode": "none",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"textMode": "value",
+				"orientation": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"mappings": [],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "text",
+								"value": null
+							}
+						]
+					},
+					"color": {
+						"mode": "thresholds"
+					}
+				},
+				"overrides": []
+			}
+		},
+		{
+			"type": "stat",
+			"title": "CPU temperature",
+			"id": 7,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 18,
+				"y": 0,
+				"w": 3,
+				"h": 4
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max(node_hwmon_temp_celsius{instance=\"$instance\"})",
+					"instant": true,
+					"legendFormat": "__auto"
+				}
+			],
+			"options": {
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"colorMode": "background",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"textMode": "value",
+				"orientation": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"mappings": [],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "orange",
+								"value": 70
+							},
+							{
+								"color": "red",
+								"value": 85
+							}
+						]
+					},
+					"color": {
+						"mode": "thresholds"
+					},
+					"unit": "celsius"
+				},
+				"overrides": []
+			}
+		},
+		{
+			"type": "stat",
+			"title": "Uptime",
+			"id": 8,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 21,
+				"y": 0,
+				"w": 3,
+				"h": 4
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "node_time_seconds{instance=\"$instance\"} - node_boot_time_seconds{instance=\"$instance\"}",
+					"instant": true,
+					"legendFormat": "__auto"
+				}
+			],
+			"options": {
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"colorMode": "none",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"textMode": "value",
+				"orientation": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"mappings": [],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "text",
+								"value": null
+							}
+						]
+					},
+					"color": {
+						"mode": "thresholds"
+					},
+					"unit": "dtdurations"
+				},
+				"overrides": []
+			}
+		},
+		{
+			"type": "timeseries",
+			"title": "Disk temperatures",
+			"id": 9,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 0,
+				"y": 4,
+				"w": 12,
+				"h": 8
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "wd_disk_temperature_celsius{instance=\"$instance\"}",
+					"legendFormat": "Bay {{bay}} ({{disk}})"
+				}
+			],
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "celsius",
+					"custom": {
+						"lineWidth": 2,
+						"fillOpacity": 10,
+						"showPoints": "never",
+						"stacking": {
+							"mode": "none"
+						}
+					}
+				},
+				"overrides": []
+			}
+		},
+		{
+			"type": "timeseries",
+			"title": "Volume space",
+			"id": 10,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 12,
+				"y": 4,
+				"w": 12,
+				"h": 8
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "wd_volume_used_bytes{instance=\"$instance\"}",
+					"legendFormat": "{{volume}} used"
+				},
+				{
+					"refId": "B",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "wd_volume_size_bytes{instance=\"$instance\"}",
+					"legendFormat": "{{volume}} size"
+				}
+			],
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "bytes",
+					"custom": {
+						"lineWidth": 2,
+						"fillOpacity": 10,
+						"showPoints": "never",
+						"stacking": {
+							"mode": "none"
+						}
+					},
+					"min": 0
+				},
+				"overrides": []
+			}
+		},
+		{
+			"type": "table",
+			"title": "Disks",
+			"id": 11,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 0,
+				"y": 12,
+				"w": 15,
+				"h": 7
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk, model, firmware) (wd_disk_info{instance=\"$instance\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "B",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_disk_temperature_celsius{instance=\"$instance\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "C",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_disk_healthy{instance=\"$instance\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "D",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_disk_failed{instance=\"$instance\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "E",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_disk_sleeping{instance=\"$instance\"})",
+					"instant": true,
+					"format": "table"
+				},
+				{
+					"refId": "F",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "max by (bay, disk) (wd_disk_smart_passed{instance=\"$instance\"})",
+					"instant": true,
+					"format": "table"
+				}
+			],
+			"transformations": [
+				{
+					"id": "merge",
+					"options": {}
+				},
+				{
+					"id": "organize",
+					"options": {
+						"excludeByName": {
+							"Time": true,
+							"instance": true,
+							"job": true,
+							"__name__": true,
+							"vendor": true,
+							"Value #A": true
+						},
+						"indexByName": {
+							"bay": 0,
+							"disk": 1,
+							"model": 2,
+							"firmware": 3,
+							"Value #B": 4,
+							"Value #C": 5,
+							"Value #D": 6,
+							"Value #E": 7,
+							"Value #F": 8
+						},
+						"renameByName": {
+							"bay": "Bay",
+							"disk": "Disk",
+							"model": "Model",
+							"firmware": "Firmware",
+							"Value #B": "Temperature",
+							"Value #C": "Healthy",
+							"Value #D": "Failed",
+							"Value #E": "Asleep",
+							"Value #F": "SMART test"
+						}
+					}
+				},
+				{
+					"id": "sortBy",
+					"options": {
+						"sort": [
+							{
+								"field": "Bay"
+							}
+						]
+					}
+				}
+			],
+			"options": {
+				"showHeader": true,
+				"cellHeight": "sm"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"custom": {
+						"align": "auto"
+					}
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Bay"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 50
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Disk"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 55
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Firmware"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 90
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Temperature"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 105
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Healthy"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 75
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Failed"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 65
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Asleep"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 65
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "SMART test"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 95
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Temperature"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "celsius"
+							},
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							},
+							{
+								"id": "thresholds",
+								"value": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": null
+										},
+										{
+											"color": "orange",
+											"value": 50
+										},
+										{
+											"color": "red",
+											"value": 58
+										}
+									]
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Healthy"
+						},
+						"properties": [
+							{
+								"id": "mappings",
+								"value": [
+									{
+										"type": "value",
+										"options": {
+											"0": {
+												"text": "No",
+												"color": "red",
+												"index": 0
+											},
+											"1": {
+												"text": "Yes",
+												"color": "green",
+												"index": 1
+											}
+										}
+									}
+								]
+							},
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Failed"
+						},
+						"properties": [
+							{
+								"id": "mappings",
+								"value": [
+									{
+										"type": "value",
+										"options": {
+											"0": {
+												"text": "No",
+												"color": "green",
+												"index": 0
+											},
+											"1": {
+												"text": "Yes",
+												"color": "red",
+												"index": 1
+											}
+										}
+									}
+								]
+							},
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Asleep"
+						},
+						"properties": [
+							{
+								"id": "mappings",
+								"value": [
+									{
+										"type": "value",
+										"options": {
+											"0": {
+												"text": "No",
+												"color": "text",
+												"index": 0
+											},
+											"1": {
+												"text": "Yes",
+												"color": "blue",
+												"index": 1
+											}
+										}
+									}
+								]
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "SMART test"
+						},
+						"properties": [
+							{
+								"id": "mappings",
+								"value": [
+									{
+										"type": "value",
+										"options": {
+											"0": {
+												"text": "Failed",
+												"color": "red",
+												"index": 0
+											},
+											"1": {
+												"text": "Passed",
+												"color": "green",
+												"index": 1
+											}
+										}
+									}
+								]
+							},
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"type": "bargauge",
+			"title": "RAID disks",
+			"id": 12,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 15,
+				"y": 12,
+				"w": 9,
+				"h": 7
+			},
+			"description": "The data RAID's disks, by state",
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"instant": true,
+					"legendFormat": "{{state}}",
+					"expr": "wd_raid_disks{instance=\"$instance\"} * on(instance, raid) group_left wd_raid_info{instance=\"$instance\", system=\"0\"}"
+				}
+			],
+			"options": {
+				"orientation": "horizontal",
+				"displayMode": "basic",
+				"showUnfilled": true,
+				"valueMode": "color",
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				}
+			},
+			"fieldConfig": {
+				"defaults": {
+					"min": 0,
+					"decimals": 0,
+					"color": {
+						"mode": "fixed",
+						"fixedColor": "blue"
+					}
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "failed"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "red"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "rebuilding"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "orange"
+								}
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"type": "timeseries",
+			"title": "CPU",
+			"id": 13,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 0,
+				"y": 19,
+				"w": 8,
+				"h": 8
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "100 * (1 - avg(rate(node_cpu_seconds_total{instance=\"$instance\", mode=\"idle\"}[$__rate_interval])))",
+					"legendFormat": "busy"
+				}
+			],
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percent",
+					"custom": {
+						"lineWidth": 2,
+						"fillOpacity": 10,
+						"showPoints": "never",
+						"stacking": {
+							"mode": "none"
+						}
+					},
+					"min": 0
+				},
+				"overrides": []
+			}
+		},
+		{
+			"type": "timeseries",
+			"title": "Memory",
+			"id": 14,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 8,
+				"y": 19,
+				"w": 8,
+				"h": 8
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "node_memory_MemTotal_bytes{instance=\"$instance\"} - node_memory_MemAvailable_bytes{instance=\"$instance\"}",
+					"legendFormat": "used"
+				},
+				{
+					"refId": "B",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "node_memory_MemTotal_bytes{instance=\"$instance\"}",
+					"legendFormat": "total"
+				}
+			],
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "bytes",
+					"custom": {
+						"lineWidth": 2,
+						"fillOpacity": 10,
+						"showPoints": "never",
+						"stacking": {
+							"mode": "none"
+						}
+					},
+					"min": 0
+				},
+				"overrides": []
+			}
+		},
+		{
+			"type": "timeseries",
+			"title": "Disk throughput",
+			"id": 15,
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"x": 16,
+				"y": 19,
+				"w": 8,
+				"h": 8
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "rate(node_disk_read_bytes_total{instance=\"$instance\", device=~\"sd[a-z]\"}[$__rate_interval])",
+					"legendFormat": "{{device}} read"
+				},
+				{
+					"refId": "B",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "${datasource}"
+					},
+					"expr": "-rate(node_disk_written_bytes_total{instance=\"$instance\", device=~\"sd[a-z]\"}[$__rate_interval])",
+					"legendFormat": "{{device}} written"
+				}
+			],
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "Bps",
+					"custom": {
+						"lineWidth": 2,
+						"fillOpacity": 10,
+						"showPoints": "never",
+						"stacking": {
+							"mode": "none"
+						}
+					}
+				},
+				"overrides": []
+			},
+			"description": "Reads above the line, writes below"
+		}
+	]
+}
