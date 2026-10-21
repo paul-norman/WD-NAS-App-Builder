@@ -23,6 +23,7 @@ function sites_known_apps()
 		'plex' => ['folder' => 'plexmediaserver', 'label' => 'Plex', 'target' => 'http://127.0.0.1:32400'],
 		// (the Vaultwarden app finds its address by this target, so it still works if the site is renamed)
 		'vaultwarden' => ['folder' => 'vaultwarden', 'label' => 'Vaultwarden', 'target' => 'http://127.0.0.1:8222'],
+		'uptime-kuma' => ['folder' => 'uptime-kuma', 'label' => 'Uptime Kuma', 'target' => 'http://127.0.0.1:3001'],
 		// Served by the NAS's own web server, under a path
 		'phpmyadmin' => ['folder' => 'phpMyAdmin', 'label' => 'phpMyAdmin', 'target' => 'http://127.0.0.1:80', 'path' => '/phpMyAdmin/'],
 	];
