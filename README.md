@@ -99,7 +99,8 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
   - [x] [Loki 3.7.9](https://grafana.com/oss/loki/) + [Vector 0.60.0](https://vector.dev/) *(`loki` app: collects the NAS's, apps' and Docker containers' logs, searchable in the Grafana app with a NAS logs dashboard)*
   - [x] [Kopia 0.23.1](https://kopia.io/) *(`kopia` app: encrypted, deduplicated, versioned backups to the cloud, another server or a USB drive - HTTPS-only through the Nginx app by default)*
   - [x] [ntfy 2.32.0](https://ntfy.sh/) *(`ntfy` app: push notifications to phones and browsers from the NAS's apps and scripts - login required, optional iPhone relay)*
-  - [ ] [Git 2.47.1](https://bin.entware.net/x64-k3.2/git_2.39.2-1_x64-3.2.ipk)
+  - [x] [Forgejo 15.0.10](https://forgejo.org/) *(`forgejo` app: your own Git server, LTS release - with a static Git 2.56, Git over SSH on port 2222, login required, scheduled backups)*
+  - [x] [Git 2.56.0](https://git-scm.com/) *(static build, included in the `forgejo` app and linked as `/usr/bin/git`)*
 
 ## Where to find other apps?
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Forgejo: your own Git server - repositories, issues and pull requests, on the NAS.</en-US>
+	<fr-FR>Forgejo : votre propre serveur Git - dépôts, tickets et demandes de fusion, sur le NAS.</fr-FR>
+	<es-ES>Forgejo: tu propio servidor Git - repositorios, incidencias y solicitudes de cambios, en el NAS.</es-ES>
+	<de-DE>Forgejo: Ihr eigener Git-Server - Repositorys, Issues und Pull-Requests, auf dem NAS.</de-DE>
+</config>

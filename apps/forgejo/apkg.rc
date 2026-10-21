@@ -1,0 +1,23 @@
+Package:			forgejo
+Version:			15.0.10
+Packager:			PDN
+Email:
+Homepage:			https://forgejo.org/
+Description:		Forgejo: your own Git server - repositories, issues and pull requests, on the NAS.
+Icon:				forgejo.svg
+AddonShowName:		Forgejo (Git)
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
