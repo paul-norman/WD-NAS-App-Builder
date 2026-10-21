@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Kopia: encrypted, deduplicated, versioned backups of the NAS to the cloud (B2, S3, Google Drive...), another server or a USB drive.</en-US>
+	<fr-FR>Kopia : sauvegardes chiffrées, dédupliquées et versionnées du NAS vers le cloud (B2, S3, Google Drive...), un autre serveur ou un disque USB.</fr-FR>
+	<es-ES>Kopia: copias de seguridad cifradas, deduplicadas y versionadas del NAS en la nube (B2, S3, Google Drive...), otro servidor o un disco USB.</es-ES>
+	<de-DE>Kopia: verschlüsselte, deduplizierte, versionierte Sicherungen des NAS in die Cloud (B2, S3, Google Drive...), auf einen anderen Server oder ein USB-Laufwerk.</de-DE>
+</config>

@@ -1,0 +1,23 @@
+Package:			kopia
+Version:			0.23.1
+Packager:			PDN
+Email:
+Homepage:			https://kopia.io/
+Description:		Kopia: encrypted, deduplicated, versioned backups of the NAS to the cloud (B2, S3, Google Drive...), another server or a USB drive.
+Icon:				kopia.svg
+AddonShowName:		Kopia (backups)
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

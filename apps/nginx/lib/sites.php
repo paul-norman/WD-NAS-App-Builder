@@ -25,6 +25,7 @@ function sites_known_apps()
 		'vaultwarden' => ['folder' => 'vaultwarden', 'label' => 'Vaultwarden', 'target' => 'http://127.0.0.1:8222'],
 		'uptime-kuma' => ['folder' => 'uptime-kuma', 'label' => 'Uptime Kuma', 'target' => 'http://127.0.0.1:3001'],
 		'grafana' => ['folder' => 'grafana', 'label' => 'Grafana', 'target' => 'http://127.0.0.1:3000'],
+		'kopia' => ['folder' => 'kopia', 'label' => 'Kopia (backups)', 'target' => 'http://127.0.0.1:51515'],
 		// Served by the NAS's own web server, under a path
 		'phpmyadmin' => ['folder' => 'phpMyAdmin', 'label' => 'phpMyAdmin', 'target' => 'http://127.0.0.1:80', 'path' => '/phpMyAdmin/'],
 	];
