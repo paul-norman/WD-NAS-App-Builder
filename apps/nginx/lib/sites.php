@@ -21,6 +21,8 @@ function sites_known_apps()
 		// Syncthing refuses other Host names (to stop DNS rebinding attacks)
 		'syncthing' => ['folder' => 'syncthing', 'label' => 'Syncthing', 'target' => 'http://127.0.0.1:8384', 'host' => 'localhost'],
 		'plex' => ['folder' => 'plexmediaserver', 'label' => 'Plex', 'target' => 'http://127.0.0.1:32400'],
+		// (the Vaultwarden app finds its address by this target, so it still works if the site is renamed)
+		'vaultwarden' => ['folder' => 'vaultwarden', 'label' => 'Vaultwarden', 'target' => 'http://127.0.0.1:8222'],
 		// Served by the NAS's own web server, under a path
 		'phpmyadmin' => ['folder' => 'phpMyAdmin', 'label' => 'phpMyAdmin', 'target' => 'http://127.0.0.1:80', 'path' => '/phpMyAdmin/'],
 	];
