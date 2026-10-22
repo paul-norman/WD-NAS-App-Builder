@@ -100,6 +100,8 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
   - [x] [Kopia 0.23.1](https://kopia.io/) *(`kopia` app: encrypted, deduplicated, versioned backups to the cloud, another server or a USB drive - HTTPS-only through the Nginx app by default)*
   - [x] [ntfy 2.32.0](https://ntfy.sh/) *(`ntfy` app: push notifications to phones and browsers from the NAS's apps and scripts - login required, optional iPhone relay)*
   - [x] [Forgejo 15.0.10](https://forgejo.org/) *(`forgejo` app: your own Git server, LTS release - with a static Git 2.56, Git over SSH on port 2222, login required, scheduled backups)*
+  - [x] [Navidrome 0.64.2](https://www.navidrome.org/) *(`navidrome` app: music streaming to browsers and Subsonic apps, with an audio-only static ffmpeg 9.0 for transcoding)*
+  - [x] [Music Assistant 2.10.7](https://www.music-assistant.io/) *(`music-assistant` app: your music and streaming services on Sonos and other speakers - native, with its own Python 3.14 and a static ffmpeg 9.0; no on-device audio analysis, AirPlay or remote access)*
   - [x] [Git 2.56.0](https://git-scm.com/) *(static build, included in the `forgejo` app and linked as `/usr/bin/git`)*
 
 ## Where to find other apps?

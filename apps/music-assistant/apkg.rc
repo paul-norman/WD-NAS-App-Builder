@@ -1,0 +1,23 @@
+Package:			music-assistant
+Version:			2.10.7
+Packager:			PDN
+Email:
+Homepage:			https://www.music-assistant.io/
+Description:		Music Assistant: your music library and streaming services, played on Sonos and other speakers.
+Icon:				music-assistant.svg
+AddonShowName:		Music Assistant
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

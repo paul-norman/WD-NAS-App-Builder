@@ -95,12 +95,14 @@ function manage_run(array $command, array $env = [], $input = '')
 
 // Sends a request to a service on the NAS itself (e.g. http://127.0.0.1:8096/health) with the NAS's own curl, as WD's
 // PHP has allow_url_fopen turned off. Headers (e.g. API keys) go via a root-only file rather than the command line, which
-// other processes can see. Returns [HTTP status, body], or [0, ''] if it couldn't be reached
-function manage_http_request($method, $url, $body = null, $timeout = 3, array $headers = [])
+// other processes can see. The body (JSON unless another content type is given, e.g. a form's
+// application/x-www-form-urlencoded) goes on curl's input. Returns [HTTP status, body], or [0, ''] if it couldn't be
+// reached
+function manage_http_request($method, $url, $body = null, $timeout = 3, array $headers = [], $content_type = 'application/json')
 {
 	$command = ['curl', '-s', '-m', (string)$timeout, '-X', $method, '-w', '\n%{http_code}'];
 	if ($body !== null) {
-		$command = array_merge($command, ['-H', 'Content-Type: application/json', '--data-binary', '@-']);
+		$command = array_merge($command, ['-H', 'Content-Type: ' . $content_type, '--data-binary', '@-']);
 	}
 	$header_file = null;
 	if ($headers) {

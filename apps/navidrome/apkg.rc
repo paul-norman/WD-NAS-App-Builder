@@ -1,0 +1,23 @@
+Package:			navidrome
+Version:			0.64.2
+Packager:			PDN
+Email:
+Homepage:			https://www.navidrome.org/
+Description:		Navidrome: stream your music collection to your browser and phone (Subsonic apps).
+Icon:				navidrome.svg
+AddonShowName:		Navidrome (music)
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

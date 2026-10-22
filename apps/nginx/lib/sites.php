@@ -32,6 +32,10 @@ function sites_known_apps()
 		// Streams messages to phones and browsers as they arrive (stream: responses aren't buffered, and connections stay
 		// open for minutes)
 		'ntfy' => ['folder' => 'ntfy', 'label' => 'ntfy (notifications)', 'target' => 'http://127.0.0.1:2586', 'stream' => true],
+		// (stream: music is passed on as it's transcoded)
+		'music' => ['folder' => 'navidrome', 'label' => 'Navidrome (music)', 'target' => 'http://127.0.0.1:4533', 'stream' => true],
+		// (stream: its web interface keeps a connection open for live updates)
+		'music-assistant' => ['folder' => 'music-assistant', 'label' => 'Music Assistant', 'target' => 'http://127.0.0.1:8095', 'stream' => true],
 		// Git pushes over HTTPS can be large and slow to process (uploads: no size limit, passed on as they come, and
 		// longer time-outs)
 		'git' => ['folder' => 'forgejo', 'label' => 'Forgejo (Git)', 'target' => 'http://127.0.0.1:3002', 'uploads' => true],

@@ -1,0 +1,23 @@
+Package:			python
+Version:			3.14.8
+Packager:			PDN
+Email:
+Homepage:			https://www.python.org/
+Description:		Python 3.14: replaces the NAS's own Python 3.9 as python3, with pip, venv and uv (Intel models).
+Icon:				python.svg
+AddonShowName:		Python
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
