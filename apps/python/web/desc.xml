@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Python 3.14: replaces the NAS's own Python 3.9 as python3, with pip, venv and uv (Intel models).</en-US>
+	<fr-FR>Python 3.14 : remplace le Python 3.9 du NAS comme python3, avec pip, venv et uv (modèles Intel).</fr-FR>
+	<es-ES>Python 3.14: sustituye al Python 3.9 del NAS como python3, con pip, venv y uv (modelos Intel).</es-ES>
+	<de-DE>Python 3.14: ersetzt das Python 3.9 des NAS als python3, mit pip, venv und uv (Intel-Modelle).</de-DE>
+</config>

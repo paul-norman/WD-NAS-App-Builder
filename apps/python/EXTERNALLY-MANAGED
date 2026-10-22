@@ -1,0 +1,9 @@
+[externally-managed]
+Error=This is the NAS's Python, from the Python app: packages installed into it would be lost with the app's next update.
+ Use a virtual environment, kept wherever you like (e.g. /home/root - persistent with the Entware app - or a share):
+     python3 -m venv /home/root/venvs/myproject
+     /home/root/venvs/myproject/bin/pip install <package>
+ or uv (included), which also runs tools and scripts with their own packages:
+     uv venv /home/root/venvs/myproject
+     uvx <tool>
+ To install into the app's Python anyway, add --break-system-packages.
