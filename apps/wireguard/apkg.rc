@@ -1,0 +1,23 @@
+Package:			wireguard
+Version:			0.0.20250522
+Packager:			PDN
+Email:
+Homepage:			https://www.wireguard.com/
+Description:		WireGuard: a fast, modern VPN into your home network - phones and laptops connect to the NAS from anywhere (QR codes for the WireGuard app).
+Icon:				wireguard.svg
+AddonShowName:		WireGuard
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

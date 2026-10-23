@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>WireGuard: a fast, modern VPN into your home network - phones and laptops connect to the NAS from anywhere (QR codes for the WireGuard app).</en-US>
+	<fr-FR>WireGuard : un VPN rapide et moderne vers votre réseau domestique - téléphones et ordinateurs se connectent au NAS de partout (codes QR pour l'app WireGuard).</fr-FR>
+	<es-ES>WireGuard: una VPN rápida y moderna hacia tu red doméstica - teléfonos y portátiles se conectan al NAS desde cualquier lugar (códigos QR para la app WireGuard).</es-ES>
+	<de-DE>WireGuard: ein schnelles, modernes VPN in Ihr Heimnetz - Telefone und Laptops verbinden sich von überall mit dem NAS (QR-Codes für die WireGuard-App).</de-DE>
+</config>

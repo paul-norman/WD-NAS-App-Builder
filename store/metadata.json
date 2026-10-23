@@ -36,7 +36,8 @@
 		"tailscale": { "categories": ["network"], "license": "BSD-3-Clause", "data_folder": "_tailscale", "keeps_data": true },
 		"uptime-kuma": { "categories": ["monitoring"], "license": "MIT", "data_folder": "_uptime-kuma", "keeps_data": true, "web": { "port": 3001, "nginx": { "name": "uptime-kuma" } } },
 		"valkey": { "categories": ["databases"], "license": "BSD-3-Clause" },
-		"vaultwarden": { "categories": ["security"], "license": "AGPL-3.0-only", "data_folder": "_vaultwarden", "keeps_data": true, "requires": { "apps": ["nginx"] }, "web": { "nginx": { "name": "vaultwarden" } } }
+		"vaultwarden": { "categories": ["security"], "license": "AGPL-3.0-only", "data_folder": "_vaultwarden", "keeps_data": true, "requires": { "apps": ["nginx"] }, "web": { "nginx": { "name": "vaultwarden" } } },
+		"wireguard": { "categories": ["network", "security"], "license": "MIT AND GPL-2.0-only AND LGPL-2.1-or-later", "data_folder": "_wireguard", "keeps_data": true }
 	},
 	"external": {
 		"plexmediaserver": {
