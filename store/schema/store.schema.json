@@ -39,6 +39,7 @@
 				},
 				"homepage": { "$ref": "#/$defs/https_url" },
 				"license": { "type": "string" },
+				"publisher": { "type": "string", "minLength": 1, "maxLength": 60 },
 				"sources": { "$ref": "#/$defs/https_url" },
 				"release_notes": { "$ref": "#/$defs/https_url" },
 				"requires": { "$ref": "#/$defs/requires" }

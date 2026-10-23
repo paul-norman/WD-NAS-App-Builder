@@ -37,6 +37,21 @@
 		"valkey": { "categories": ["databases"], "license": "BSD-3-Clause" },
 		"vaultwarden": { "categories": ["security"], "license": "AGPL-3.0-only", "data_folder": "_vaultwarden", "keeps_data": true, "requires": { "apps": ["nginx"] }, "web": { "nginx": { "name": "vaultwarden" } } }
 	},
+	"external": {
+		"plexmediaserver": {
+			"_comment": "Built by Plex for each WD NAS model (Plex's own packages, from its download list - build_store.py --external); its library is in Nas_Prog/plex_conf, outside its app folder. Its icon: Plex's own, from its Docker image's repository (pinned to a commit)",
+			"feed": "plex",
+			"name": "Plex Media Server",
+			"summary": "Organises your films, TV, music and photos, and streams them to your TVs, phones and computers - the official Plex package for WD's NAS models",
+			"publisher": "Plex",
+			"icon": "https://raw.githubusercontent.com/plexinc/pms-docker/abba890d29db2e83321371253a8a3c2be2218196/img/plex-server.png",
+			"homepage": "https://www.plex.tv/",
+			"categories": ["media"],
+			"data_folder": "plex_conf",
+			"keeps_data": true,
+			"web": { "port": 32400, "path": "/web/", "nginx": { "name": "plex" } }
+		}
+	},
 	"recipes": {
 		"immich": { "categories": ["photos", "media"], "homepage": "https://immich.app/", "license": "AGPL-3.0-only" }
 	}

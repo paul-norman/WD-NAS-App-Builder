@@ -246,6 +246,7 @@ if ($action === 'catalogue') {
 				'from_here' => $from === null || $from === $repo['url'],
 				'update' => $installed !== null && ($from === null || $from === $repo['url']) && store_version_compare($app['version'], $installed['version']) > 0,
 				'can_update' => !empty($app['keeps_data']),
+				'publisher' => isset($app['publisher']) && is_string($app['publisher']) ? substr($app['publisher'], 0, 60) : '',
 			];
 		}
 		foreach (isset($store['recipes']) ? $store['recipes'] : [] as $recipe) {
@@ -324,6 +325,8 @@ if ($action === 'details') {
 		'sources' => isset($entry['sources']) && store_is_https_url($entry['sources']) ? $entry['sources'] : '',
 		'release_notes' => isset($entry['release_notes']) && store_is_https_url($entry['release_notes']) ? $entry['release_notes'] : '',
 		'license' => isset($entry['license']) && is_string($entry['license']) ? $entry['license'] : '',
+		// (who makes it, when that isn't the repository's maintainer - e.g. Plex for its own packages)
+		'publisher' => isset($entry['publisher']) && is_string($entry['publisher']) ? substr($entry['publisher'], 0, 60) : '',
 		'repo_name' => api_repo_labels(store_repos_loaded())[$repo['url']],
 		'third_party' => $repo['url'] !== STORE_DEFAULT_REPO,
 	];

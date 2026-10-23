@@ -218,9 +218,12 @@ header('Cache-Control: no-store');
 
 		function icon(item, extra) {
 			var letter = element('span', { className: 'st-icon st-icon-none' + (extra || ''), textContent: (item.name || '?').charAt(0).toUpperCase() });
-			if (!item.icon) { return letter; }
+			// (without one from its repository, an installed app's own icon - e.g. Plex's, which comes with its package)
+			var installed = !item.icon && !item.recipe && item.id && state.catalogue ? installedApp(item.id) : null;
+			var src = item.icon || (item.app && item.app.icon) || (installed ? installed.icon : '');
+			if (!src) { return letter; }
 			// (an installed app's icon is its own file, which may be missing: then the letter)
-			var img = element('img', { className: 'st-icon' + (extra || ''), src: item.icon, alt: '' });
+			var img = element('img', { className: 'st-icon' + (extra || ''), src: src, alt: '' });
 			img.addEventListener('error', function () { if (img.parentNode) { img.parentNode.replaceChild(letter, img); } });
 			return img;
 		}
@@ -355,6 +358,9 @@ header('Cache-Control: no-store');
 				if (several) {
 					badges.appendChild(element('span', { className: 'st-badge', textContent: item.repo_name }));
 				}
+				if (item.publisher || (item.entry && item.entry.publisher)) {
+					badges.appendChild(element('span', { className: 'st-badge', textContent: 'By ' + (item.publisher || item.entry.publisher) }));
+				}
 				var card = element('div', { className: 'st-card', tabIndex: 0 }, [
 					icon(item),
 					element('div', { className: 'st-card-text' }, [element('strong', { textContent: item.name }), element('div', { className: 'st-summary', textContent: item.summary }), badges])
@@ -426,8 +432,8 @@ header('Cache-Control: no-store');
 			};
 			page.status.hidden = true;
 			var inst = kind === 'apps' && item.installed ? installedApp(item.id) : null;
-			if (inst) { configureButton(page, inst); }
-			if (d.url) { addButton(page, 'Open', function () { window.open(d.url, '_blank', 'noopener'); }, false, inst && inst.url ? '' : 'st-primary'); }
+			if (inst) { configureButton(page, inst, d.url); }
+			if (d.url) { addButton(page, 'Open', function () { window.open(d.url, '_blank', 'noopener'); }, false, inst && inst.center_type === 1 && inst.url ? '' : 'st-primary'); }
 			if (kind === 'apps') { renderAppActions(page, item, d); } else { renderRecipeActions(page, item, d); }
 			var links = element('span', { className: 'st-links' });
 			[['homepage', 'Homepage'], ['release_notes', 'Release notes'], ['sources', 'Sources']].forEach(function (l) {
@@ -438,6 +444,9 @@ header('Cache-Control: no-store');
 			showFlash(page);
 			state.status = { el: page.status, kind: kind, id: item.id };
 			showStatus();
+			if (d.publisher) {
+				view.appendChild(element('p', { className: 'st-notice', textContent: 'Made by ' + d.publisher + ', not by ' + (d.repo_name || 'this repository') + ': its package comes from ' + d.publisher + ' itself, checked against the checksum ' + (d.repo_name || 'the repository') + ' lists.' }));
+			}
 			if (d.orphan) {
 				view.appendChild(element('p', { className: 'st-notice', textContent: 'Installed from ' + d.orphan + ', which the Store no longer reads: its settings can still be changed and it can be removed, but it won\'t get updates until that repository is added again.' }));
 			}
@@ -484,6 +493,12 @@ header('Cache-Control: no-store');
 		function startJob(data, message, onFields) {
 			message.textContent = 'Starting…';
 			message.className = '';
+			// (an app should be running after it's installed, and after an update if it was before: some apps' installers
+			// leave them switched off - e.g. Plex's. Kept for the session, in case the page is reloaded meanwhile)
+			if (data.job === 'app_install' || data.job === 'app_update') {
+				var before = installedApp(data.id);
+				remember('running', { id: data.id, on: data.job === 'app_install' || !!(before && before.enabled) });
+			}
 			return call('start', data).then(function (d) {
 				if (!d.ok) {
 					if (d.fields && onFields) { onFields(d.fields); }
@@ -554,10 +569,11 @@ header('Cache-Control: no-store');
 			}
 		}
 
-		// Configure: the app's own page - inside the dashboard (CenterType 1), or its web interface on its port
-		function configureButton(page, inst) {
-			if (!inst.url || inst.id === 'store') { return; }
-			addButton(page, 'Configure', function () {
+		// Configure: the app's own page inside the dashboard (CenterType 1). Other apps' "configuration" address is their web
+		// interface (e.g. Plex's): it's the Open button - from WD's details when the repository gives no address
+		function configureButton(page, inst, openUrl) {
+			if (!inst.url || inst.id === 'store' || (inst.center_type !== 1 && openUrl)) { return; }
+			addButton(page, inst.center_type === 1 ? 'Configure' : 'Open', function () {
 				if (inst.center_type === 1) {
 					remember('return', { kind: state.detail.kind, id: inst.id, tab: state.tab });
 					if (appsPage) { appsPage.configure(inst.id, inst.url, inst.name); } else if (window.go_sub_page) { window.go_sub_page('/apps/' + inst.id + '/' + inst.url, inst.id); }
@@ -569,24 +585,32 @@ header('Cache-Control: no-store');
 		}
 
 		// Running: the NAS's own on/off switch for an app (through its own handler, which checks what the app depends on)
-		function runSwitch(page, inst) {
+		// Switches an app on or off with the NAS's own handler (which checks what apps depend on): done(error or '')
+		var refusals = { 13: 'it needs an app that isn\'t installed or running', 19: 'it conflicts with an app that\'s running', 15: 'an app that\'s running needs it' };
+		function setRunning(id, on, done) {
 			var $ = window.jQuery;
-			if (!$) { return; }
+			$.ajax({ url: '/cgi-bin/apkg_mgr.cgi', type: 'POST', cache: false, dataType: 'xml',
+				data: { cmd: 'cgi_apps_set', f_module_name: id, f_enable: on ? 1 : 0 } }).done(function (xml) {
+				var result = parseInt($(xml).find('result').text(), 10);
+				done(refusals[result] || '');
+			}).fail(function () { done('the NAS didn\'t answer - try again'); });
+		}
+
+		function runSwitch(page, inst) {
+			if (!window.jQuery) { return; }
 			var box = element('input', { type: 'checkbox', checked: inst.enabled });
 			page.bar.appendChild(element('label', { className: 'st-switch' }, [box, 'Running']));
-			var refusals = { 13: 'it needs an app that isn\'t installed or running', 19: 'it conflicts with an app that\'s running', 15: 'an app that\'s running needs it' };
 			box.addEventListener('change', function () {
 				var on = box.checked;
 				if (!on && inst.id === 'store' && !window.confirm('Turn the Store off? The NAS\'s own Apps page comes back.')) { box.checked = true; return; }
 				box.disabled = true;
 				page.message.textContent = (on ? 'Starting ' : 'Stopping ') + inst.name + '…';
 				page.message.className = '';
-				$.ajax({ url: '/cgi-bin/apkg_mgr.cgi', type: 'POST', cache: false, dataType: 'xml',
-					data: { cmd: 'cgi_apps_set', f_module_name: inst.id, f_enable: on ? 1 : 0 } }).done(function (xml) {
-					var result = parseInt($(xml).find('result').text(), 10);
-					if (refusals[result]) {
+				setRunning(inst.id, on, function (error) {
+					box.disabled = false;
+					if (error) {
 						box.checked = !on;
-						page.message.textContent = inst.name + ' can\'t be ' + (on ? 'started' : 'stopped') + ': ' + refusals[result] + '.';
+						page.message.textContent = inst.name + ' can\'t be ' + (on ? 'started' : 'stopped') + ': ' + error + '.';
 						page.message.className = 'mg-bad';
 						return;
 					}
@@ -594,11 +618,7 @@ header('Cache-Control: no-store');
 					// (the page is drawn again with the app's new state: the message goes with it)
 					state.flash = inst.name + (on ? ' is running.' : ' is stopped.');
 					load().then(function () { if (state.detail) { reopenDetail(); } });
-				}).fail(function () {
-					box.checked = !on;
-					page.message.textContent = 'The NAS didn\'t answer - try again.';
-					page.message.className = 'mg-bad';
-				}).always(function () { box.disabled = false; });
+				});
 			});
 		}
 
@@ -971,10 +991,29 @@ header('Cache-Control: no-store');
 						return;
 					}
 					state.polling = false;
-					load().then(function () { if (state.detail) { reopenDetail(); } });
+					// (when an app is being switched back on, that redraws its page - once, with the message)
+					load().then(function () { if (!switchBackOn(d.job) && state.detail) { reopenDetail(); } });
 				});
 			};
 			tick();
+		}
+
+		// After an app's install or update: switched on again if its installer left it off (and it should be running).
+		// Returns whether it's doing so
+		function switchBackOn(job) {
+			var wanted = recall('running');
+			if (!wanted || !job || job.target !== wanted.id || (job.action !== 'app_install' && job.action !== 'app_update')) { return false; }
+			remember('running', null);
+			var inst = installedApp(wanted.id);
+			if (job.state !== 'done' || !wanted.on || !inst || inst.enabled || !window.jQuery) { return false; }
+			setRunning(inst.id, true, function (error) {
+				var text = error ? inst.name + '\'s installer left it switched off, and it couldn\'t be started: ' + error + '.'
+					: inst.name + '\'s installer left it switched off - it\'s running again.';
+				// (on its page, if that's open - redrawn with its new state - else at the top)
+				if (state.detail && !error) { state.flash = text; } else { say(text, !error); }
+				load().then(function () { if (state.detail) { reopenDetail(); } });
+			});
+			return true;
 		}
 
 		// ------------------------------------------------------------------------------------------------------------

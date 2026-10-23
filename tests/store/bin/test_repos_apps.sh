@@ -28,6 +28,10 @@ get catalogue >/dev/null; [ "$(j '$d["stale"]')" = false ] && pass "just refresh
 for f in $V/Nas_Prog/_store/cache/*.status.json; do php -r '$f=$argv[1]; $s=json_decode(file_get_contents($f),true); $s["checked"]=gmdate("Y-m-d\\TH:i:s\\Z", time()-7200); file_put_contents($f, json_encode($s));' "$f"; done
 get catalogue >/dev/null; [ "$(j '$d["stale"]')" = true ] && pass "checked 2 hours ago: stale (the page refreshes by itself)" || fail "not stale"
 STORE_TEST_VOLUME=$V php $P/store/lib/refresh.php; get catalogue >/dev/null; [ "$(j '$d["stale"]')" = false ] && pass "the daily check (lib/refresh.php) refreshed them" || fail "refresh.php"
+echo "== an app made by someone else (publisher)"
+python3 /tbin/repotool.py set-app /www/repo nano publisher '"Nano Makers"'; post refresh >/dev/null
+get details "&kind=apps&repo=$REPO&id=nano" >/dev/null; [ "$(j '$d["publisher"]')" = '"Nano Makers"' ] && pass "publisher shown on its page" || fail "publisher: $(j '$d["publisher"]')"
+get catalogue >/dev/null; [ "$(j 'array_values(array_filter($d["apps"], function($a){return $a["id"]==="nano";}))[0]["publisher"]')" = '"Nano Makers"' ] && pass "and on its card" || fail "card publisher"
 echo "== native apps"
 get details "&kind=apps&repo=$REPO&id=nano" >/dev/null; echo "  nano details: problems=$(j '$d["problems"]') replaces=$(j '$d["replaces"]') size=$(j '$d["size"]')"
 post start -d job=app_install -d repo=$REPO -d id=nano >/dev/null; job_wait

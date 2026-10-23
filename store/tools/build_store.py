@@ -9,6 +9,10 @@ recipe.json) against the schemas when the jsonschema package is available.
 Apps are listed with the packages found in packages/<id>/<version>/ (one .bin per model); apps without any built
 package are skipped, with a warning.
 
+With --external, apps published by others (metadata.json's "external": e.g. Plex Media Server, which Plex builds for WD's
+NAS models) are listed too: their packages stay where their publisher hosts them, and are downloaded once (into
+packages/_external/, checked against the publisher's checksum) for their sizes and SHA256.
+
 With --sign-key (an Ed25519 private key in PEM, e.g. from `openssl genpkey -algorithm ed25519 -out key.pem`), its public
 key goes in store.json and store.json.sig is written next to it (needs OpenSSL 3 and --output).
 """
@@ -23,6 +27,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import urllib.request
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 STORE = REPO / "store"
@@ -89,6 +94,53 @@ def app_entry(app_dir, metadata, args):
     return entry
 
 
+# Publishers' lists of their packages for WD's NAS models: feed name -> function(metadata) -> (version, [(model, url,
+# sha1)])
+def plex_feed(metadata):
+    """Plex's list of its downloads: the "Western Digital (OS 5)" entry has one package per model (its file name ends
+    in -<model>_OS5.bin). Its version has the build's hash after a "-", which the installed app's version hasn't"""
+    with urllib.request.urlopen("https://plex.tv/api/downloads/5.json", timeout=60) as response:
+        feed = json.load(response)
+    os5 = feed["nas"]["Western Digital (OS 5)"]
+    packages = []
+    for release in os5["releases"]:
+        model = re.search(r"-([A-Za-z0-9]+)_OS5\.bin$", release["url"])
+        if model and release["url"].startswith("https://"):
+            packages.append((model.group(1), release["url"], release["checksum"]))
+    return os5["version"].split("-")[0], packages
+
+
+FEEDS = {"plex": plex_feed}
+
+
+def external_entry(app_id, metadata):
+    """An app published by someone else, from its publisher's list: its packages are downloaded once (cached in
+    packages/_external/<id>/<version>/), checked against the publisher's SHA1, for their sizes and SHA256"""
+    version, found = FEEDS[metadata["feed"]](metadata)
+    cache = REPO / "packages" / "_external" / app_id / version
+    cache.mkdir(parents=True, exist_ok=True)
+    packages = []
+    for model, url, sha1 in found:
+        file = cache / url.rsplit("/", 1)[1]
+        if not file.is_file():
+            print(f"downloading {url}", file=sys.stderr)
+            with urllib.request.urlopen(url, timeout=600) as response, open(str(file) + ".part", "wb") as out:
+                while True:
+                    block = response.read(1 << 20)
+                    if not block:
+                        break
+                    out.write(block)
+            pathlib.Path(str(file) + ".part").rename(file)
+        if hashlib.sha1(file.read_bytes()).hexdigest() != sha1:
+            file.unlink()
+            sys.exit(f"{url} doesn't match its publisher's checksum")
+        packages.append({"model": model, "url": url, "size": file.stat().st_size, "sha256": sha256(file)})
+    entry = {"id": app_id, "version": version}
+    entry.update({key: value for key, value in metadata.items() if key != "feed" and not key.startswith("_")})
+    entry["packages"] = packages
+    return entry
+
+
 def recipe_entry(recipe_dir, metadata, validate):
     recipe = json.loads((recipe_dir / "recipe.json").read_text(encoding="utf-8"))
     if validate:
@@ -147,6 +199,7 @@ def main():
     parser.add_argument("--sources-url", help="URL of an app's sources: {path} is replaced (e.g. .../tree/main/{path})")
     parser.add_argument("--release-url", help="URL of an app's release notes: {id} and {version} are replaced")
     parser.add_argument("--sign-key", help="Ed25519 private key (PEM) to sign store.json with (writes store.json.sig)")
+    parser.add_argument("--external", action="store_true", help="also list the apps published by others (downloads them once)")
     args = parser.parse_args()
     if args.sign_key and args.output == "-":
         parser.error("--sign-key needs --output")
@@ -169,6 +222,10 @@ def main():
             entry = app_entry(app_dir, metadata["apps"].get(app_dir.name, {}), args)
             if entry:
                 store["apps"].append(entry)
+    if args.external:
+        for app_id, app_metadata in metadata.get("external", {}).items():
+            store["apps"].append(external_entry(app_id, app_metadata))
+        store["apps"].sort(key=lambda app: app["id"].lower())
     store["recipes"] = [recipe_entry(path.parent, metadata["recipes"].get(path.parent.name, {}), validate)
                         for path in sorted((REPO / "recipes").glob("*/recipe.json"))]
     if validate:

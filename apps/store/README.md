@@ -26,6 +26,7 @@ Apps and recipes run as root, so the Store is careful about where they come from
 
 ## Apps
 
+- Some apps are listed by a repository but **made by someone else** - e.g. **Plex Media Server**, Plex's own package for each WD model, downloaded from Plex. Their page says so; the repository vouches for the package's checksum.
 - **Updating** an app means removing the installed version and installing the new one - the NAS's installer won't install over an app. The Store only does this for apps that keep their data outside their install folder *(e.g. `Nas_Prog/_jellyfin`)*, which this project's apps do; for others it shows that an update is available.
 - **Removing** an app keeps its data folder; the Store says where it is. An app that another installed app needs *(its `InstDepend`)* can't be removed until that one is.
 - **Removing the Store** *(Installed → Store → Remove)* brings back the NAS's own Apps page. Everything it installed stays installed, and its settings *(e.g. your repositories)* stay in `Nas_Prog/_store` for if it's installed again. To turn it off for a while instead, untick **Running**.
