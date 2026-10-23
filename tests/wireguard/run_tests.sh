@@ -108,7 +108,8 @@ run_app() {
 	[ "$(nas 'ip -4 address show wg0' | grep -o '10\.8\.0\.1/24')" = "10.8.0.1/24" ] && pass "wg0 up at 10.8.0.1/24 (wireguard-go)" || { fail "no wg0: $(cat "${WORK}/start.log")"; return; }
 	ST=$(api_get status)
 	[ "$(echo "$ST" | j '$d["running"]')" = true ] && [ "$(echo "$ST" | j '$d["lan"]["subnet"]')" = '"192.168.77.0/24"' ] \
-		&& pass "status: running, home network $(echo "$ST" | j '$d["lan"]')" || fail "status: ${ST:0:300}"
+		&& echo "$ST" | j '$d["tools_version"]' | grep -q '"1\.0\.' \
+		&& pass "status: running (wireguard-go $(echo "$ST" | j '$d["version"]'), wg $(echo "$ST" | j '$d["tools_version"]')), home network $(echo "$ST" | j '$d["lan"]')" || fail "status: ${ST:0:300}"
 	[ "$(nas 'code -H "X-Requested-With: XMLHttpRequest" $B/api.php?action=status')" = 403 ] && \
 		[ "$(nas 'code -H "$CK" -H "X-Requested-With: XMLHttpRequest" -H "X-CSRF-Token: wrong" -X POST -d name=x $B/api.php?action=add_peer')" = 403 ] \
 		&& pass "without a NAS login, or with a wrong CSRF token: refused" || fail "auth"

@@ -80,6 +80,8 @@ if ($action === 'status') {
 	manage_json([
 		'running' => $running,
 		'version' => preg_match('/^Version:\s*(\S+)/m', (string)@file_get_contents($app_path . '/apkg.rc'), $m) ? $m[1] : '',
+		// (wireguard-tools' wg: e.g. "wireguard-tools v1.0.20260223 - https://...")
+		'tools_version' => preg_match('/wireguard-tools v(\S+)/', manage_run([$app_path . '/binaries/wg', '--version'])[1], $m) ? $m[1] : '',
 		'port' => (int)$settings['port'],
 		'subnet' => $settings['subnet'],
 		'address' => wg_server_address($settings['subnet']),

@@ -199,7 +199,7 @@ header('Cache-Control: no-store');
 				var status = part('status');
 				status.textContent = d.running ? 'Running' : 'Stopped';
 				status.className = d.running ? 'mg-ok' : 'mg-bad';
-				part('version').textContent = d.version ? 'wireguard-go ' + d.version : '-';
+				part('version').textContent = d.version ? 'wireguard-go ' + d.version + (d.tools_version ? ', wg ' + d.tools_version : '') : '-';
 				part('connect').textContent = d.endpoint ? d.endpoint + ':' + d.port + ' (UDP)' : 'not set yet';
 				part('nas-address').textContent = d.address + (d.access !== 'nas' && d.lan.address ? ' - and ' + d.lan.address + ' as at home' : '');
 				part('endpoint-note').hidden = !!d.endpoint;
