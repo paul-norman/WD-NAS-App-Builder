@@ -1,7 +1,7 @@
 #!/bin/bash
 # Tests the Store app in a stand-in for the NAS (see README.md):
 #
-#     store/tests/run_tests.sh [repos_apps|recipes|immich|signatures|ui|all] [--php 7.4|8.5|both]
+#     tests/store/run_tests.sh [repos_apps|recipes|immich|signatures|ui|all] [--php 7.4|8.5|both]
 #
 # Default: all (except ui) on PHP 7.4. Needs Docker on Linux (host networking; ports 8080, 8443, 18081 and 2283 free),
 # Python 3, and the apps' packages built for the PR4100 (the Store's is built here). Work files go in $STORE_TEST_WORK
@@ -26,11 +26,11 @@ case "${PHP}" in
 	*) echo "--php is 7.4, 8.5 or both"; exit 1 ;;
 esac
 
-# The test images (built once)
+# The test images, shared by the test suites (built once)
 for version in ${VERSIONS}; do
-	if ! docker image inspect "store-test-php${version}" > /dev/null 2>&1; then
+	if ! docker image inspect "nas-test-php${version}" > /dev/null 2>&1; then
 		echo "Building the PHP ${version} test image"
-		docker build -q -t "store-test-php${version}" -f "${HERE}/images/php${version}.Dockerfile" "${HERE}/images" > /dev/null
+		docker build -q -t "nas-test-php${version}" -f "${PROJ}/tests/images/php${version}.Dockerfile" "${PROJ}/tests/images" > /dev/null
 	fi
 done
 
@@ -82,7 +82,7 @@ for version in ${VERSIONS}; do
 		docker run --rm --network host -e STORE_TEST_VOLUME="${WORK}/vol/HD_a2" -e STORE_TEST_PROJECT="${PROJ}" \
 			-v "${WORK}/vol:${WORK}/vol" -v "${HERE}/bin:/tbin:ro" -v "${WORK}/certs:/tcerts:ro" -v "${WORK}/fixtures:/tfix:ro" \
 			-v "${WORK}/www:/www" -v "${PROJ}:${PROJ}:ro" -v /var/run/docker.sock:/var/run/docker.sock \
-			"store-test-php${version}" sh -c 'sh /tbin/prepare.sh && sh "$0"' "/tbin/test_${test}.sh" > "${log}" 2>&1 || true
+			"nas-test-php${version}" sh -c 'sh /tbin/prepare.sh && sh "$0"' "/tbin/test_${test}.sh" > "${log}" 2>&1 || true
 		[ "${test}" = ui ] && continue
 		grep -E "^(PASS|FAIL)" "${log}" | cut -c1-160 || true
 		passes=$(grep -c "^PASS" "${log}" || true)

@@ -91,7 +91,7 @@ store/tools/make_test_repo.sh /path/to/share/repo https://repo.<your domain>/
 
 Then add `https://repo.<your domain>/store.json` in the Store *(Repositories)*. Add `--sign-key key.pem` *(an Ed25519 key: `openssl genpkey -algorithm ed25519 -out key.pem`)* to sign it.
 
-The Store's own tests run without a NAS: see [`store/tests`](../../store/tests/README.md).
+The Store's own tests run without a NAS: see [`tests/store`](../../tests/store/README.md).
 
 ## Building the Store app
 

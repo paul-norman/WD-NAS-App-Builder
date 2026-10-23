@@ -3,8 +3,8 @@
 Tests for the [Store app](../../apps/store/README.md), run in a container standing in for the NAS - so they need no NAS and no published repository:
 
 ```bash
-store/tests/run_tests.sh                       # everything (except ui), on PHP 7.4 - WD's version
-store/tests/run_tests.sh recipes --php both    # one group, on PHP 7.4 and 8.5 (the PHP app's)
+tests/store/run_tests.sh                       # everything (except ui), on PHP 7.4 - WD's version
+tests/store/run_tests.sh recipes --php both    # one group, on PHP 7.4 and 8.5 (the PHP app's)
 ```
 
 | Group | What it checks |
@@ -17,7 +17,7 @@ store/tests/run_tests.sh recipes --php both    # one group, on PHP 7.4 and 8.5 (
 
 ## How it works
 
-- **The NAS**: a PHP 7.4 or 8.5 container *(`images/`, built once)* with BusyBox's `sh` *(as the NAS has)*. The Store is installed from its built package as the NAS does it *(`install.sh`, `init.sh`)*, and its page's API is called as the dashboard calls it, with an admin's WD session. `upload_apkg` and `del_apkg` are stand-ins for WD's *(they don't unpack packages - real installs are tested on the NAS)*, keeping a stand-in for WD's list of apps up to date. The Nginx app's files are installed too *(not started)*, for recipes' sites.
+- **The NAS**: a PHP 7.4 or 8.5 container *(`tests/images/`, shared with the other test suites, built once)* with BusyBox's `sh` *(as the NAS has)*. The Store is installed from its built package as the NAS does it *(`install.sh`, `init.sh`)*, and its page's API is called as the dashboard calls it, with an admin's WD session. `upload_apkg` and `del_apkg` are stand-ins for WD's *(they don't unpack packages - real installs are tested on the NAS)*, keeping a stand-in for WD's list of apps up to date. The Nginx app's files are installed too *(not started)*, for recipes' sites.
 - **The repositories**: `store/tools/make_test_repo.sh` builds one from the built packages and the recipes; `bin/repotool.py` signs it, adds the test recipe and changes it during the tests; `bin/server.py` serves it over HTTPS as `repo.test`, plus two hostile repositories as `evil.test`, with a test certificate authority trusted only inside the container. Package downloads go through a redirect, as GitHub's release downloads do.
 - **Docker**: recipes run on this machine's Docker *(its socket is passed to the container)*. Folders are given to containers by their path, so the stand-in NAS volume is at the same path inside the container as outside *(`STORE_TEST_VOLUME` replaces `/mnt/HD/HD_a2` in the Store for this)*.
 
