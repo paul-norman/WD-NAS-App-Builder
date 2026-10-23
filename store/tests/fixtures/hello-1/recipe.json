@@ -1,0 +1,26 @@
+{
+	"recipe_version": 1,
+	"id": "hello",
+	"name": "Hello (test)",
+	"version": "1.0.0-1",
+	"summary": "A tiny web server for testing the Store",
+	"description": "description.md",
+	"compose": "compose.yaml",
+	"project": "storehello",
+	"data_folder": "_hello",
+	"requires": { "apps": ["docker"] },
+	"web": { "port": 18081, "nginx": { "name": "hello", "stream": true } },
+	"options": [
+		{ "key": "SITE_FOLDER", "type": "folder", "label": "Site folder", "default": "{share:Public}/hello-site", "on_share": true, "create": true },
+		{ "key": "EXTRA", "type": "folder", "label": "Extra folders", "required": false, "multiple": true, "mount": { "service": "web", "target": "/extra", "read_only": true } },
+		{ "key": "GREETING", "type": "string", "label": "Greeting", "default": "Hello from {nas:hostname}", "max_length": 60 },
+		{ "key": "LOUD", "type": "boolean", "label": "Loud", "default": false, "values": ["yes", "no"] },
+		{ "key": "COLOUR", "type": "choice", "label": "Colour", "default": "blue", "choices": [{ "value": "blue", "label": "Blue" }, { "value": "red", "label": "Red" }] },
+		{ "key": "TZ", "type": "timezone", "label": "Time zone", "default": "{nas:timezone}", "advanced": true },
+		{ "key": "ADMIN_PASSWORD", "type": "password", "label": "Admin password", "min_length": 8 },
+		{ "key": "TOKEN", "type": "secret", "generate": { "length": 24, "charset": "hex" } },
+		{ "key": "DATA_DIR", "type": "hidden", "default": "{data}/state", "create": true }
+	],
+	"hooks": { "pre_install": "hooks/log.sh", "post_install": "hooks/log.sh", "pre_update": "hooks/log.sh", "post_update": "hooks/log.sh", "pre_uninstall": "hooks/log.sh" },
+	"uninstall": { "keep": [] }
+}

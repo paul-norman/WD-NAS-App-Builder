@@ -1,0 +1,11 @@
+name: storehello
+services:
+  web:
+    image: busybox:1.36
+    env_file: .env
+    command: ["sh", "-c", "echo \"$$GREETING $$COLOUR loud=$$LOUD v2 new=$$NEW_SETTING extra=$$(ls /extra 2>/dev/null | tr '\\n' ,)\" > /www/index.html; exec httpd -f -p 18081 -h /www"]
+    ports:
+      - "18081:18081"
+    volumes:
+      - ${SITE_FOLDER}:/www
+      - ${DATA_DIR}:/state

@@ -1,0 +1,117 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://github.com/paul-norman/WD-NAS-App-Builder/store/schema/store.schema.json",
+	"title": "store.json - a repository's catalogue of apps and recipes (see ../SPEC.md)",
+	"type": "object",
+	"required": ["store_version", "name", "summary", "updated"],
+	"properties": {
+		"store_version": { "const": 1 },
+		"name": { "type": "string", "minLength": 1 },
+		"summary": { "type": "string", "minLength": 1 },
+		"homepage": { "$ref": "#/$defs/https_url" },
+		"maintainer": { "type": "string" },
+		"updated": { "type": "string", "format": "date-time" },
+		"base_url": { "allOf": [{ "$ref": "#/$defs/https_url" }, { "pattern": "/$" }] },
+		"public_key": { "type": "string", "pattern": "^ed25519:[A-Za-z0-9+/]+=*$" },
+		"apps": { "type": "array", "items": { "$ref": "#/$defs/app" } },
+		"recipes": { "type": "array", "items": { "$ref": "#/$defs/recipe_entry" } }
+	},
+	"$defs": {
+		"https_url": { "type": "string", "pattern": "^https://[^\\s]+$" },
+		"url": { "type": "string", "pattern": "^(https://[^\\s]+|(?!(.*/)?\\.\\.?(/|$))[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*)$", "description": "An HTTPS URL, or a path relative to base_url / the store's URL (no . or .. parts)" },
+		"id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$", "description": "An app's id is its WD package name, which may have capitals (e.g. phpMyAdmin)" },
+		"recipe_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+		"sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+		"version": { "type": "string", "pattern": "^[0-9][0-9A-Za-z.+_-]*$" },
+		"common": {
+			"type": "object",
+			"required": ["id", "name", "version", "summary"],
+			"properties": {
+				"id": { "$ref": "#/$defs/id" },
+				"name": { "type": "string", "minLength": 1 },
+				"version": { "$ref": "#/$defs/version" },
+				"summary": { "type": "string", "minLength": 1 },
+				"description": { "type": "string" },
+				"icon": { "$ref": "#/$defs/url" },
+				"categories": {
+					"type": "array",
+					"items": { "enum": ["media", "music", "photos", "backup", "files", "monitoring", "network", "security", "development", "databases", "productivity", "home", "system"] }
+				},
+				"homepage": { "$ref": "#/$defs/https_url" },
+				"license": { "type": "string" },
+				"sources": { "$ref": "#/$defs/https_url" },
+				"release_notes": { "$ref": "#/$defs/https_url" },
+				"requires": { "$ref": "#/$defs/requires" }
+			}
+		},
+		"requires": {
+			"type": "object",
+			"properties": {
+				"models": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+				"arch": { "enum": ["amd64", "armhf"] },
+				"firmware_min": { "$ref": "#/$defs/version" },
+				"ram_mb": { "type": "integer", "minimum": 0 },
+				"disk_mb": { "type": "integer", "minimum": 0 },
+				"apps": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+				"docker_memory_mb": { "type": "integer", "minimum": 0 },
+				"storage_driver": { "enum": ["overlay2"] }
+			},
+			"additionalProperties": true
+		},
+		"app": {
+			"allOf": [{ "$ref": "#/$defs/common" }],
+			"type": "object",
+			"required": ["packages"],
+			"properties": {
+				"packages": {
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"type": "object",
+						"required": ["model", "url", "size", "sha256"],
+						"properties": {
+							"model": { "type": "string", "minLength": 1 },
+							"url": { "$ref": "#/$defs/url" },
+							"size": { "type": "integer", "minimum": 1 },
+							"sha256": { "$ref": "#/$defs/sha256" }
+						}
+					}
+				},
+				"firmware": {
+					"type": "object",
+					"properties": { "min": { "$ref": "#/$defs/version" }, "max": { "$ref": "#/$defs/version" } }
+				},
+				"data_folder": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+				"keeps_data": { "type": "boolean" },
+				"replaces": { "type": "array", "items": { "type": "string" } },
+				"web": {
+					"type": "object",
+					"properties": {
+						"port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+						"path": { "type": "string", "pattern": "^/" },
+						"nginx": {
+							"type": "object",
+							"required": ["name"],
+							"properties": { "name": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$" } }
+						}
+					}
+				}
+			}
+		},
+		"recipe_entry": {
+			"allOf": [{ "$ref": "#/$defs/common" }],
+			"type": "object",
+			"required": ["path", "files"],
+			"properties": {
+				"id": { "$ref": "#/$defs/recipe_id" },
+				"path": { "type": "string", "pattern": "^(?!(.*/)?\\.\\.?(/|$))[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*/$", "description": "Relative, ending in /, with no . or .. parts" },
+				"files": {
+					"type": "object",
+					"required": ["recipe.json"],
+					"propertyNames": { "pattern": "^(?!(.*/)?\\.\\.?(/|$))[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$" },
+					"additionalProperties": { "$ref": "#/$defs/sha256" }
+				}
+			}
+		}
+	}
+}

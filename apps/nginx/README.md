@@ -10,7 +10,11 @@
 
 The app's page in the NAS dashboard *(Apps → Nginx)* sets everything up. Only NAS admins can use it *(see [Management pages](../README.md#management-pages))*.
 
-- **Apps** - the NAS's own dashboard *(as `gui`)* and the installed apps with a web interface are listed *(Jellyfin, Portainer, Mailpit, Syncthing, Plex, phpMyAdmin, Vaultwarden, Uptime Kuma, Grafana, Kopia, ntfy, Forgejo - as `git`, Navidrome - as `music`, Music Assistant)*, each reached at `https://<name>.<domain>` *(e.g. `https://gui.<domain>` for the dashboard - its own login still applies)*. They can be renamed or switched off, and other addresses added *(anything on the network, e.g. a router)*.
+- **Apps** - the NAS's own dashboard *(as `gui`)* and the installed apps with a web interface are listed *(Jellyfin, Portainer, Mailpit, Syncthing, Plex, phpMyAdmin, Vaultwarden, Uptime Kuma, Grafana, Kopia, ntfy, Forgejo - as `git`, Navidrome - as `music`, and Music Assistant)*, each reached at `https://<name>.<domain>` - except the NAS's dashboard, which is at the domain itself *(`https://<domain>` - its own login still applies)*. Which app the domain shows can be changed on the page *(or set to the start page)*. They can be renamed or switched off, and other addresses added *(anything on the network, e.g. a router)*. Each has two options, set already for the apps that need them:
+  - **Uploads** - no size limit on requests, and long ones allowed *(e.g. photos and videos, git pushes)*;
+  - **Streaming** - each response passed on as it comes, and connections kept open *(e.g. music, notifications, live updates)*.
+
+  Other apps, [Docker recipes](../../recipes/README.md) and the planned Store add their own site the same way *(below)*.
 - **Certificate** - a wildcard certificate for the domain *(`domain` and `*.domain`)*:
   - **From an ACME CA, using a DNS-01 challenge:** lego briefly adds a TXT record through the DNS provider's API, so nothing on the NAS has to be reachable from the internet. Every DNS provider lego supports can be chosen *(over 200, e.g. Cloudflare, Route 53, Gandi, OVH, Hetzner, deSEC, Duck DNS)*: the page builds each provider's form from lego's own description of it. Credentials are saved root-only and never shown again. It's tried on the CA's staging server first *(where it has one)*, and renewed automatically *(checked daily; the NAS shows an alert if renewal fails)*.
   - **Your own certificate**, pasted in *(PEM)*.
@@ -18,11 +22,26 @@ The app's page in the NAS dashboard *(Apps → Nginx)* sets everything up. Only 
 - **Sites** - your own websites, each a folder on the NAS *(e.g. `/mnt/HD/HD_a2/Web/blog`)* reached at `https://<name>.<domain>`, with or without PHP *(see below)*.
 - **Quick links** - every app and site, once the certificate is trusted.
 - **Local DNS** - the records to add *(e.g. to Pi-hole or a router)* so that devices find the NAS under those names.
-- **Start page** - `https://<domain>` lists every app.
+- **Start page** - `https://apps.<domain>` lists every app and site *(`apps` is kept for it - apps and sites can't use that name)*. It also answers for any name without a site of its own.
 
 Getting a certificate takes a few minutes: the DNS record has to spread before the CA checks it, and some providers confirm each change slowly (on Route 53, `AWS_WAIT_FOR_RECORD_SETS_CHANGED=false` skips that wait - lego still checks the record is visible before the CA does). The staging server is only tried again after the settings change.
 
 If the domain has a wildcard CNAME *(e.g. `*.example.com → example.com`)*, lego follows it and writes the challenge record at its target - add `LEGO_DISABLE_CNAME_SUPPORT=true` under "Other variables" to keep it at `_acme-challenge.<domain>`. `LEGO_DNS_RESOLVERS=1.1.1.1:53` helps where a local DNS server answers for the domain itself.
+
+## Adding a site from another app
+
+Apps and scripts can add, update and remove their own site, without editing `apps.json`:
+
+```sh
+php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php add-app /mnt/HD/HD_a2/Nas_Prog/_nginx photos http://127.0.0.1:2283 "Immich (photos)" --uploads
+php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php url /mnt/HD/HD_a2/Nas_Prog/_nginx photos      # https://photos.<domain>/
+php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php remove-app /mnt/HD/HD_a2/Nas_Prog/_nginx photos
+sh /mnt/HD/HD_a2/Nas_Prog/nginx/nginx_ctl.sh reload
+```
+
+- `add-app <data> <name> <target> [<label>]` takes `--uploads`, `--stream`, `--host=<host>` and `--path=<path>` *(as on the page)*. Adding a name that's already there with the same target updates it, keeping whether it's switched on; a name used for another target, or by one of your sites, is refused.
+- `remove-app` removes it *(an app the page offers by itself is switched off instead, as it would come back while it's installed)*.
+- `url` prints its address, or nothing *(exit status 1)* while it has none - no domain set yet, or switched off.
 
 ## Sites and PHP
 

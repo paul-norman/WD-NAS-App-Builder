@@ -1,0 +1,23 @@
+Package:			store
+Version:			0.2.6
+Packager:			PDN
+Email:
+Homepage:			https://github.com/paul-norman/WD-NAS-App-Builder
+Description:		Store: installs native apps and Docker recipes from this project's repository and others you add.
+Icon:				store.svg
+AddonShowName:		Store
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

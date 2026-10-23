@@ -174,6 +174,8 @@ if ($action === 'status') {
 		],
 		'servers' => $acme_servers,
 		'domain' => $sites['domain'],
+		'home' => $sites['home'],
+		'start_name' => SITES_START_NAME,
 		'apps' => $sites['apps'],
 		'sites' => $sites['sites'],
 		'php' => [
@@ -219,6 +221,8 @@ if ($action === 'save_apps') {
 			'target' => trim((string)(isset($app['target']) ? $app['target'] : '')),
 			'host' => trim((string)(isset($app['host']) ? $app['host'] : '')),
 			'path' => trim((string)(isset($app['path']) ? $app['path'] : '')),
+			'stream' => !empty($app['stream']),
+			'uploads' => !empty($app['uploads']),
 			'enabled' => !empty($app['enabled']),
 		];
 		if ($app['label'] === '') {
@@ -233,6 +237,11 @@ if ($action === 'save_apps') {
 		$names[$app['name']] = true;
 		$checked[] = $app;
 	}
+	// The app shown at the domain itself ('' for the start page)
+	$home = isset($_POST['home']) ? (string)$_POST['home'] : '';
+	if ($home !== '' && !isset($names[$home])) {
+		manage_fail(400, 'Choose one of the apps for the domain itself: ' . $home);
+	}
 	$settings = sites_load($data_path);
 	foreach ($settings['sites'] as $site) {
 		if (isset($names[$site['name']])) {
@@ -240,6 +249,7 @@ if ($action === 'save_apps') {
 		}
 	}
 	$settings['apps'] = $checked;
+	$settings['home'] = $home;
 	if (!manage_write_file($data_path . '/apps.json', json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n")) {
 		manage_fail(500, 'Could not save the apps');
 	}

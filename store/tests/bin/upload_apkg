@@ -1,0 +1,14 @@
+#!/bin/sh
+# Stand-in for WD's upload_apkg -m -p <file> -t 2: "installs" <id>_<version>_<model>.bin from /usr/local/apps_upload as WD's
+# does (status 1 installed, 4 already installed; the file is deleted once installed). Real packages are checked on the NAS
+file=""; while [ $# -gt 0 ]; do [ "$1" = "-p" ] && file="$2"; shift; done
+echo "upload_apkg $file (cwd $(pwd))" >> /tmp/wdtools.log
+P="$(cat /etc/store_test_volume)/Nas_Prog"
+bin="/usr/local/apps_upload/$file"
+if [ ! -f "$bin" ]; then echo 3 > /tmp/upload_apkg_status; exit 0; fi
+id=${file%%_*}; rest=${file#*_}; version=${rest%_*}
+if [ -d "$P/$id" ]; then echo 4 > /tmp/upload_apkg_status; exit 0; fi
+# (shaped like this project's apps: a page in the dashboard)
+mkdir -p "$P/$id"; printf 'Package:\t\t\t%s\nVersion:\t\t\t%s\nAddonShowName:\t\t%s\nDescription:\t\t%s for testing\nIcon:\t\t\t\t%s.svg\nAddonIndexPage:\t\tindex.php\nCenterType:\t\t\t1\n' "$id" "$version" "$id" "$id" "$id" > "$P/$id/apkg.rc"
+sha256sum "$bin" | cut -d' ' -f1 > "$P/$id/.installed_sha256"
+rm -f "$bin"; sh /tbin/apkg_xml.sh; echo 1 > /tmp/upload_apkg_status

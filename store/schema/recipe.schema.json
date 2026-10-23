@@ -1,0 +1,108 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://github.com/paul-norman/WD-NAS-App-Builder/store/schema/recipe.schema.json",
+	"title": "recipe.json - a Docker recipe for the Store (see ../SPEC.md)",
+	"type": "object",
+	"required": ["recipe_version", "id", "name", "version", "summary", "compose", "project", "data_folder"],
+	"properties": {
+		"recipe_version": { "const": 1 },
+		"id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+		"name": { "type": "string", "minLength": 1 },
+		"version": { "type": "string", "pattern": "^[0-9][0-9A-Za-z.+_-]*$" },
+		"summary": { "type": "string", "minLength": 1 },
+		"description": { "$ref": "#/$defs/path" },
+		"compose": { "$ref": "#/$defs/path" },
+		"project": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+		"data_folder": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+		"requires": { "$ref": "store.schema.json#/$defs/requires" },
+		"web": {
+			"type": "object",
+			"required": ["port"],
+			"properties": {
+				"port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+				"path": { "type": "string", "pattern": "^/" },
+				"ready_timeout": { "type": "integer", "minimum": 10, "maximum": 3600 },
+				"nginx": {
+					"type": "object",
+					"required": ["name"],
+					"properties": {
+						"name": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$" },
+						"uploads": { "type": "boolean" },
+						"stream": { "type": "boolean" }
+					}
+				}
+			}
+		},
+		"options": { "type": "array", "items": { "$ref": "#/$defs/option" } },
+		"hooks": {
+			"type": "object",
+			"propertyNames": { "enum": ["pre_install", "post_install", "pre_update", "post_update", "pre_uninstall"] },
+			"additionalProperties": { "$ref": "#/$defs/path" }
+		},
+		"uninstall": {
+			"type": "object",
+			"properties": { "keep": { "type": "array", "items": { "$ref": "#/$defs/key" } } }
+		}
+	},
+	"$defs": {
+		"path": { "type": "string", "pattern": "^(?!(.*/)?\\.\\.?(/|$))[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$", "description": "A path inside the recipe's folder: no . or .. parts" },
+		"key": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+		"option": {
+			"type": "object",
+			"required": ["key", "type"],
+			"properties": {
+				"key": { "$ref": "#/$defs/key" },
+				"type": { "enum": ["string", "number", "boolean", "choice", "folder", "port", "timezone", "password", "secret", "hidden"] },
+				"label": { "type": "string" },
+				"help": { "type": "string" },
+				"default": { "type": ["string", "number", "boolean"] },
+				"required": { "type": "boolean" },
+				"advanced": { "type": "boolean" },
+				"install_only": { "type": "boolean" },
+				"pattern": { "type": "string" },
+				"max_length": { "type": "integer", "minimum": 1 },
+				"min_length": { "type": "integer", "minimum": 0 },
+				"min": { "type": "integer" },
+				"max": { "type": "integer" },
+				"values": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 },
+				"choices": {
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"type": "object",
+						"required": ["value", "label"],
+						"properties": { "value": { "type": "string" }, "label": { "type": "string" } }
+					}
+				},
+				"on_share": { "type": "boolean" },
+				"create": { "type": "boolean" },
+				"empty": { "type": "boolean" },
+				"multiple": { "type": "boolean" },
+				"mount": {
+					"type": "object",
+					"required": ["service", "target"],
+					"additionalProperties": false,
+					"properties": {
+						"service": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$" },
+						"target": { "type": "string", "pattern": "^/(?!(.*/)?\\.\\.?(/|$))[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$" },
+						"read_only": { "type": "boolean" }
+					}
+				},
+				"generate": {
+					"type": "object",
+					"properties": {
+						"length": { "type": "integer", "minimum": 8, "maximum": 128 },
+						"charset": { "enum": ["alnum", "hex"] }
+					}
+				}
+			},
+			"allOf": [
+				{ "if": { "properties": { "type": { "enum": ["string", "number", "boolean", "choice", "folder", "port", "timezone", "password"] } } }, "then": { "required": ["label"] } },
+				{ "if": { "properties": { "type": { "const": "choice" } } }, "then": { "required": ["choices"] } },
+				{ "if": { "properties": { "type": { "const": "secret" } } }, "then": { "not": { "required": ["default"] } } },
+				{ "if": { "properties": { "type": { "not": { "const": "folder" } } } }, "then": { "not": { "anyOf": [{ "required": ["multiple"] }, { "required": ["mount"] }] } } },
+				{ "if": { "required": ["multiple"], "properties": { "multiple": { "const": true } } }, "then": { "required": ["mount"] } }
+			]
+		}
+	}
+}

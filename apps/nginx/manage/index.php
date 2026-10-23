@@ -31,12 +31,16 @@ header('Cache-Control: no-store');
 
 	<h3>Apps</h3>
 	<p data-ng="apps-note"></p>
+	<p><label>The domain itself (https://<span data-ng="home-domain">domain</span>/) shows: <select data-ng="home"></select></label></p>
 	<table class="mg-edit" data-ng="apps"></table>
 	<p><button type="button" data-ng-action="add">Add an app</button> <button type="button" data-ng-action="save-apps">Save</button></p>
 	<p data-ng="apps-message"></p>
-	<p class="mg-note">Each app is reached at https://<em>name</em>.<em>domain</em>. The target is where the app answers on
+	<p class="mg-note">Each app is reached at https://<em>name</em>.<em>domain</em> (the one chosen above at the domain
+		itself), and the start page listing them at https://apps.<em>domain</em>. The target is where the app answers on
 		the NAS (or anywhere on the network). Host is only needed for apps that check it (e.g. Syncthing: localhost), and
-		Path for apps under a path (e.g. /phpMyAdmin/). Your own sites go in <code>Nas_Prog/_nginx/sites</code>.</p>
+		Path for apps under a path (e.g. /phpMyAdmin/). Uploads lifts the size limit on requests and allows long ones (e.g.
+		photos, videos, git pushes); Streaming passes each response on as it comes and keeps connections open (e.g. music,
+		notifications, live updates). Your own sites go in <code>Nas_Prog/_nginx/sites</code>.</p>
 
 	<h3>Sites</h3>
 	<p>PHP for the sites: <span data-ng="php">…</span> <button type="button" data-ng-action="restart-php" hidden>Restart PHP</button></p>
@@ -165,6 +169,8 @@ header('Cache-Control: no-store');
 			[['name', 'name'], ['label', 'label'], ['target', 'http://127.0.0.1:8080'], ['host', ''], ['path', '']].forEach(function (field) {
 				row.insertCell().appendChild(element('input', { type: 'text', value: app[field[0]] || '', placeholder: field[1], spellcheck: false, autocomplete: 'off' }));
 			});
+			row.insertCell().appendChild(element('input', { type: 'checkbox', checked: !!app.uploads, title: 'Uploads: no size limit, long time-outs' }));
+			row.insertCell().appendChild(element('input', { type: 'checkbox', checked: !!app.stream, title: 'Streaming: responses passed on as they come' }));
 			var cell = row.insertCell();
 			if (state.known.indexOf(app.name) === -1) {
 				var remove = element('button', { type: 'button', textContent: 'Remove' });
@@ -177,12 +183,41 @@ header('Cache-Control: no-store');
 			var table = part('apps');
 			table.textContent = '';
 			var head = table.insertRow();
-			['On', 'Name', 'Label', 'Target', 'Host', 'Path', ''].forEach(function (text) {
+			['On', 'Name', 'Label', 'Target', 'Host', 'Path', 'Uploads', 'Streaming', ''].forEach(function (text) {
 				var cell = head.insertCell();
 				cell.textContent = text;
 				cell.style.fontWeight = 'bold';
 			});
-			state.apps.forEach(appRow);
+			sorted(state.apps).forEach(appRow);
+			showHome();
+		}
+
+		// Apps or sites in alphabetical order of their labels, as the server sorts them (ignoring case, numbers in order)
+		function sorted(list) {
+			return list.slice().sort(function (a, b) {
+				return (a.label || a.name).localeCompare(b.label || b.name, undefined, { numeric: true, sensitivity: 'base' }) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+			});
+		}
+
+		// What the domain itself shows: one of the apps (as saved), or the start page
+		function showHome() {
+			var select = part('home');
+			select.textContent = '';
+			select.appendChild(element('option', { value: '', textContent: 'The start page (the list of apps)' }));
+			sorted(state.apps).forEach(function (app) { select.appendChild(element('option', { value: app.name, textContent: app.label || app.name })); });
+			select.value = state.home;
+			if (select.value !== state.home) { select.value = ''; }
+			part('home-domain').textContent = state.domain || 'domain';
+		}
+
+		// An app's or site's host name: the domain itself for the home app (switched on), otherwise name.domain
+		function host(app) {
+			return app.target !== undefined && app.name === state.home && app.enabled ? state.domain : app.name + '.' + state.domain;
+		}
+
+		// Whether the home app is switched on (the start page is at the domain itself otherwise)
+		function homeShown() {
+			return state.apps.some(function (app) { return app.name === state.home && app.enabled; });
 		}
 
 		// The sites table (folders and labels are the user's: only ever set as values / text)
@@ -208,7 +243,7 @@ header('Cache-Control: no-store');
 				cell.textContent = text;
 				cell.style.fontWeight = 'bold';
 			});
-			state.sites.forEach(siteRow);
+			sorted(state.sites).forEach(siteRow);
 		}
 
 		function collectSites() {
@@ -222,7 +257,7 @@ header('Cache-Control: no-store');
 			var apps = [];
 			[].slice.call(part('apps').rows, 1).forEach(function (row) {
 				var inputs = row.querySelectorAll('input');
-				apps.push({ enabled: inputs[0].checked, name: inputs[1].value, label: inputs[2].value, target: inputs[3].value, host: inputs[4].value, path: inputs[5].value });
+				apps.push({ enabled: inputs[0].checked, name: inputs[1].value, label: inputs[2].value, target: inputs[3].value, host: inputs[4].value, path: inputs[5].value, uploads: inputs[6].checked, stream: inputs[7].checked });
 			});
 			return apps;
 		}
@@ -235,7 +270,7 @@ header('Cache-Control: no-store');
 				part('dnsmasq').textContent = '';
 				return;
 			}
-			var names = [domain].concat(state.apps.concat(state.sites).filter(function (a) { return a.enabled; }).map(function (a) { return a.name + '.' + domain; }));
+			var names = [domain, state.start_name + '.' + domain].concat(state.apps.concat(state.sites).filter(function (a) { return a.enabled && host(a) !== domain; }).map(host));
 			part('dns').textContent = names.map(function (name) { return name + '  →  ' + ip; }).join('\n');
 			part('dnsmasq').textContent = 'address=/' + domain + '/' + ip;
 		}
@@ -301,11 +336,12 @@ header('Cache-Control: no-store');
 			var ready = state.domain && cert && !cert.self_signed && !cert.staging;
 			part('links-box').hidden = !ready;
 			if (!ready) { return; }
-			var rows = [['Start page', state.domain]];
-			state.apps.concat(state.sites).forEach(function (app) {
-				if (app.enabled) { rows.push([app.label || app.name, app.name + '.' + state.domain]); }
+			var rows = [['Start page', state.start_name + '.' + state.domain]];
+			if (!homeShown()) { rows.push(['Start page', state.domain]); }
+			sorted(state.apps.concat(state.sites)).forEach(function (app) {
+				if (app.enabled) { rows.push([app.label || app.name, host(app)]); }
 			});
-			Object.keys(state.own_sites).forEach(function (name) { rows.push([name + ' (' + state.own_sites[name] + ')', name]); });
+			Object.keys(state.own_sites).sort().forEach(function (name) { rows.push([name + ' (' + state.own_sites[name] + ')', name]); });
 			var table = part('links');
 			table.textContent = '';
 			var head = table.insertRow();
@@ -342,7 +378,7 @@ header('Cache-Control: no-store');
 				part('config-test').textContent = d.config_test;
 				showCertificate(d.certificate);
 				part('start-link').hidden = !d.domain;
-				part('start-link').href = 'https://' + d.domain + '/';
+				part('start-link').href = 'https://' + d.start_name + '.' + d.domain + '/';
 				part('error-log').textContent = d.error_log.length ? d.error_log.join('\n') : 'Empty.';
 
 				part('job-box').hidden = d.job_log === '';
@@ -390,7 +426,7 @@ header('Cache-Control: no-store');
 		part('server').addEventListener('change', function () { part('server-url').hidden = part('server').value !== 'url'; });
 		part('provider').addEventListener('change', function () { showProvider(part('provider').value); });
 
-		button('add').addEventListener('click', function () { appRow({ enabled: true, name: '', label: '', target: '', host: '', path: '' }); });
+		button('add').addEventListener('click', function () { appRow({ enabled: true, name: '', label: '', target: '', host: '', path: '', uploads: false, stream: false }); });
 
 		button('add-site').addEventListener('click', function () { siteRow({ enabled: true, name: '', label: '', root: '', php: true, front: false }); });
 
@@ -415,7 +451,7 @@ header('Cache-Control: no-store');
 
 		button('save-apps').addEventListener('click', function () {
 			say('Saving…', true, 'apps-message');
-			call('save_apps', { apps: JSON.stringify(collectApps()) }).then(function (d) {
+			call('save_apps', { apps: JSON.stringify(collectApps()), home: part('home').value }).then(function (d) {
 				if (!d.ok) { say(d.error, false, 'apps-message'); return; }
 				say('Saved - Nginx reloaded.', true, 'apps-message');
 				formFilled = false;

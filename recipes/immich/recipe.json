@@ -1,0 +1,72 @@
+{
+	"recipe_version": 1,
+	"id": "immich",
+	"name": "Immich (photos)",
+	"version": "3.3.5-3",
+	"summary": "Photos and videos: automatic phone backup, albums, sharing, a map and search by what's in a photo",
+	"description": "description.md",
+	"compose": "compose.yaml",
+	"project": "immich",
+	"data_folder": "_immich",
+	"requires": {
+		"arch": "amd64",
+		"apps": ["docker"],
+		"docker_memory_mb": 6144,
+		"disk_mb": 8192,
+		"storage_driver": "overlay2"
+	},
+	"web": { "port": 2283, "ready_timeout": 600, "nginx": { "name": "photos", "uploads": true } },
+	"options": [
+		{
+			"key": "UPLOAD_LOCATION",
+			"type": "folder",
+			"label": "Photos and videos folder",
+			"help": "On a share, so that the originals can also be reached over SMB. Immich manages everything in it (originals, thumbnails, converted videos and its database backups) - use a new, empty folder, not your existing photos.",
+			"default": "{share:Photos}/Immich",
+			"on_share": true,
+			"create": true
+		},
+		{
+			"key": "EXTERNAL_PHOTOS",
+			"type": "folder",
+			"label": "Existing photo folders",
+			"help": "Photos you already keep in folders on the NAS - e.g. one per family member. Immich shows them too, read only: it never moves, renames or deletes anything there, and you keep organising them over SMB as before. After installing, add each one in Immich: Administration -> External Libraries.",
+			"required": false,
+			"on_share": true,
+			"multiple": true,
+			"mount": { "service": "immich-server", "target": "/external", "read_only": true }
+		},
+		{
+			"key": "FACIAL_RECOGNITION",
+			"type": "boolean",
+			"label": "Face recognition",
+			"help": "Finding faces and grouping them into people. It's the heaviest of Immich's machine learning on the NAS's CPU. Once installed, it's changed in Immich's own settings (Administration -> Settings -> Machine Learning Settings).",
+			"default": false,
+			"values": ["on", "off"],
+			"install_only": true
+		},
+		{
+			"key": "TZ",
+			"type": "timezone",
+			"label": "Time zone",
+			"default": "{nas:timezone}",
+			"advanced": true
+		},
+		{
+			"key": "IMMICH_VERSION",
+			"type": "choice",
+			"label": "Immich version",
+			"help": "Which Immich releases to follow - updated when the Store updates the recipe, or with docker compose pull.",
+			"default": "v3",
+			"choices": [{ "value": "v3", "label": "Immich 3.x" }],
+			"advanced": true
+		},
+		{ "key": "DB_PASSWORD", "type": "secret", "generate": { "length": 32, "charset": "alnum" } },
+		{ "key": "DB_DATA_LOCATION", "type": "hidden", "default": "{data}/postgres", "create": true },
+		{ "key": "MODEL_CACHE_LOCATION", "type": "hidden", "default": "{data}/model-cache", "create": true },
+		{ "key": "DB_USERNAME", "type": "hidden", "default": "postgres" },
+		{ "key": "DB_DATABASE_NAME", "type": "hidden", "default": "immich" }
+	],
+	"hooks": { "post_install": "hooks/post_install.sh" },
+	"uninstall": { "keep": ["UPLOAD_LOCATION"] }
+}

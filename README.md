@@ -1,8 +1,6 @@
 # Building WD NAS apps
 
-This is a repository for me to learn how to build apps for the WD NAS machines running OS5 *(FW > 5.27.157 - Debian Bullseye)*.
-
-The goal is to build a [Jellyfin server for WD devices](https://features.jellyfin.org/posts/220/port-to-wd-nas-western-digital-pr4100) without the need for Docker / external packages so that hardware transcoding is possible. Dozens of us are itching to ditch Plex, dozens...
+This is a repository to provide apps for the WD NAS machines running OS5 *(FW > 5.27.157 - Debian Bullseye)*. It will also provide a base for others to build their own apps.
 
 ## Building an existing app
 
@@ -56,54 +54,11 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
   - `/apps`     - files that build the WD apps
   - `/docker`   - Dockerfiles used to run builds
   - `/guides`   - information that I have found / written
+  - `/recipes`  - [Docker recipes](recipes/README.md): compose files for apps best run in Docker, tested on the NAS
+  - `/store`    - the [Store and recipe format](store/SPEC.md) (draft): `store.json`, `recipe.json`, their schemas, `tools/build_store.py` (builds `store.json` from the repository) `tools/make_test_repo.sh` (a test repository) and [`tests/`](store/tests/README.md) - used by the [Store app](apps/store/README.md)
   - `/static`   - build instructions / required files for statically linked programs
   - ---
   - `/packages` - the built apps (static and for devices)
-
-## Current progress report
-
-- [x] Understand the WD app basics
-  - [x] Create a template to expedite future app creation
-- [x] Create something new, but simple (`nodejs` app)
-- [x] Run Jellyfin natively (`jellyfin` app - Jellyfin 12.2 portable release, with libraries rebuilt for the NAS's glibc)
-  - [x] Installs
-  - [x] Runs
-  - [x] Loads Jellyfin-Web
-  - [x] Uses Jellyfin-Ffmpeg, with VA-API hardware encoding on the Intel GPU *(verified with ffmpeg on a PR4100)*
-  - [x] Hardware transcoding while streaming from Jellyfin *(GPU encoding; 10-bit HEVC is decoded in software, ~1.3x real time for 1080p on a PR4100 - 8-bit H.264 / HEVC are decoded on the GPU too)*
-- [ ] Learn about building / statically linking
-  - [x] Attempt a statically linked build for AMD64 (`nano` app)
-  - [ ] Attempt a statically linked build for ARM
-    - [Guide](https://jensd.be/1126/linux/cross-compiling-for-arm-or-aarch64-on-debian-or-ubuntu)
-    - Create a docker container using `arm-linux-gnueabi-gcc` / `gcc-aarch64-linux-gnu`
-- [ ] Complete and test the automatic SSH installation of apps via the `build.sh` script
-  - [ ] SSH config to the WD NAS device
-  - [ ] Create test file format / helpers
-- [ ] Find others willing to help / test *(preferably someone with an ARM based NAS device)*
-- [ ] Create some new, really simple, potentially useful, stand-alone apps. *(No need to be novel, perhaps directly out of Entware ipk files to begin with?)*. Some ideas:
-  - [x] [Node 24.22.0 LTS](https://nodejs.org/dist/v24.22.0/node-v24.22.0-linux-x64.tar.xz)
-  - [x] [Go 1.27.2](https://go.dev/dl/go1.27.2.linux-amd64.tar.gz)
-  - [x] [phpMyAdmin 5.2.3](https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.tar.gz)
-  - [x] [Mailpit 1.31.6](https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-linux-amd64.tar.gz)
-  - [x] [ValKey 9.1.2](https://github.com/valkey-io/valkey/archive/refs/tags/9.1.2.tar.gz)
-  - [x] [Docker 29.9.1](https://download.docker.com/linux/static/stable/x86_64/docker-29.9.1.tgz) / [Docker-Compose 5.6.0](https://github.com/docker/compose/releases/download/v5.6.0/docker-compose-linux-x86_64) / [Portainer 2.45.2 LTS](https://github.com/portainer/portainer/releases/tag/2.45.2)
-  - [x] [PHP 8.5.12](https://www.php.net/releases/8.5/) *(`php` app: replaces the NAS's own PHP 7.4, static build with static-php-cli)*
-  - [x] [Python 3.14.9](https://www.python.org/) *(`python` app: replaces the NAS's own Python 3.9 as `python3` (WD's scripts checked first), with pip, venv and uv - portable python-build-standalone build)*
-  - [x] [Nginx 1.30.6](https://nginx.org/) *(`nginx` app: HTTPS reverse proxy for the apps, with certificates from Let's Encrypt via lego - static build with Brotli)*
-  - [x] [MariaDB 11.8.9 LTS](https://mariadb.org/) *(`mariadb` app: replaces the NAS's own MariaDB 10.5, on a copy of its data)*
-  - [x] [PostgreSQL 18.6](https://www.postgresql.org/) *(`postgresql` app: built on Bullseye with bundled libraries, runs as its own user - with PostGIS, pgvector, pg_cron, pg_partman and pgaudit)*
-  - [x] [Node Exporter 1.12.1](https://github.com/prometheus/node_exporter) *(`node_exporter` app: system metrics for Prometheus / Grafana, plus WD's disk, RAID and volume health as `wd_` metrics)*
-  - [x] [Vaultwarden 1.37.4](https://github.com/dani-garcia/vaultwarden) *(`vaultwarden` app: native Bitwarden-compatible server with SQLite, served over HTTPS by the Nginx app, runs as its own user - daily backups)*
-  - [x] [Uptime Kuma 2.5.6](https://github.com/louislam/uptime-kuma) *(`uptime-kuma` app: native, with its own Node.js and an unprivileged ping, runs as its own user - optional HTTPS via the Nginx app, daily backups)*
-  - [x] [Prometheus 3.15.0](https://prometheus.io/) *(`prometheus` app: stores the metrics, scraping the Node Exporter app automatically - NAS-only by default, own user)*
-  - [x] [Grafana 13.2.4](https://grafana.com/oss/grafana/) *(`grafana` app: dashboards and alerts, with the Prometheus app as its data source and WD NAS + Node Exporter Full dashboards - trimmed official release, own user, daily backups)*
-  - [x] [Loki 3.7.9](https://grafana.com/oss/loki/) + [Vector 0.60.0](https://vector.dev/) *(`loki` app: collects the NAS's, apps' and Docker containers' logs, searchable in the Grafana app with a NAS logs dashboard)*
-  - [x] [Kopia 0.23.1](https://kopia.io/) *(`kopia` app: encrypted, deduplicated, versioned backups to the cloud, another server or a USB drive - HTTPS-only through the Nginx app by default)*
-  - [x] [ntfy 2.32.0](https://ntfy.sh/) *(`ntfy` app: push notifications to phones and browsers from the NAS's apps and scripts - login required, optional iPhone relay)*
-  - [x] [Forgejo 15.0.10](https://forgejo.org/) *(`forgejo` app: your own Git server, LTS release - with a static Git 2.56, Git over SSH on port 2222, login required, scheduled backups)*
-  - [x] [Navidrome 0.64.2](https://www.navidrome.org/) *(`navidrome` app: music streaming to browsers and Subsonic apps, with an audio-only static ffmpeg 9.0 for transcoding)*
-  - [x] [Music Assistant 2.10.7](https://www.music-assistant.io/) *(`music-assistant` app: your music and streaming services on Sonos and other speakers - native, with its own Python 3.14 and a static ffmpeg 9.0; no on-device audio analysis, AirPlay or remote access)*
-  - [x] [Git 2.56.0](https://git-scm.com/) *(static build, included in the `forgejo` app and linked as `/usr/bin/git`)*
 
 ## Where to find other apps?
 

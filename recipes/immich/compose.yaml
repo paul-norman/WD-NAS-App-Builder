@@ -1,0 +1,84 @@
+# Immich on a WD My Cloud NAS (OS5, Intel models) - based on Immich's own docker-compose.yml for v3.3.5:
+#     https://github.com/immich-app/immich/releases/download/v3.3.5/docker-compose.yml
+#
+# Changes from Immich's file (see README.md):
+#  - the time zone comes from TZ in .env (no /etc/localtime mount - a missing file there would become a folder)
+#  - the NAS's Intel GPU (/dev/dri) is passed to the server, for hardware transcoding once turned on in Immich's
+#    settings (VAAPI) - it's only used then
+#  - the database is on hard disks (DB_STORAGE_TYPE: HDD)
+#  - container logs are capped (Docker keeps them on the NAS's disk, forever otherwise)
+#
+# Everything else - images, versions and their pinned digests - is Immich's. Run it from the folder holding this file and
+# its .env (setup.sh puts both in /mnt/HD/HD_a2/Nas_Prog/_immich).
+
+name: immich
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
+
+services:
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    volumes:
+      # The photos and videos (UPLOAD_LOCATION in .env)
+      - ${UPLOAD_LOCATION}:/data
+    devices:
+      # The NAS's Intel GPU: hardware transcoding, once turned on in Immich (Administration -> Settings -> Video
+      # Transcoding -> Hardware Acceleration: VAAPI)
+      - /dev/dri:/dev/dri
+    env_file:
+      - .env
+    ports:
+      - '2283:2283'
+    depends_on:
+      - redis
+      - database
+    restart: always
+    healthcheck:
+      disable: false
+    <<: *logging
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    # (CPU only: WD's NAS has no supported accelerator)
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    volumes:
+      - ${MODEL_CACHE_LOCATION}:/cache
+    env_file:
+      - .env
+    restart: always
+    healthcheck:
+      disable: false
+    <<: *logging
+
+  redis:
+    container_name: immich_redis
+    image: docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d
+    healthcheck:
+      test: redis-cli ping | grep -q PONG || exit 1
+    restart: always
+    <<: *logging
+
+  database:
+    container_name: immich_postgres
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+      # The NAS's disks are hard disks
+      DB_STORAGE_TYPE: 'HDD'
+    volumes:
+      # (on the NAS's own volume - Immich doesn't support its database on a network share)
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    shm_size: 128mb
+    restart: always
+    healthcheck:
+      disable: false
+    <<: *logging

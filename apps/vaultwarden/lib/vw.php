@@ -21,7 +21,7 @@ function vw_site($apps_path)
 	}
 	foreach ($settings['apps'] as $app) {
 		if ($app['enabled'] && rtrim($app['target'], '/') === VW_TARGET) {
-			return ['state' => 'ok', 'url' => 'https://' . $app['name'] . '.' . $settings['domain'] . '/'];
+			return ['state' => 'ok', 'url' => 'https://' . (function_exists('sites_host') ? sites_host($settings, $app) : $app['name'] . '.' . $settings['domain']) . '/'];
 		}
 	}
 	return ['state' => 'off', 'url' => ''];

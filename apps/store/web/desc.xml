@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Store: installs native apps and Docker recipes from this project's repository and others you add.</en-US>
+	<fr-FR>Store : installe des applications natives et des recettes Docker depuis le dépôt de ce projet et d'autres que vous ajoutez.</fr-FR>
+	<es-ES>Store: instala aplicaciones nativas y recetas de Docker desde el repositorio de este proyecto y otros que añada.</es-ES>
+	<de-DE>Store: installiert native Apps und Docker-Rezepte aus dem Repository dieses Projekts und weiteren, die Sie hinzufügen.</de-DE>
+</config>

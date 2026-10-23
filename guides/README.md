@@ -44,31 +44,31 @@ To enable SSH *(Secure SHell)* access to your WD NAS device, follow [this guide]
 
 The `apkg.rc` file is a config file containing information for the Apps Package system. It must contain the following fields:
 
-| Field Name         | Example                      | Description                                                  | Required? | Restrictions                                 |
-| ------------------ | ---------------------------- | ------------------------------------------------------------ | :-------: | -------------------------------------------- |
-| Package:           | template                     | The app name                                                 | y         | no spaces, max length 32                     |
-| Version:           | 0.0.1                        | The app version                                              | y         | max length 32, [0-9]{1,2}(\.[0-9]{1,2}){0,5} |
-| Packager:          | PDN                          | The packager's name                                          | n         | max length 64                                |
-| Email:             | packager@email.com           | The creator / packager's email *(for support)*               | n         | max length 64                                |
-| Homepage:          | https://github.com/repo/name | The app's homepage                                           | n         | max length 256                               |
-| Description:       | A brief app description      | A brief app description                                      | n         | max length 256                               |
-| Icon:              | logo.svg                     | A logo to show in the web UI                                 | n         |                                              |
-| AddonShowName:     | Template						| The Web UI app name                                          | y         | max length 64                                |
-| AddonIndexPage:    | index.php                    | The web UI configure source *(/var/www/template/index.php)*  | n         |                                              |
-| AddonUsedPort:     |                              | The port used by the app                                     | n         |                                              |
-| AddonDefaultPort:  |                              |                                                              | n         |                                              |
-| AddonDefaultGroup: |                              | The system group that the app should run under               | n         |                                              |
-| AddonDefaultUser:  |                              | The system user that the app should run as                   | n         |                                              |
-| InstDepend:        |                              | Any other apps that this app depends upon for installation   | n         |                                              |
-| InstConflict:      |                              | Any other apps that this app conflicts with at installation  | n         |                                              |
-| StartDepend:       |                              | Any other apps that this app depends upon at startup         | n         |                                              |
-| StartConflict:     |                              | Any other apps that this app conflicts with at startup       | n         |                                              |
-| CenterType:        | 0                            | Embed app configuration UI: 0 - own page, 1 - web UI page    | y         | Enum(0, 1)                                   |
-| UserControl:       | 1                            | Controllable by: 0 - any user, 1 - admin only                | y         | Enum(0, 1)                                   |
-| MinFWVer:          | 5.27.157                     | The minimium compatible firmware version                     | n         | max length 32, [0-9]{1,4}(\.[0-9]{1,4}){0,5} |
-| MaxFWVer:          |                              | The maximium compatible firmware version                     | n         | max length 32, [0-9]{1,4}(\.[0-9]{1,4}){0,5} |
-| IndividualFlag:    | 1                            | The web UI will show some notice information for apps        | n         | Enum(0, 1)                                   |
-| Hidden:            | off                          | Should the app appear for users                              | n         | Enum(off, on)                                |
+| Field Name         | Example                      | Description                                                 | Required? | Restrictions                                 |
+|--------------------|------------------------------|-------------------------------------------------------------|:---------:|----------------------------------------------|
+| Package:           | template                     | The app name                                                |     y     | no spaces, max length 32                     |
+| Version:           | 0.0.1                        | The app version                                             |     y     | max length 32, [0-9]{1,2}(\.[0-9]{1,2}){0,5} |
+| Packager:          | PDN                          | The packager's name                                         |     n     | max length 64                                |
+| Email:             | packager@email.com           | The creator / packager's email *(for support)*              |     n     | max length 64                                |
+| Homepage:          | https://github.com/repo/name | The app's homepage                                          |     n     | max length 256                               |
+| Description:       | A brief app description      | A brief app description                                     |     n     | max length 256                               |
+| Icon:              | logo.svg                     | A logo to show in the web UI                                |     n     |                                              |
+| AddonShowName:     | Template						                     | The Web UI app name                                         |     y     | max length 64                                |
+| AddonIndexPage:    | index.php                    | The web UI configure source *(/var/www/template/index.php)* |     n     |                                              |
+| AddonUsedPort:     |                              | The port used by the app                                    |     n     |                                              |
+| AddonDefaultPort:  |                              |                                                             |     n     |                                              |
+| AddonDefaultGroup: |                              | The system group that the app should run under              |     n     |                                              |
+| AddonDefaultUser:  |                              | The system user that the app should run as                  |     n     |                                              |
+| InstDepend:        |                              | Any other apps that this app depends upon for installation  |     n     |                                              |
+| InstConflict:      |                              | Any other apps that this app conflicts with at installation |     n     |                                              |
+| StartDepend:       |                              | Any other apps that this app depends upon at startup        |     n     |                                              |
+| StartConflict:     |                              | Any other apps that this app conflicts with at startup      |     n     |                                              |
+| CenterType:        | 0                            | Embed app configuration UI: 0 - own page, 1 - web UI page   |     y     | Enum(0, 1)                                   |
+| UserControl:       | 1                            | Controllable by: 0 - any user, 1 - admin only               |     y     | Enum(0, 1)                                   |
+| MinFWVer:          | 5.27.157                     | The minimium compatible firmware version                    |     n     | max length 32, [0-9]{1,4}(\.[0-9]{1,4}){0,5} |
+| MaxFWVer:          |                              | The maximium compatible firmware version                    |     n     | max length 32, [0-9]{1,4}(\.[0-9]{1,4}){0,5} |
+| IndividualFlag:    | 1                            | The web UI will show some notice information for apps       |     n     | Enum(0, 1)                                   |
+| Hidden:            | off                          | Should the app appear for users                             |     n     | Enum(off, on)                                |
 
 ### `install.sh`
 
@@ -149,11 +149,13 @@ It's fairly common for an app to have its own webserver listening on a port, in 
 // Redirect to the app's own web server, on the host the NAS UI was opened with (minus the UI's own port)
 $port = 1234;
 $host = preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? '');
+
 if (!preg_match('/^(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+)$/', $host)) {
 	http_response_code(400);
 	exit('Invalid host');
 }
-header('Location: http://' . $host . ':' . $port . '/');
+
+header('Location: http://'.$host.':'.$port.'/');
 ```
 
 Where `1234` should be substituted for the correct port for the specific app. The port is stripped from the `Host` header *(in case the NAS UI itself was opened on a non-default port)* and anything that isn't a plain hostname or IP address is rejected, so the page can't be used to redirect elsewhere.

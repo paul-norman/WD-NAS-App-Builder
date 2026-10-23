@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Store test</title>
+<style>body{font:14px/1.4 Arial,sans-serif;margin:0;background:#fff;color:#333} .frame{max-width:1000px;margin:20px auto;padding:10px 20px;border:1px solid #ddd}button{height:30px;white-space:nowrap;overflow:hidden;line-height:30px} div,span{white-space:nowrap}</style>
+<!-- (WD's own stylesheet, if copied in as /wd.css - e.g. from http://<NAS>/web/css/style.css - to see the page as the dashboard shows it) -->
+<link rel="stylesheet" href="/wd.css">
+</head><body><div class="frame" id="content">Loading…</div>
+<script>
+// Stands in for the NAS dashboard: injects the app's page and runs its script (as jQuery's .html() does)
+document.cookie = 'PHPSESSID=adminsession123; path=/';
+fetch('/apps/store/index.php', { credentials: 'same-origin' }).then(r => r.text()).then(html => {
+  var box = document.getElementById('content'); box.innerHTML = html;
+  box.querySelectorAll('script').forEach(old => { var s = document.createElement('script'); s.textContent = old.textContent; old.replaceWith(s); });
+  var view = new URLSearchParams(location.search).get('view') || '';
+  var click = (sel) => { var el = typeof sel === 'string' ? document.querySelector(sel) : sel; if (el) el.click(); };
+  var card = (name) => Array.from(document.querySelectorAll('.st-card')).find(c => c.textContent.indexOf(name) !== -1);
+  setTimeout(() => {
+    if (view === 'recipes' || view === 'wizard' || view === 'installed' || view === 'settings') click('[data-st-tab="recipes"]');
+    if (view === 'repos') click('[data-st-tab="repos"]');
+    if (view === 'activity') click('[data-st-tab="activity"]');
+    if (view === 'app') click(card('Nano Editor'));
+    if (view === 'update') click(card('Python'));
+    if (view === 'wizard') click(card('Immich'));
+    if (view === 'installed' || view === 'settings') click(card('Hello'));
+    // (then opens one of the page's forms)
+    var button = (text) => Array.from(document.querySelectorAll('.st-actions button')).find(b => b.textContent === text);
+    setTimeout(() => {
+      if (view === 'wizard') click(button('Install'));
+      if (view === 'settings') click(button('Settings'));
+    }, 1500);
+  }, 1500);
+});
+</script></body></html>
