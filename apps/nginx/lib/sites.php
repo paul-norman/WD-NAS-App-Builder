@@ -38,19 +38,19 @@ function sites_known_apps()
 		'vaultwarden' => ['folder' => 'vaultwarden', 'label' => 'Vaultwarden', 'target' => 'http://127.0.0.1:8222'],
 		'uptime-kuma' => ['folder' => 'uptime-kuma', 'label' => 'Uptime Kuma', 'target' => 'http://127.0.0.1:3001'],
 		'grafana' => ['folder' => 'grafana', 'label' => 'Grafana', 'target' => 'http://127.0.0.1:3000'],
-		'kopia' => ['folder' => 'kopia', 'label' => 'Kopia (backups)', 'target' => 'http://127.0.0.1:51515'],
+		'kopia' => ['folder' => 'kopia', 'label' => 'Kopia', 'target' => 'http://127.0.0.1:51515'],
 		// Streams messages to phones and browsers as they arrive (stream: responses aren't buffered, and connections stay
 		// open for minutes)
-		'ntfy' => ['folder' => 'ntfy', 'label' => 'ntfy (notifications)', 'target' => 'http://127.0.0.1:2586', 'stream' => true],
+		'ntfy' => ['folder' => 'ntfy', 'label' => 'ntfy', 'target' => 'http://127.0.0.1:2586', 'stream' => true],
 		// (stream: music is passed on as it's transcoded)
-		'music' => ['folder' => 'navidrome', 'label' => 'Navidrome (music)', 'target' => 'http://127.0.0.1:4533', 'stream' => true],
+		'music' => ['folder' => 'navidrome', 'label' => 'Navidrome', 'target' => 'http://127.0.0.1:4533', 'stream' => true],
 		// (stream: its web interface keeps a connection open for live updates)
 		'music-assistant' => ['folder' => 'music-assistant', 'label' => 'Music Assistant', 'target' => 'http://127.0.0.1:8095', 'stream' => true],
 		// (uploads: books are added through the browser - large PDFs and comics included)
 		'books' => ['folder' => 'calibre-web', 'label' => 'Calibre-Web', 'target' => 'http://127.0.0.1:8083', 'uploads' => true],
 		// Git pushes over HTTPS can be large and slow to process (uploads: no size limit, passed on as they come, and
 		// longer time-outs)
-		'git' => ['folder' => 'forgejo', 'label' => 'Forgejo (Git)', 'target' => 'http://127.0.0.1:3002', 'uploads' => true],
+		'git' => ['folder' => 'forgejo', 'label' => 'Forgejo', 'target' => 'http://127.0.0.1:3002', 'uploads' => true],
 		// Served by the NAS's own web server, under a path
 		'phpmyadmin' => ['folder' => 'phpMyAdmin', 'label' => 'phpMyAdmin', 'target' => 'http://127.0.0.1:80', 'path' => '/phpMyAdmin/'],
 	];

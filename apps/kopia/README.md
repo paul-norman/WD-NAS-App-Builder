@@ -1,4 +1,4 @@
-# Kopia (backups) App
+# Kopia App
 
 [Kopia](https://kopia.io/) backs up the NAS's shares: encrypted *(before anything leaves the NAS)*, deduplicated and compressed, with as many versions ("snapshots") as you choose to keep, to the cloud *(Backblaze B2, Amazon S3 and S3-compatible services, Google Cloud Storage, Azure, Google Drive and more, via rclone)*, another server *(SFTP, WebDAV)* or a USB drive. RAID protects against a failed disk, not against files being deleted or encrypted by ransomware, or the NAS being lost - a copy elsewhere does. It runs natively on the NAS *(no Docker)*.
 
@@ -20,7 +20,7 @@ To restore after losing the NAS: install Kopia on any computer, connect it to th
 
 ## Management page
 
-Kopia's page in the NAS dashboard *(Apps → Kopia (backups))* shows whether it's running, its version, addresses and repository, and each folder backed up *(its last snapshot, size, next snapshot, and any file errors last time)*. It shows, copies or replaces the web interface's password, sets whether Kopia is only reachable through the Nginx app, restarts it, and shows its latest output. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+Kopia's page in the NAS dashboard *(Apps → Kopia)* shows whether it's running, its version, addresses and repository, and each folder backed up *(its last snapshot, size, next snapshot, and any file errors last time)*. It shows, copies or replaces the web interface's password, sets whether Kopia is only reachable through the Nginx app, restarts it, and shows its latest output. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
 
 ## Building the Kopia app
 

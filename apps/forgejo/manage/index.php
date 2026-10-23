@@ -8,7 +8,7 @@ header('Cache-Control: no-store');
 <div id="forgejo-manage">
 	<?php manage_styles('forgejo-manage'); ?>
 
-	<h2>Forgejo (Git)</h2>
+	<h2>Forgejo</h2>
 	<table>
 		<tr><td>Status</td><td data-fg="status">…</td></tr>
 		<tr><td>Version</td><td data-fg="version">-</td></tr>

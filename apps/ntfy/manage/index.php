@@ -8,7 +8,7 @@ header('Cache-Control: no-store');
 <div id="ntfy-manage">
 	<?php manage_styles('ntfy-manage'); ?>
 
-	<h2>ntfy (notifications)</h2>
+	<h2>ntfy</h2>
 	<table>
 		<tr><td>Status</td><td data-nt="status">…</td></tr>
 		<tr><td>Version</td><td data-nt="version">-</td></tr>

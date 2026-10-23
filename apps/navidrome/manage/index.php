@@ -8,7 +8,7 @@ header('Cache-Control: no-store');
 <div id="navidrome-manage">
 	<?php manage_styles('navidrome-manage'); ?>
 
-	<h2>Navidrome (music)</h2>
+	<h2>Navidrome</h2>
 	<table>
 		<tr><td>Status</td><td data-nd="status">…</td></tr>
 		<tr><td>Version</td><td data-nd="version">-</td></tr>

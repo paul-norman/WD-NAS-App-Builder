@@ -110,7 +110,7 @@ docker compose up -d
 # Its site in the Nginx app, if installed (uploads: no size limit, long time-outs) - as the Store does for recipe.json's
 # web.nginx
 if [ -f "${APPS_PATH}/nginx/lib/sites.php" ] && [ -d "${APPS_PATH}/_nginx/sites" ]; then
-	if php "${APPS_PATH}/nginx/lib/sites.php" add-app "${APPS_PATH}/_nginx" photos http://127.0.0.1:2283 "Immich (photos)" --uploads; then
+	if php "${APPS_PATH}/nginx/lib/sites.php" add-app "${APPS_PATH}/_nginx" photos http://127.0.0.1:2283 "Immich" --uploads; then
 		sh "${APPS_PATH}/nginx/nginx_ctl.sh" reload > /dev/null 2>&1
 		url="$(php "${APPS_PATH}/nginx/lib/sites.php" url "${APPS_PATH}/_nginx" photos)" \
 			&& echo "Added Immich's site to the Nginx app: ${url}" \

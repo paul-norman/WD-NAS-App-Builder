@@ -8,7 +8,7 @@ header('Cache-Control: no-store');
 <div id="kopia-manage">
 	<?php manage_styles('kopia-manage'); ?>
 
-	<h2>Kopia (backups)</h2>
+	<h2>Kopia</h2>
 	<table>
 		<tr><td>Status</td><td data-kp="status">…</td></tr>
 		<tr><td>Version</td><td data-kp="version">-</td></tr>

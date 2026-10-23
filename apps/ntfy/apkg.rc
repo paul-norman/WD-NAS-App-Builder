@@ -5,7 +5,7 @@ Email:
 Homepage:			https://ntfy.sh/
 Description:		ntfy: push notifications to your phone and browser, from the NAS's apps and scripts.
 Icon:				ntfy.svg
-AddonShowName:		ntfy (notifications)
+AddonShowName:		ntfy
 AddonIndexPage:		index.php
 AddonUsedPort:
 AddonDefaultPort:

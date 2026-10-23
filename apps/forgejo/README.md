@@ -1,4 +1,4 @@
-# Forgejo (Git) App
+# Forgejo App
 
 [Forgejo](https://forgejo.org/) is your own Git server, like a private GitHub: repositories with a web interface, issues, pull requests, wikis, releases, mirrors of other repositories, and package registries. It runs natively on the NAS *(no Docker)*, on Forgejo's long term support release *(15.x, supported until July 2027)*.
 
@@ -22,7 +22,7 @@ The app backs Forgejo up with its own `forgejo dump` - the repositories, databas
 
 ## Management page
 
-Forgejo's page in the NAS dashboard *(Apps → Forgejo (Git))* shows whether it's running, its version, web and SSH addresses, the number of repositories and example clone commands. It shows, copies or replaces the admin user's password, makes and lists backups, sets the backup schedule, limits the web interface to the Nginx app, turns Git over SSH on or off, restarts Forgejo, and shows its latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+Forgejo's page in the NAS dashboard *(Apps → Forgejo)* shows whether it's running, its version, web and SSH addresses, the number of repositories and example clone commands. It shows, copies or replaces the admin user's password, makes and lists backups, sets the backup schedule, limits the web interface to the Nginx app, turns Git over SSH on or off, restarts Forgejo, and shows its latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
 
 ## Building the Forgejo app
 

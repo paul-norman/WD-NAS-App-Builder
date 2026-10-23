@@ -1,4 +1,4 @@
-# Navidrome (music) App
+# Navidrome App
 
 [Navidrome](https://www.navidrome.org/) streams your music collection to a browser *(its own web player)* and to phones and desktop players through the **Subsonic** API, which many apps speak: e.g. Symfonium, Tempo or Substreamer on Android, play:Sub or Amperfy on iPhone, Feishin on the desktop. It handles large collections, multiple users *(each with their own playlists, favourites and play counts)*, and transcodes on the fly *(e.g. FLAC to Opus for a phone on mobile data)*. It runs natively on the NAS *(no Docker)*.
 
@@ -12,7 +12,7 @@
 
 ## Management page
 
-Navidrome's page in the NAS dashboard *(Apps → Navidrome (music))* shows whether it's running, its version and addresses, and each library *(its folder, numbers of songs, albums and artists, size and last scan)*. It scans for changes or rescans everything, shows, copies or replaces the admin user's password, sets the music folder *(checking that Navidrome can read it)*, limits access to the Nginx app, turns artist images and biographies on or off, restarts Navidrome, and lists the backups and its latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+Navidrome's page in the NAS dashboard *(Apps → Navidrome)* shows whether it's running, its version and addresses, and each library *(its folder, numbers of songs, albums and artists, size and last scan)*. It scans for changes or rescans everything, shows, copies or replaces the admin user's password, sets the music folder *(checking that Navidrome can read it)*, limits access to the Nginx app, turns artist images and biographies on or off, restarts Navidrome, and lists the backups and its latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
 
 ## Building the Navidrome app
 

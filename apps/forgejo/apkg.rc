@@ -5,7 +5,7 @@ Email:
 Homepage:			https://forgejo.org/
 Description:		Forgejo: your own Git server - repositories, issues and pull requests, on the NAS.
 Icon:				forgejo.svg
-AddonShowName:		Forgejo (Git)
+AddonShowName:		Forgejo
 AddonIndexPage:		index.php
 AddonUsedPort:
 AddonDefaultPort:

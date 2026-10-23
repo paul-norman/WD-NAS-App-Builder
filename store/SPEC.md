@@ -94,7 +94,7 @@ Apps and recipes share these:
 ```json
 {
 	"id": "navidrome",
-	"name": "Navidrome (music)",
+	"name": "Navidrome",
 	"version": "0.64.2",
 	"summary": "Stream your music collection to your browser and phone (Subsonic apps)",
 	"icon": "apps/navidrome/web/navidrome.svg",
@@ -151,7 +151,7 @@ A recipe's entry in `store.json`:
 ```json
 {
 	"id": "immich",
-	"name": "Immich (photos)",
+	"name": "Immich",
 	"version": "3.3.5-1",
 	"summary": "Photos and videos: phone backup, albums, search",
 	"icon": "recipes/immich/icon.svg",
@@ -187,7 +187,7 @@ The other fields repeat `recipe.json`'s, so that the Store can list recipes with
 {
 	"recipe_version": 1,
 	"id": "immich",
-	"name": "Immich (photos)",
+	"name": "Immich",
 	"version": "3.3.5-1",
 	"summary": "Photos and videos: phone backup, albums, search",
 	"description": "description.md",

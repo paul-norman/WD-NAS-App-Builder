@@ -1,7 +1,7 @@
 {
 	"recipe_version": 1,
 	"id": "immich",
-	"name": "Immich (photos)",
+	"name": "Immich",
 	"version": "3.3.5-3",
 	"summary": "Photos and videos: automatic phone backup, albums, sharing, a map and search by what's in a photo",
 	"description": "description.md",

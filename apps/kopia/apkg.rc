@@ -5,7 +5,7 @@ Email:
 Homepage:			https://kopia.io/
 Description:		Kopia: encrypted, deduplicated, versioned backups of the NAS to the cloud (B2, S3, Google Drive...), another server or a USB drive.
 Icon:				kopia.svg
-AddonShowName:		Kopia (backups)
+AddonShowName:		Kopia
 AddonIndexPage:		index.php
 AddonUsedPort:
 AddonDefaultPort:

@@ -5,7 +5,7 @@ Email:
 Homepage:			https://www.navidrome.org/
 Description:		Navidrome: stream your music collection to your browser and phone (Subsonic apps).
 Icon:				navidrome.svg
-AddonShowName:		Navidrome (music)
+AddonShowName:		Navidrome
 AddonIndexPage:		index.php
 AddonUsedPort:
 AddonDefaultPort:

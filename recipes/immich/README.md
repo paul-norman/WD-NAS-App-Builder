@@ -19,7 +19,7 @@ Tested on a **My Cloud PR4100 with 16GB RAM**, Immich v3.3.5.
 
 ## Setting it up
 
-**With the [Store app](../../apps/store/README.md)**: **Recipes → Immich (photos) → Install** - the form asks for the same settings as below, and the Store does the rest *(including the Nginx site)*. Then carry on from step 3.
+**With the [Store app](../../apps/store/README.md)**: **Recipes → Immich → Install** - the form asks for the same settings as below, and the Store does the rest *(including the Nginx site)*. Then carry on from step 3.
 
 **By hand**, over SSH:
 

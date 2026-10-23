@@ -5,7 +5,7 @@ Email:
 Homepage:			https://grafana.com/oss/loki/
 Description:		Loki and Vector: collect the NAS's and apps' logs, searchable in Grafana.
 Icon:				loki.svg
-AddonShowName:		Loki (logs)
+AddonShowName:		Loki
 AddonIndexPage:		index.php
 AddonUsedPort:
 AddonDefaultPort:

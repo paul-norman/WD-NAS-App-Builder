@@ -1,4 +1,4 @@
-# Loki (logs) App
+# Loki App
 
 Collects the NAS's logs in one place, searchable in [Grafana](../grafana/README.md):
 
@@ -23,7 +23,7 @@ Every line also has a `host` label *(the NAS's name)*. When it first starts, Vec
 
 ## Management page
 
-The app's page in the NAS dashboard *(Apps → Loki (logs))* shows whether Loki and Vector are running, their versions, how much is stored, and what has been collected in the last 24 hours *(lines per log)*. It sets how many days to keep and which sources to collect, restarts both, and shows their latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+The app's page in the NAS dashboard *(Apps → Loki)* shows whether Loki and Vector are running, their versions, how much is stored, and what has been collected in the last 24 hours *(lines per log)*. It sets how many days to keep and which sources to collect, restarts both, and shows their latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
 
 ## Building the Loki app
 

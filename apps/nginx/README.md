@@ -33,7 +33,7 @@ If the domain has a wildcard CNAME *(e.g. `*.example.com → example.com`)*, leg
 Apps and scripts can add, update and remove their own site, without editing `apps.json`:
 
 ```sh
-php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php add-app /mnt/HD/HD_a2/Nas_Prog/_nginx photos http://127.0.0.1:2283 "Immich (photos)" --uploads
+php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php add-app /mnt/HD/HD_a2/Nas_Prog/_nginx photos http://127.0.0.1:2283 "Immich" --uploads
 php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php url /mnt/HD/HD_a2/Nas_Prog/_nginx photos      # https://photos.<domain>/
 php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php remove-app /mnt/HD/HD_a2/Nas_Prog/_nginx photos
 sh /mnt/HD/HD_a2/Nas_Prog/nginx/nginx_ctl.sh reload

@@ -9,7 +9,7 @@ header('Cache-Control: no-store');
 <div id="loki-manage">
 	<?php manage_styles('loki-manage'); ?>
 
-	<h2>Loki (logs)</h2>
+	<h2>Loki</h2>
 	<table>
 		<tr><td>Loki</td><td data-lk="loki">…</td></tr>
 		<tr><td>Vector</td><td data-lk="vector">…</td></tr>

@@ -1,4 +1,4 @@
-# ntfy (notifications) App
+# ntfy App
 
 [ntfy](https://ntfy.sh/) sends push notifications to phones *(its Android and iPhone apps)* and browsers *(its web app)*. Anything that can make a web request can send one - the NAS's apps *(Uptime Kuma, Grafana alerts, Kopia)* and your own scripts, e.g. `curl -d "Backup finished" https://ntfy.<domain>/nas`. Notifications are grouped into topics *(e.g. `nas`)*, which devices subscribe to. It runs natively on the NAS *(no Docker)*.
 
@@ -34,7 +34,7 @@ The management page can send a test notification to any topic.
 
 ## Management page
 
-ntfy's page in the NAS dashboard *(Apps → ntfy (notifications))* shows whether it's running, its version and address, the phone apps' login *(with the password)* and the access token *(both can be replaced)*, an example command, and how to set up Uptime Kuma, Grafana and Kopia. It sends test notifications, limits access to the Nginx app, turns iPhone instant notifications on or off, restarts ntfy, and shows its latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
+ntfy's page in the NAS dashboard *(Apps → ntfy)* shows whether it's running, its version and address, the phone apps' login *(with the password)* and the access token *(both can be replaced)*, an example command, and how to set up Uptime Kuma, Grafana and Kopia. It sends test notifications, limits access to the Nginx app, turns iPhone instant notifications on or off, restarts ntfy, and shows its latest warnings. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*.
 
 ## Building the ntfy app
 
