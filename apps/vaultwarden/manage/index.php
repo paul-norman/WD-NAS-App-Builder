@@ -21,18 +21,18 @@ header('Cache-Control: no-store');
 		<a class="mg-button" data-vw="admin-link" href="#" target="_blank" rel="noopener" hidden>Admin panel</a>
 		<button type="button" data-vw-action="restart">Restart Vaultwarden</button></p>
 
-	<h3>Accounts</h3>
-	<p><label><input type="checkbox" data-vw="signups"> Allow new accounts to sign up</label>
-		<button type="button" data-vw-action="signups">Save</button></p>
-	<p class="mg-note">Turn this off once your accounts exist; others can still be invited from the admin panel (which
-		needs email set up, in its SMTP settings). Vaultwarden restarts.</p>
-
 	<h3>Admin panel</h3>
 	<p>Admin token: <code data-vw="token">••••••••••••</code>
 		<button type="button" data-vw-action="show">Show</button> <button type="button" data-vw-action="copy">Copy</button>
 		<button type="button" data-vw-action="new-token">New token</button></p>
 	<p class="mg-note">The admin panel (at /admin) holds Vaultwarden's other settings: email (SMTP), two-step login,
 		invitations, users and organisations. Only its hash is given to Vaultwarden; a new token restarts it.</p>
+
+	<h3>Accounts</h3>
+	<p><label><input type="checkbox" data-vw="signups"> Allow new accounts to sign up</label>
+		<button type="button" data-vw-action="signups">Save</button></p>
+	<p class="mg-note">Turn this off once your accounts exist; others can still be invited from the admin panel (which
+		needs email set up, in its SMTP settings). Vaultwarden restarts.</p>
 
 	<h3>Backups</h3>
 	<p><label>Folder <input type="text" data-vw="backup-dir" size="40" spellcheck="false"></label>

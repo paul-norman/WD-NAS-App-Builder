@@ -20,11 +20,6 @@ header('Cache-Control: no-store');
 	<p><a class="mg-button" data-ne="link" href="#" target="_blank" rel="noopener">Open metrics</a>
 		<button type="button" data-ne-action="restart">Restart Node Exporter</button></p>
 
-	<h3>Storage (as WD sees it)</h3>
-	<table data-ne="disks" style="margin-bottom: 1rem"></table>
-	<table data-ne="raids" style="margin-bottom: 1rem"></table>
-	<table data-ne="volumes"></table>
-
 	<h3>Settings</h3>
 	<p><label>Port <input type="number" data-ne="port" min="1024" max="65535" style="width: 7em"></label>
 		<label><input type="checkbox" data-ne="auth"> Require a password to read the metrics</label>
@@ -40,6 +35,11 @@ header('Cache-Control: no-store');
 			<button type="button" data-ne-action="set">Change password</button></p>
 		<p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
 	</div>
+
+	<h3>Storage (as WD sees it)</h3>
+	<table data-ne="disks" style="margin-bottom: 1rem"></table>
+	<table data-ne="raids" style="margin-bottom: 1rem"></table>
+	<table data-ne="volumes"></table>
 
 	<h3>Prometheus and Grafana</h3>
 	<p>Add the NAS to Prometheus's <code>prometheus.yml</code>

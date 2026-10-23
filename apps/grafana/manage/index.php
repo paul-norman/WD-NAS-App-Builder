@@ -19,18 +19,18 @@ header('Cache-Control: no-store');
 	<p><a class="mg-button" data-gf="link" href="#" target="_blank" rel="noopener">Open Grafana</a>
 		<button type="button" data-gf-action="restart">Restart Grafana</button></p>
 
-	<h3>Access</h3>
-	<p><label><input type="checkbox" data-gf="local"> Only through the Nginx app (HTTPS)</label>
-		<button type="button" data-gf-action="listen">Save</button></p>
-	<p class="mg-note">Otherwise Grafana is also reachable on port 3000 from the local network (over plain HTTP). Grafana
-		restarts.</p>
-
 	<h3>Admin account</h3>
 	<p>Log in as <code>admin</code> with: <code data-gf="password">••••••••••••</code>
 		<button type="button" data-gf-action="show">Show</button> <button type="button" data-gf-action="copy">Copy</button>
 		<button type="button" data-gf-action="reset">Reset the password</button></p>
 	<p class="mg-note">The first password is generated when Grafana's database is created. A password changed in Grafana
 		itself isn't shown here; resetting sets a new random one.</p>
+
+	<h3>Access</h3>
+	<p><label><input type="checkbox" data-gf="local"> Only through the Nginx app (HTTPS)</label>
+		<button type="button" data-gf-action="listen">Save</button></p>
+	<p class="mg-note">Otherwise Grafana is also reachable on port 3000 from the local network (over plain HTTP). Grafana
+		restarts.</p>
 
 	<h3>Backups</h3>
 	<p><label>Folder <input type="text" data-gf="backup-dir" size="40" spellcheck="false"></label>

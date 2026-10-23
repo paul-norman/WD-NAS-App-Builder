@@ -19,13 +19,6 @@ header('Cache-Control: no-store');
 	<p><a class="mg-button" data-nd="link" href="#" target="_blank" rel="noopener">Open Navidrome</a>
 		<button type="button" data-nd-action="restart">Restart Navidrome</button></p>
 
-	<h3>Music</h3>
-	<table data-nd="libraries"></table>
-	<p><button type="button" data-nd-action="scan">Scan for changes</button>
-		<button type="button" data-nd-action="full-scan">Rescan everything</button></p>
-	<p class="mg-note">New and changed files are picked up by themselves as they appear, and everything is checked once a
-		day. More music folders can be added in Navidrome (Settings → Libraries).</p>
-
 	<h3>Admin user</h3>
 	<p>User name <code>admin</code>, password <code data-nd="password">••••••••••••</code>
 		<button type="button" data-nd-action="show">Show</button> <button type="button" data-nd-action="copy">Copy</button>
@@ -33,6 +26,13 @@ header('Cache-Control: no-store');
 	<p class="mg-note">Create a user for each person in Navidrome (Settings → Users). Phones use any Subsonic app (e.g.
 		Symfonium, Tempo or Substreamer on Android, play:Sub or Amperfy on iPhone) with the address above and their own
 		user name and password. This page logs in as admin with this password, so keep it as the app set it.</p>
+
+	<h3>Music</h3>
+	<table data-nd="libraries"></table>
+	<p><button type="button" data-nd-action="scan">Scan for changes</button>
+		<button type="button" data-nd-action="full-scan">Rescan everything</button></p>
+	<p class="mg-note">New and changed files are picked up by themselves as they appear, and everything is checked once a
+		day. More music folders can be added in Navidrome (Settings → Libraries).</p>
 
 	<h3>Settings</h3>
 	<p><label>Music folder <input type="text" data-nd="music-folder" spellcheck="false"
@@ -104,7 +104,7 @@ header('Cache-Control: no-store');
 			table.textContent = '';
 			if (!libraries) {
 				table.insertRow().insertCell().textContent = running
-					? 'Can\'t log in to Navidrome as admin with the password below (make a new one to fix it)' : 'Navidrome isn\'t running';
+					? 'Can\'t log in to Navidrome as admin with the password above (make a new one to fix it)' : 'Navidrome isn\'t running';
 				return;
 			}
 			libraries.forEach(function (library) {

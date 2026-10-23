@@ -215,7 +215,7 @@ function manage_styles($id)
 {
 	$s = '#' . $id;
 	echo "<style>
-		{$s} { font-family: inherit; color: inherit; max-width: 46rem; padding: 0.5rem 0; line-height: 1.5; white-space: normal; }
+		{$s} { font-family: inherit; color: inherit; padding: 0.5rem 0; line-height: 1.5; white-space: normal; }
 		{$s} h2 { font-size: 1.3em; font-weight: bold; margin: 0 0 0.75rem; }
 		{$s} h3 { font-size: 1.05em; font-weight: bold; margin: 2rem 0 0.75rem; padding-top: 1.25rem; border-top: 1px solid rgba(127, 127, 127, 0.3); }
 		{$s} .mg-section { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid rgba(127, 127, 127, 0.3); }
@@ -226,6 +226,8 @@ function manage_styles($id)
 		{$s} input[type=text] { width: 22rem; max-width: 100%; padding: 0.3rem; }
 		{$s} input::placeholder { color: #b0b0b0; opacity: 1; }
 		{$s} button, {$s} a.mg-button { display: inline-block; margin: 0.2rem 0.4rem 0.2rem 0; padding: 0.3rem 0.8rem; cursor: pointer; }
+		{$s} a.mg-button { text-decoration: none; color: #fafafa; border-top: 1px solid #15abff; border-bottom: 1px solid #0067a6; outline: 1px solid #0067a6; background-color: #018be3; background-image: linear-gradient(to bottom, #0099ff, #027dc8); background-origin: border-box; background-repeat: no-repeat; box-sizing: border-box; height: 32px; padding-top: 0; padding-bottom: 0; font: 14px Arial, Helvetica, sans-serif; line-height: 30px; }
+		{$s} a.mg-button:hover { background-image: linear-gradient(to bottom, #027dc8, #0099ff); }
 		{$s} [hidden] { display: none !important; }
 		{$s} .mg-ok { color: #2e7d32; }
 		{$s} .mg-bad { color: #c62828; }

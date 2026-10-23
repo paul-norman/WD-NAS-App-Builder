@@ -19,6 +19,14 @@ header('Cache-Control: no-store');
 		<span class="mg-note">PostgreSQL restarts, disconnecting its clients.</span></p>
 	<p data-pg="network-message"></p>
 
+	<h3>The <code>postgres</code> superuser</h3>
+	<p>Password: <code data-pg="password">••••••••••••</code> <button type="button" data-pg-action="show">Show</button> <button type="button" data-pg-action="copy">Copy</button></p>
+	<p><input type="text" data-pg="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+		<button type="button" data-pg-action="set">Change password</button></p>
+	<p data-pg="password-message"></p>
+	<p class="mg-note">Connect on port 5432 (the NAS's address, or localhost / the socket in /var/run/postgresql on the NAS).
+		Over SSH: <code>PGPASSWORD=… psql -h /var/run/postgresql -U postgres</code>.</p>
+
 	<h3>Extensions</h3>
 	<p>Included (add one to a database with <code>CREATE EXTENSION name;</code>): <strong>postgis</strong> (geometry and
 		geography - no rasters) and postgis_topology, <strong>vector</strong> (pgvector), <strong>pg_cron</strong>,
@@ -39,14 +47,6 @@ header('Cache-Control: no-store');
 	<p data-pg="create-message"></p>
 	<p class="mg-note">Each database gets a user of its own, with a generated password - shown once, so note it down.
 		Names are lower case letters, digits and _.</p>
-
-	<h3>The <code>postgres</code> superuser</h3>
-	<p>Password: <code data-pg="password">••••••••••••</code> <button type="button" data-pg-action="show">Show</button> <button type="button" data-pg-action="copy">Copy</button></p>
-	<p><input type="text" data-pg="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
-		<button type="button" data-pg-action="set">Change password</button></p>
-	<p data-pg="password-message"></p>
-	<p class="mg-note">Connect on port 5432 (the NAS's address, or localhost / the socket in /var/run/postgresql on the NAS).
-		Over SSH: <code>PGPASSWORD=… psql -h /var/run/postgresql -U postgres</code>.</p>
 
 	<script>
 	// Wrapped in a closure: nothing may leak into the dashboard's global scope (e.g. it relies on jQuery's $)

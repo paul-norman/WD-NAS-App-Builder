@@ -18,11 +18,6 @@ header('Cache-Control: no-store');
 	<p><a class="mg-button" data-ma="link" href="#" target="_blank" rel="noopener">Open Music Assistant</a>
 		<button type="button" data-ma-action="restart">Restart Music Assistant</button></p>
 
-	<h3>Players</h3>
-	<table data-ma="players"></table>
-	<p class="mg-note">Sonos speakers (and Chromecast, DLNA / UPnP, Squeezebox and other players on the network) are found
-		by themselves once their provider is added in Music Assistant (Settings → Providers).</p>
-
 	<h3>Admin user</h3>
 	<p>User name <code>admin</code>, password <code data-ma="password">••••••••••••</code>
 		<button type="button" data-ma-action="show">Show</button> <button type="button" data-ma-action="copy">Copy</button>
@@ -32,6 +27,11 @@ header('Cache-Control: no-store');
 	<p class="mg-note">Create a user for each person in Music Assistant (Settings → Users). Add your music with the "Local
 		disk" provider, e.g. a folder under <code>/mnt/HD/HD_a2</code> (Music Assistant only reads it - the folder must be
 		readable by everyone, as shares normally are), and streaming services (e.g. Spotify, YouTube Music) with theirs.</p>
+
+	<h3>Players</h3>
+	<table data-ma="players"></table>
+	<p class="mg-note">Sonos speakers (and Chromecast, DLNA / UPnP, Squeezebox and other players on the network) are found
+		by themselves once their provider is added in Music Assistant (Settings → Providers).</p>
 
 	<details class="mg-section">
 		<summary>Backups</summary>

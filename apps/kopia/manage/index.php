@@ -18,11 +18,6 @@ header('Cache-Control: no-store');
 	<p><a class="mg-button" data-kp="link" href="#" target="_blank" rel="noopener">Open Kopia</a>
 		<button type="button" data-kp-action="restart">Restart Kopia</button></p>
 
-	<h3>Backups</h3>
-	<table data-kp="sources"></table>
-	<p class="mg-note">Folders to back up, their schedules and how many snapshots to keep are set in Kopia (Snapshots → New
-		Snapshot, and Policies). The NAS's shares are under /mnt/HD/HD_a2 (e.g. /mnt/HD/HD_a2/Public).</p>
-
 	<h3>Logging in</h3>
 	<p>Log in to Kopia as <code>admin</code> with: <code data-kp="password">••••••••••••</code>
 		<button type="button" data-kp-action="show">Show</button> <button type="button" data-kp-action="copy">Copy</button>
@@ -30,6 +25,11 @@ header('Cache-Control: no-store');
 	<p class="mg-note">This is only Kopia's web interface login. The repository's own password (which encrypts the backups,
 		set when the repository is created) is separate: keep a copy away from the NAS - without it the backups can't be
 		restored.</p>
+
+	<h3>Backups</h3>
+	<table data-kp="sources"></table>
+	<p class="mg-note">Folders to back up, their schedules and how many snapshots to keep are set in Kopia (Snapshots → New
+		Snapshot, and Policies). The NAS's shares are under /mnt/HD/HD_a2 (e.g. /mnt/HD/HD_a2/Public).</p>
 
 	<h3>Access</h3>
 	<p><label><input type="checkbox" data-kp="local"> Only through the Nginx app (HTTPS)</label>

@@ -21,6 +21,14 @@ header('Cache-Control: no-store');
 		Calibre-Web user name and password. Kobo e-readers can sync with Calibre-Web directly: turn on Kobo sync in Calibre-Web
 		(Admin → Edit basic configuration → Feature configuration), then follow the instructions on your user's profile page.</p>
 
+	<h3>Admin user</h3>
+	<p>User name <code>admin</code>, password <code data-cw="password">••••••••••••</code>
+		<button type="button" data-cw-action="show">Show</button> <button type="button" data-cw-action="copy">Copy</button>
+		<button type="button" data-cw-action="new-password">New password</button></p>
+	<p class="mg-note">Create a user for each person in Calibre-Web (Admin → Add new user), with what each may do (download,
+		upload, edit, convert...). To send books to e-readers by email (e.g. a Kindle's address), set an email server in
+		Calibre-Web (Admin → Edit email server settings).</p>
+
 	<h3>Library</h3>
 	<table>
 		<tr><td>Folder</td><td data-cw="library">-</td></tr>
@@ -44,14 +52,6 @@ header('Cache-Control: no-store');
 		<summary>Latest results</summary>
 		<pre data-cw="ingest-log"></pre>
 	</details>
-
-	<h3>Admin user</h3>
-	<p>User name <code>admin</code>, password <code data-cw="password">••••••••••••</code>
-		<button type="button" data-cw-action="show">Show</button> <button type="button" data-cw-action="copy">Copy</button>
-		<button type="button" data-cw-action="new-password">New password</button></p>
-	<p class="mg-note">Create a user for each person in Calibre-Web (Admin → Add new user), with what each may do (download,
-		upload, edit, convert...). To send books to e-readers by email (e.g. a Kindle's address), set an email server in
-		Calibre-Web (Admin → Edit email server settings).</p>
 
 	<h3>Settings</h3>
 	<p><label><input type="checkbox" data-cw="local"> Only through the Nginx app (HTTPS)</label></p>

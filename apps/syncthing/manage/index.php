@@ -19,12 +19,6 @@ header('Cache-Control: no-store');
 	<p><a class="mg-button" data-st="link" href="#" target="_blank" rel="noopener">Open Syncthing</a>
 		<button type="button" data-st-action="restart">Restart Syncthing</button></p>
 
-	<h3>Folders</h3>
-	<table data-st="folders"></table>
-
-	<h3>Devices</h3>
-	<table data-st="devices"></table>
-
 	<h3>Logging in</h3>
 	<p>Log in to Syncthing as <code data-st="user">admin</code> with: <code data-st="password">••••••••••••</code>
 		<button type="button" data-st-action="show">Show</button> <button type="button" data-st-action="copy">Copy</button></p>
@@ -32,6 +26,12 @@ header('Cache-Control: no-store');
 		<button type="button" data-st-action="set">Change password</button></p>
 	<p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters: letters, digits and . _ ~ -
 		(a password changed in Syncthing's own settings isn't shown here).</p>
+
+	<h3>Folders</h3>
+	<table data-st="folders"></table>
+
+	<h3>Devices</h3>
+	<table data-st="devices"></table>
 
 	<p data-st="message"></p>
 

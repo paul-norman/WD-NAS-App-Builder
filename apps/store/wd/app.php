@@ -81,10 +81,17 @@ install - WD's scripts and dialogs below, unchanged.
 }
 
 /* The Store's layout: the page (the Store, or an app's page opened by Configure) uses the full width */
-#store-apps-bar { display: flex; align-items: center; gap: 1rem; margin: 0 0 0.75rem; }
-#store-apps-bar[hidden] { display: none; }
-#store-apps-bar button { height: auto; line-height: 1.4; padding: 0.3rem 0.9rem; }
+#store-apps-page { position: relative; }
+/* Apps' own pages (Configure), as their shared styles now are - here too for apps built before: the full width, and their
+   links that act as buttons (e.g. "Open Grafana") in WD's blue */
+#store-apps-page #mainbody > div { max-width: none !important; }
+#store-apps-page #mainbody a.mg-button { text-decoration: none; color: #fafafa; border-top: 1px solid #15abff; border-bottom: 1px solid #0067a6; outline: 1px solid #0067a6; background-color: #018be3; background-image: linear-gradient(to bottom, #0099ff, #027dc8); background-origin: border-box; background-repeat: no-repeat; box-sizing: border-box; height: 32px; padding-top: 0; padding-bottom: 0; font: 14px Arial, "Helvetica Neue", Helvetica, sans-serif; line-height: 30px; }
+#store-apps-page #mainbody a.mg-button:hover { background-image: linear-gradient(to bottom, #027dc8, #0099ff); }
 #store-apps-page #mainbody { width: auto; max-width: none; float: none; margin: 0; }
+/* An app's page gets a Back button (as the Store's own pages have) at the right of its title - or, without a title, at the
+   top right */
+.store-apps-back { float: right; margin: 0 0 0 1rem; height: auto; line-height: 1.4; padding: 0.3rem 0.9rem; font-weight: normal; }
+#store-apps-page > .store-apps-back { position: absolute; top: 0; right: 0; float: none; }
 #store-wd-parts { display: none; }
 #store-wd-manual #manually_install_td { padding: 0.25rem 0 0.75rem; }
 </style>
@@ -101,23 +108,37 @@ window.storeApps = {
 	// The Store, in the page's main area (its page reopens what was open before Configure - it keeps that itself)
 	home: function () {
 		storeApps.leave();
-		$("#store-apps-bar").attr("hidden", true);
+		storeApps.back = false;
 		go_sub_page('/apps/store/index.php', 'store');
 		// (if the Store's page can't be shown, this is still the way back to WD's own Apps page)
 		setTimeout(function () {
-			if (!$("#store-manage").length && $("#store-apps-bar").is("[hidden]")) {
+			if (!$("#store-manage").length && !storeApps.back) {
 				$("#mainbody").html('<p>The Store\'s page could not be loaded. To get the NAS\'s own Apps page back, run this over SSH:</p>'
 					+ '<pre>umount /usr/local/modules/web/pages/addons/app.php</pre><p>(or reinstall the Store app).</p>');
 			}
 		}, 10000);
 	},
-	// An app's own page (its CenterType 1 index page), with a way back to the Store above it
+	// An app's own page (its CenterType 1 index page), with a way back to the Store (see loaded). Its name is on its page
 	configure: function (id, url, name) {
 		storeApps.leave();
-		$("#store-apps-name").text(name);
-		$("#store-apps-bar").removeAttr("hidden");
+		storeApps.back = true;
 		go_sub_page('/apps/' + id + '/' + url, id);
 	},
+	// A page has been loaded into the main area: an app's gets its Back button, in its title's row (its first heading)
+	loaded: function () {
+		$("#store-apps-page .store-apps-back").remove();
+		if (!storeApps.back) {
+			return;
+		}
+		var back = $('<button type="button" class="store-apps-back">&larr; Back</button>').on("click", storeApps.home);
+		var title = $("#mainbody").find("h1, h2, .header_1").first();
+		if (title.length) {
+			title.prepend(back);
+		} else {
+			$("#store-apps-page").prepend(back);
+		}
+	},
+	back: false,
 	// Before the main area is replaced: WD's app store goes back to its hiding place (else it's lost with the page), and
 	// is loaded again next time (WD's page loader unbinds every handler in the page)
 	leave: function () {
@@ -158,6 +179,7 @@ function page_load(_sub_page, _sub_page_callback)
 	// (pages shown in the main area afterwards - the Store's, apps' - get this as their page_load, as WD's own app store
 	// page gives them: without it, each would reload this page)
 	window.page_load = function (callback) {
+		storeApps.loaded();
 		if (typeof(callback) == "function") callback();
 	};
 	window.page_unload = function () {};
@@ -171,10 +193,6 @@ function page_unload()
 
 <body>
 <div id="store-apps-page">
-	<div id="store-apps-bar" hidden>
-		<button type="button" onclick="storeApps.home()">&larr; Apps</button>
-		<strong id="store-apps-name"></strong>
-	</div>
 	<div class="r_content mainbody" id="mainbody"></div>
 </div>
 
