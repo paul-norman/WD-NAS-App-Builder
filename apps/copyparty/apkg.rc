@@ -1,0 +1,23 @@
+Package:			copyparty
+Version:			1.20.26
+Packager:			PDN
+Email:
+Homepage:			https://github.com/9001/copyparty
+Description:		copyparty: your shares in the browser - upload (resumable, any size), download, search, thumbnails and media playback, WebDAV and SFTP.
+Icon:				copyparty.svg
+AddonShowName:		copyparty
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

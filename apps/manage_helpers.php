@@ -225,6 +225,8 @@ function manage_styles($id)
 		{$s} code { background: rgba(127, 127, 127, 0.15); border-radius: 4px; padding: 0.1rem 0.35rem; word-break: break-all; }
 		{$s} input[type=text] { width: 22rem; max-width: 100%; padding: 0.3rem; }
 		{$s} input::placeholder { color: #b0b0b0; opacity: 1; }
+		{$s} select { box-sizing: border-box; height: 32px; padding: 0 6px; border: 1px solid #c8c8c8; border-radius: 0; outline: 0; background-color: #f0f0f0; color: #4b5a68; font: 14px Arial, Helvetica, sans-serif; vertical-align: middle; cursor: pointer; }
+		{$s} select:focus { border-color: #0099ff; }
 		{$s} button, {$s} a.mg-button { display: inline-block; margin: 0.2rem 0.4rem 0.2rem 0; padding: 0.3rem 0.8rem; cursor: pointer; }
 		{$s} a.mg-button { text-decoration: none; color: #fafafa; border-top: 1px solid #15abff; border-bottom: 1px solid #0067a6; outline: 1px solid #0067a6; background-color: #018be3; background-image: linear-gradient(to bottom, #0099ff, #027dc8); background-origin: border-box; background-repeat: no-repeat; box-sizing: border-box; height: 32px; padding-top: 0; padding-bottom: 0; font: 14px Arial, Helvetica, sans-serif; line-height: 30px; }
 		{$s} a.mg-button:hover { background-image: linear-gradient(to bottom, #027dc8, #0099ff); }
