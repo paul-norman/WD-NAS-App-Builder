@@ -1,0 +1,23 @@
+Package:			calibre-web
+Version:			0.6.27
+Packager:			PDN
+Email:
+Homepage:			https://github.com/janeczku/calibre-web
+Description:		Calibre-Web: your e-book library in the browser - read, convert, send to e-readers and sync Kobos.
+Icon:				calibre-web.svg
+AddonShowName:		Calibre-Web
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

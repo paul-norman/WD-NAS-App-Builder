@@ -986,8 +986,8 @@ header('Cache-Control: no-store');
 		part('category').addEventListener('change', showList);
 		part('installed-only').addEventListener('change', showList);
 
-		button('refresh').addEventListener('click', function () {
-			say('Refreshing the repositories…', true);
+		function refresh(working) {
+			say(working, true);
 			button('refresh').disabled = true;
 			call('refresh', {}).then(function (d) {
 				button('refresh').disabled = false;
@@ -995,7 +995,8 @@ header('Cache-Control: no-store');
 				say(d.errors.length ? d.errors.join(' · ') : 'Up to date.', !d.errors.length);
 				load();
 			});
-		});
+		}
+		button('refresh').addEventListener('click', function () { refresh('Refreshing the repositories…'); });
 
 		button('repo-add').addEventListener('click', function () {
 			var url = part('repo-url').value.trim();
@@ -1025,10 +1026,8 @@ header('Cache-Control: no-store');
 				var item = installedItems().filter(function (i) { return i.id === back.id && i.kind === 'apps'; })[0];
 				if (item) { openInstalled(item); }
 			}
-			// (the first visit: no repository read yet)
-			if (state.catalogue && state.catalogue.repos.length && state.catalogue.repos.every(function (r) { return !r.fetched && !r.error; })) {
-				button('refresh').click();
-			}
+			// (a repository not checked in the last hour - or never: new versions are looked for by themselves)
+			if (state.catalogue && state.catalogue.stale) { refresh('Checking the repositories for new versions…'); }
 			call('job').then(function (d) {
 				if (d.ok && d.job) { showJob(d); if (d.job.state === 'running') { poll(); } }
 			});

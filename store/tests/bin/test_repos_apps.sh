@@ -23,6 +23,11 @@ post refresh >/dev/null; j '$d["errors"]' | grep -q "signing key has changed" &&
 get catalogue >/dev/null; NEWFP=$(j '$d["repos"][0]["new_fingerprint"]' | tr -d '"'); [ "$(j '$d["repos"][0]["key_changed"]')" = true ] && pass "page shows the new key: $NEWFP" || fail "no key_changed"
 [ "$(post accept_key -d url=$REPO -d fingerprint=00)" = 400 ] && pass "accepting needs the shown fingerprint" || fail "accept without fp"
 [ "$(post accept_key -d url=$REPO -d fingerprint=$NEWFP)" = 200 ] && post refresh >/dev/null && [ "$(j 'count($d["errors"])')" = 0 ] && pass "new key accepted; refresh clean (Changed: text now signed = $(grep -c 'Changed:' /www/repo/store.json))" || fail "accept: $(cat /tmp/body)"
+echo "== checking for new versions by itself"
+get catalogue >/dev/null; [ "$(j '$d["stale"]')" = false ] && pass "just refreshed: not stale" || fail "stale after refresh"
+for f in $V/Nas_Prog/_store/cache/*.status.json; do php -r '$f=$argv[1]; $s=json_decode(file_get_contents($f),true); $s["checked"]=gmdate("Y-m-d\\TH:i:s\\Z", time()-7200); file_put_contents($f, json_encode($s));' "$f"; done
+get catalogue >/dev/null; [ "$(j '$d["stale"]')" = true ] && pass "checked 2 hours ago: stale (the page refreshes by itself)" || fail "not stale"
+STORE_TEST_VOLUME=$V php $P/store/lib/refresh.php; get catalogue >/dev/null; [ "$(j '$d["stale"]')" = false ] && pass "the daily check (lib/refresh.php) refreshed them" || fail "refresh.php"
 echo "== native apps"
 get details "&kind=apps&repo=$REPO&id=nano" >/dev/null; echo "  nano details: problems=$(j '$d["problems"]') replaces=$(j '$d["replaces"]') size=$(j '$d["size"]')"
 post start -d job=app_install -d repo=$REPO -d id=nano >/dev/null; job_wait

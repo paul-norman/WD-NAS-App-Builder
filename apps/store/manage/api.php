@@ -208,6 +208,7 @@ if ($action === 'catalogue') {
 			'maintainer' => $store !== null && isset($store['maintainer']) ? (string)$store['maintainer'] : '',
 			'updated' => $store !== null ? $store['updated'] : '',
 			'fetched' => $repo['fetched'],
+			'checked' => $repo['checked'],
 			'error' => $repo['error'],
 			'signed' => !empty($repo['key']),
 			'fingerprint' => store_key_fingerprint($repo['key']),
@@ -285,6 +286,7 @@ if ($action === 'catalogue') {
 		'nas' => array_intersect_key($nas, array_flip(['model', 'arch', 'firmware', 'ram_mb', 'disk_mb', 'ip'])),
 		'installed_apps' => api_installed_apps($nas['apps'], $by_store),
 		'repos' => $repos,
+		'stale' => store_repos_stale($loaded),
 		'apps' => $apps,
 		'recipes' => $recipes,
 		'orphan_recipes' => $orphans,
@@ -379,11 +381,8 @@ if ($action === 'refresh') {
 		manage_fail(409, 'Wait for the current job to finish');
 	}
 	$errors = [];
-	foreach (store_repos() as $repo) {
-		$error = store_refresh_repo($repo);
-		if ($error !== '') {
-			$errors[] = $repo['url'] . ': ' . $error;
-		}
+	foreach (store_refresh_all() as $url => $error) {
+		$errors[] = $url . ': ' . $error;
 	}
 	manage_json(['errors' => $errors]);
 }

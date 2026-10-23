@@ -215,7 +215,7 @@ function manage_styles($id)
 {
 	$s = '#' . $id;
 	echo "<style>
-		{$s} { font-family: inherit; color: inherit; max-width: 46rem; padding: 0.5rem 0; line-height: 1.5; }
+		{$s} { font-family: inherit; color: inherit; max-width: 46rem; padding: 0.5rem 0; line-height: 1.5; white-space: normal; }
 		{$s} h2 { font-size: 1.3em; font-weight: bold; margin: 0 0 0.75rem; }
 		{$s} h3 { font-size: 1.05em; font-weight: bold; margin: 2rem 0 0.75rem; padding-top: 1.25rem; border-top: 1px solid rgba(127, 127, 127, 0.3); }
 		{$s} .mg-section { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid rgba(127, 127, 127, 0.3); }

@@ -11,7 +11,7 @@ const STORE_APKG_XML = '/var/www/xml/apkg_all.xml';
 const STORE_MODEL_FILE = '/usr/local/modules/files/model';
 // Safe relative paths: no empty, . or .. parts, nothing but letters, digits, . _ and -
 const STORE_PATH_PATTERN = '#^(?!(.*/)?\.\.?(/|$))[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$#';
-const STORE_CATEGORIES = ['media', 'music', 'photos', 'backup', 'files', 'monitoring', 'network', 'security', 'development',
+const STORE_CATEGORIES = ['media', 'music', 'photos', 'books', 'backup', 'files', 'monitoring', 'network', 'security', 'development',
 	'databases', 'productivity', 'home', 'system'];
 
 // The first volume (STORE_TEST_VOLUME only replaces it in the project's tests, where Docker needs the same paths as the
@@ -418,7 +418,8 @@ function store_check_entry($entry, $label, $id_pattern)
 	return $errors;
 }
 
-// Every repository with its cached catalogue: [['url', 'key', 'added', 'store' => array|null, 'fetched', 'base', 'error']]
+// Every repository with its cached catalogue: [['url', 'key', 'added', 'store' => array|null, 'fetched', 'checked', 'base',
+// 'error']] - fetched: when its catalogue was last read; checked: when it was last tried (also when that failed)
 function store_repos_loaded()
 {
 	$list = [];
@@ -434,6 +435,7 @@ function store_repos_loaded()
 		$list[] = $repo + [
 			'store' => $store,
 			'fetched' => $fetched !== null ? $fetched['fetched'] : '',
+			'checked' => $status !== null && isset($status['checked']) ? $status['checked'] : '',
 			'base' => $base,
 			'error' => $status !== null ? $status['error'] : '',
 			'key_changed' => $status !== null && !empty($status['key_changed']),
@@ -441,6 +443,30 @@ function store_repos_loaded()
 		];
 	}
 	return $list;
+}
+
+// Whether any repository is due a check: never tried, or not in the last hour (the page then refreshes them by itself)
+function store_repos_stale(array $loaded)
+{
+	foreach ($loaded as $repo) {
+		if ($repo['checked'] === '' || time() - strtotime($repo['checked']) > 3600) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// Refreshes every repository: [url => error] for those that failed
+function store_refresh_all()
+{
+	$errors = [];
+	foreach (store_repos() as $repo) {
+		$error = store_refresh_repo($repo);
+		if ($error !== '') {
+			$errors[$repo['url']] = $error;
+		}
+	}
+	return $errors;
 }
 
 // Refreshes one repository, remembering the outcome (an error keeps the previous catalogue). Returns the error, or ''

@@ -9,7 +9,7 @@ While it's on, the Store **is the dashboard's Apps page**: the list of installed
 - **Recipes**: apps that run in Docker *(e.g. [Immich](../../recipes/immich/README.md))*. Each recipe's settings are a short form *(e.g. which share the photos go in)*: the Store writes them to a `.env` file next to the recipe's compose file, starts it with `docker compose`, and - with the [Nginx app](../nginx/README.md) installed - gives it an HTTPS address. Settings can be changed later, and recipes updated or removed, from the same page.
 - **Manual install**: installing an app from its package file *(`.bin`)* on your computer, with the NAS's own installer - as the Apps page's "install an app manually" did.
 - **WD Store**: Western Digital's own app store, as the Apps page offered it.
-- **Repositories**: the list of catalogues the Store reads. This project's is there by default; others can be added by their address *(a GitHub repository, or the HTTPS address of a `store.json`)*.
+- **Repositories**: the list of catalogues the Store reads. New versions are looked for by themselves: every night, and when the page opens if it's been over an hour *(Refresh does it now)*. This project's is there by default; others can be added by their address *(a GitHub repository, or the HTTPS address of a `store.json`)*.
 
 The Store works only when its page is used: nothing runs in the background. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*. **Activity** shows the log of the latest install, update or removal.
 

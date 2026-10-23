@@ -7,6 +7,7 @@
 		"maintainer": "Paul Norman"
 	},
 	"apps": {
+		"calibre-web": { "categories": ["books", "media"], "license": "GPL-3.0-only", "data_folder": "_calibre-web", "keeps_data": true, "web": { "port": 8083, "nginx": { "name": "books" } } },
 		"docker": { "categories": ["system", "development"], "license": "Apache-2.0", "data_folder": "_docker", "keeps_data": true, "web": { "port": 9000, "nginx": { "name": "portainer" } } },
 		"entware": { "categories": ["system"], "license": "GPL-2.0-only", "data_folder": "_entware", "keeps_data": true },
 		"forgejo": { "categories": ["development"], "license": "GPL-3.0-or-later", "data_folder": "_forgejo", "keeps_data": true, "web": { "port": 3002, "nginx": { "name": "git" } } },

@@ -24,3 +24,10 @@
 # Remove the web and management paths
 log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
 rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
+
+# Remove the daily repository check
+CRONTAB="/var/spool/cron/crontabs/root"
+if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-refresh" "${CRONTAB}"; then
+	grep -v "${APP_NAME}-refresh" "${CRONTAB}" > "${CRONTAB}.tmp"
+	mv "${CRONTAB}.tmp" "${CRONTAB}"
+fi

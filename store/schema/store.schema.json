@@ -35,7 +35,7 @@
 				"icon": { "$ref": "#/$defs/url" },
 				"categories": {
 					"type": "array",
-					"items": { "enum": ["media", "music", "photos", "backup", "files", "monitoring", "network", "security", "development", "databases", "productivity", "home", "system"] }
+					"items": { "enum": ["media", "music", "photos", "books", "backup", "files", "monitoring", "network", "security", "development", "databases", "productivity", "home", "system"] }
 				},
 				"homepage": { "$ref": "#/$defs/https_url" },
 				"license": { "type": "string" },
