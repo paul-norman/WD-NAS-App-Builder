@@ -1,0 +1,23 @@
+Package:			icecast
+Version:			2.5.0
+Packager:			PDN
+Email:
+Homepage:			https://icecast.org/
+Description:		Icecast: your own internet radio station - broadcast live from a PC, or a folder of music from the NAS around the clock.
+Icon:				icecast.svg
+AddonShowName:		Icecast
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

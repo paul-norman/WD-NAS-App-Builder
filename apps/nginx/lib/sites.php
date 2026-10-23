@@ -46,6 +46,8 @@ function sites_known_apps()
 		'music' => ['folder' => 'navidrome', 'label' => 'Navidrome', 'target' => 'http://127.0.0.1:4533', 'stream' => true],
 		// (stream: its web interface keeps a connection open for live updates)
 		'music-assistant' => ['folder' => 'music-assistant', 'label' => 'Music Assistant', 'target' => 'http://127.0.0.1:8095', 'stream' => true],
+		// (stream: radio streams never end)
+		'radio' => ['folder' => 'icecast', 'label' => 'Icecast', 'target' => 'http://127.0.0.1:8000', 'stream' => true],
 		// (uploads: books are added through the browser - large PDFs and comics included)
 		'books' => ['folder' => 'calibre-web', 'label' => 'Calibre-Web', 'target' => 'http://127.0.0.1:8083', 'uploads' => true],
 		// (uploads and stream: files of any size both ways, passed on as they come)

@@ -14,6 +14,7 @@
 		"forgejo": { "categories": ["development"], "license": "GPL-3.0-or-later", "data_folder": "_forgejo", "keeps_data": true, "web": { "port": 3002, "nginx": { "name": "git" } } },
 		"golang": { "categories": ["development"], "license": "BSD-3-Clause" },
 		"grafana": { "categories": ["monitoring"], "license": "AGPL-3.0-only", "data_folder": "_grafana", "keeps_data": true, "web": { "port": 3000, "nginx": { "name": "grafana" } } },
+		"icecast": { "categories": ["music", "media"], "license": "GPL-2.0-only", "data_folder": "_icecast", "keeps_data": true, "web": { "port": 8000, "nginx": { "name": "radio" } } },
 		"jellyfin": { "categories": ["media"], "license": "GPL-2.0-only", "web": { "port": 8096, "nginx": { "name": "jellyfin" } } },
 		"kopia": { "categories": ["backup"], "license": "Apache-2.0", "data_folder": "_kopia", "keeps_data": true, "web": { "nginx": { "name": "kopia" } } },
 		"loki": { "categories": ["monitoring"], "license": "AGPL-3.0-only", "data_folder": "_loki", "keeps_data": true },

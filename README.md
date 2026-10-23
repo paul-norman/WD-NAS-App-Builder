@@ -57,7 +57,7 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
   - `/recipes`  - [Docker recipes](recipes/README.md): compose files for apps best run in Docker, tested on the NAS
   - `/store`    - the [Store and recipe format](store/SPEC.md) (draft): `store.json`, `recipe.json`, their schemas, `tools/build_store.py` (builds `store.json` from the repository) `tools/make_test_repo.sh` (a test repository) - used by the [Store app](apps/store/README.md)
   - `/static`   - build instructions / required files for statically linked programs
-  - `/tests`    - [tests](tests/README.md) that run without a NAS, in containers standing in for it *(the Store, Calibre-Web, copyparty, WireGuard)*
+  - `/tests`    - [tests](tests/README.md) that run without a NAS, in containers standing in for it *(the Store, Calibre-Web, copyparty, WireGuard, Icecast)*
   - ---
   - `/packages` - the built apps (static and for devices)
 
