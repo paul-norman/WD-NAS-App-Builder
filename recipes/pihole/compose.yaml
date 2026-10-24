@@ -1,0 +1,43 @@
+# Pi-hole on a WD My Cloud NAS (OS5, Intel models) - based on Pi-hole's own example docker-compose.yml:
+#     https://github.com/pi-hole/docker-pi-hole#quick-start
+#
+# Changes from Pi-hole's file (see README.md):
+#  - DNS only: no DHCP (leave that to the router) and no NTP server or clock setting - so none of the extra capabilities
+#  - its web interface on port 8053 (the NAS's own dashboard has 80 and 443), and the image pinned (version and digest)
+#  - the upstream DNS servers and the web password come from .env
+#  - container logs are capped (Docker keeps them on the NAS's disk, forever otherwise)
+#
+# Run it from the folder holding this file and its .env (setup.sh puts both in /mnt/HD/HD_a2/Nas_Prog/_pihole).
+
+name: pihole
+
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:2026.10.0@sha256:d34134716fc32038b052a8674c7c6879e0ff21f0e6d8af345166fffa2c27c113
+    ports:
+      # DNS, for the home network's devices (the Docker app passes them on with their own addresses, which Pi-hole shows)
+      - '53:53/tcp'
+      - '53:53/udp'
+      # Its web interface (at /admin)
+      - '8053:80/tcp'
+    environment:
+      TZ: ${TZ}
+      FTLCONF_webserver_api_password: ${WEB_PASSWORD}
+      # Upstream DNS servers, separated by ;
+      FTLCONF_dns_upstreams: ${UPSTREAMS}
+      # Answer every device that reaches it: on Docker's bridge network, they all look "remote" to Pi-hole
+      FTLCONF_dns_listeningMode: 'ALL'
+      # No NTP: the NAS keeps its own time
+      FTLCONF_ntp_ipv4_active: 'false'
+      FTLCONF_ntp_ipv6_active: 'false'
+      FTLCONF_ntp_sync_active: 'false'
+    volumes:
+      # Its settings, block lists and query history (on the NAS's own volume, next to the apps)
+      - ${CONFIG_LOCATION}:/etc/pihole
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'

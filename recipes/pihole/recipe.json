@@ -1,0 +1,49 @@
+{
+	"recipe_version": 1,
+	"id": "pihole",
+	"name": "Pi-hole",
+	"version": "2026.10.0-1",
+	"summary": "Blocks adverts and trackers for every device on your home network, by answering their DNS lookups",
+	"description": "description.md",
+	"compose": "compose.yaml",
+	"project": "pihole",
+	"data_folder": "_pihole",
+	"requires": {
+		"arch": "amd64",
+		"apps": ["docker"],
+		"docker_memory_mb": 128,
+		"disk_mb": 512
+	},
+	"web": { "port": 8053, "path": "/admin/", "ready_timeout": 180, "nginx": { "name": "pihole" } },
+	"options": [
+		{
+			"key": "WEB_PASSWORD",
+			"type": "password",
+			"label": "Web interface password",
+			"help": "For Pi-hole's dashboard and settings (http://<nas-ip>:8053/admin). It can be changed later in Pi-hole (Settings -> Web interface / API).",
+			"min_length": 8
+		},
+		{
+			"key": "UPSTREAMS",
+			"type": "choice",
+			"label": "Upstream DNS servers",
+			"help": "Where Pi-hole looks up the names it doesn't block. They can be changed later in Pi-hole (Settings -> DNS), including your ISP's or your own.",
+			"default": "1.1.1.1;1.0.0.1",
+			"choices": [
+				{ "value": "1.1.1.1;1.0.0.1", "label": "Cloudflare (1.1.1.1)" },
+				{ "value": "9.9.9.9;149.112.112.112", "label": "Quad9 (9.9.9.9 - blocks known malicious sites too)" },
+				{ "value": "8.8.8.8;8.8.4.4", "label": "Google (8.8.8.8)" },
+				{ "value": "208.67.222.222;208.67.220.220", "label": "OpenDNS (208.67.222.222)" }
+			]
+		},
+		{
+			"key": "TZ",
+			"type": "timezone",
+			"label": "Time zone",
+			"default": "{nas:timezone}",
+			"advanced": true
+		},
+		{ "key": "CONFIG_LOCATION", "type": "hidden", "default": "{data}/etc-pihole", "create": true }
+	],
+	"hooks": { "pre_install": "hooks/pre_install.sh" }
+}

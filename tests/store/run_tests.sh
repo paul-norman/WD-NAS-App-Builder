@@ -1,7 +1,7 @@
 #!/bin/bash
 # Tests the Store app in a stand-in for the NAS (see README.md):
 #
-#     tests/store/run_tests.sh [repos_apps|recipes|immich|signatures|ui|all] [--php 7.4|8.5|both]
+#     tests/store/run_tests.sh [repos_apps|recipes|immich|pihole|signatures|ui|all] [--php 7.4|8.5|both]
 #
 # Default: all (except ui) on PHP 7.4. Needs Docker on Linux (host networking; ports 8080, 8443, 18081 and 2283 free),
 # Python 3, and the apps' packages built for the PR4100 (the Store's is built here). Work files go in $STORE_TEST_WORK
@@ -15,8 +15,8 @@ WHAT="${1:-all}"
 PHP="7.4"
 [ "${2:-}" = "--php" ] && PHP="${3:-7.4}"
 case "${WHAT}" in
-	all) TESTS="repos_apps recipes immich signatures" ;;
-	repos_apps|recipes|immich|signatures|ui) TESTS="${WHAT}" ;;
+	all) TESTS="repos_apps recipes immich pihole signatures" ;;
+	repos_apps|recipes|immich|pihole|signatures|ui) TESTS="${WHAT}" ;;
 	*) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac
 case "${PHP}" in
@@ -64,6 +64,23 @@ compose = (folder / "compose.yaml").read_text()
 (folder / "compose.yaml").write_text(re.sub(r"    devices:\n(?:      #.*\n)*      - /dev/dri:/dev/dri\n", "", compose))
 EOF
 printf 'not really a photo\n' > "${WORK}/fixtures/photo.jpg"
+# ... and a copy of the Pi-hole recipe on ports this machine has free (1053 for DNS, 18053 for its web interface)
+cp -r "${PROJ}/recipes/pihole" "${WORK}/fixtures/pihole-ports"
+rm -f "${WORK}/fixtures/pihole-ports/"{setup.sh,example.env,README.md}
+python3 - "${WORK}/fixtures/pihole-ports" <<'EOF'
+import json, pathlib, sys
+folder = pathlib.Path(sys.argv[1])
+recipe = json.loads((folder / "recipe.json").read_text())
+recipe["id"] = recipe["project"] = "pihole-ports"
+recipe["data_folder"] = "_pihole-ports"
+recipe["web"]["port"] = 18053
+(folder / "recipe.json").write_text(json.dumps(recipe, indent="\t"))
+compose = (folder / "compose.yaml").read_text()
+compose = compose.replace("'53:53/", "'1053:53/").replace("'8053:80/tcp'", "'18053:80/tcp'").replace("name: pihole", "name: pihole-ports")
+(folder / "compose.yaml").write_text(compose)
+hook = (folder / "hooks/pre_install.sh").read_text()
+(folder / "hooks/pre_install.sh").write_text(hook.replace("'tcp 53 0035' 'udp 53 0035' 'tcp 8053 1F75'", "'tcp 1053 041D' 'udp 1053 041D' 'tcp 18053 4685'"))
+EOF
 
 echo "Building the Store app"
 (cd "${PROJ}" && MODEL_OVERRIDE=MyCloudPR4100 ./build.sh store > "${WORK}/build.log" 2>&1) || { echo "The Store didn't build - see ${WORK}/build.log"; exit 1; }

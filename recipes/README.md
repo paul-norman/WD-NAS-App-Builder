@@ -5,6 +5,7 @@ Some self-hosted apps are best run in Docker, through the project's [Docker app]
 | Recipe                     | What it is                                             | Needs                                         |
 |----------------------------|--------------------------------------------------------|-----------------------------------------------|
 | [Immich](immich/README.md) | Photos and videos: phone backup, albums, faces, search | ~6GB for Docker (a RAM upgrade on 4GB models) |
+| [Pi-hole](pihole/README.md) | Ad and tracker blocking for the whole network (DNS)    | Ports 53 and 8053 free; ~25MB                 |
 
 The recipes use `docker compose` *(included in the Docker app)*. Their containers also show up in Portainer.
 
