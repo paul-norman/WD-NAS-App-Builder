@@ -452,7 +452,8 @@ function job_nginx(array $recipe, $remove)
 
 function job_store_env(array $spec, $data, $version, $previous = null)
 {
-	return ['STORE_ACTION' => $spec['action'] === 'recipe_uninstall' ? 'uninstall' : ($spec['action'] === 'recipe_install' ? 'install' : 'update'),
+	$actions = ['recipe_install' => 'install', 'recipe_update' => 'update', 'recipe_change' => 'change', 'recipe_uninstall' => 'uninstall'];
+	return ['STORE_ACTION' => isset($actions[$spec['action']]) ? $actions[$spec['action']] : 'update',
 		'STORE_DATA' => $data, 'STORE_VERSION' => (string)$version] + ($previous !== null ? ['STORE_PREVIOUS_VERSION' => (string)$previous] : []);
 }
 
@@ -599,6 +600,9 @@ function job_recipe_change(array $spec)
 	job_log('Applying the settings');
 	if (job_compose($recipe, $data, ['up', '-d']) !== 0) {
 		job_fail('Docker could not apply them');
+	}
+	if (job_hook($recipe, $data, 'post_change', $env, job_store_env($spec, $data, $record['version'])) !== 0) {
+		job_log('Warning: its post_change step failed');
 	}
 	$record['updated'] = store_now();
 	$record['values'] = store_public_values($recipe, $values);

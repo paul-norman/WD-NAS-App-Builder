@@ -1,6 +1,6 @@
 # Changes the test repositories' store.json (and re-signs it): add-recipe <repo> <fixture> | set-app <repo> <id> <field> <json>
 # | sign <repo> <key> | tamper <repo> | evil <dir>
-import base64, hashlib, json, pathlib, shutil, subprocess, sys, tempfile
+import base64, hashlib, json, os, pathlib, shutil, subprocess, sys, tempfile
 cmd, repo = sys.argv[1], pathlib.Path(sys.argv[2])
 store_file = repo / "store.json"
 def load(): return json.loads(store_file.read_text())
@@ -27,7 +27,10 @@ if cmd == "add-recipe":
     target = repo / "recipes" / r["id"]
     if target.is_symlink(): target.unlink()
     shutil.rmtree(target, ignore_errors=True); shutil.copytree(fixture, target)
-    files = {str(p.relative_to(target)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(target.rglob("*")) if p.is_file()}
+    # (the files the real repository lists - build_store.py's choice - so that a file a recipe needs but doesn't list fails here too)
+    sys.path.insert(0, os.path.join(os.environ["STORE_TEST_PROJECT"], "store", "tools"))
+    from build_store import recipe_file_names
+    files = {name: hashlib.sha256((target / name).read_bytes()).hexdigest() for name in sorted(recipe_file_names(target, r)) if (target / name).is_file()}
     entry = {k: r[k] for k in ("id", "name", "version", "summary")}
     entry.update({"categories": ["development"], "requires": r.get("requires", {}), "path": f"recipes/{r['id']}/", "files": files})
     store = load(); store["recipes"] = [e for e in store["recipes"] if e["id"] != r["id"]] + [entry]; save(store, key)

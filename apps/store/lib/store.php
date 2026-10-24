@@ -4,6 +4,8 @@
 // and the background jobs (job.php), through WD's PHP 7.4 or the PHP app's 8.5 - so it must work on both.
 
 const STORE_FORMAT = 1;            // the store_version this Store reads
+// The recipe hooks this Store runs (section 4 of store/SPEC.md)
+const STORE_HOOKS = ['pre_install', 'post_install', 'pre_update', 'post_update', 'post_change', 'pre_uninstall'];
 const STORE_RECIPE_FORMAT = 1;     // the recipe_version it reads
 const STORE_DEFAULT_REPO = 'https://github.com/paul-norman/WD-NAS-App-Builder';
 const STORE_UPLOAD_PATH = '/usr/local/apps_upload';
@@ -611,7 +613,10 @@ function store_installed_apps()
 			if ($id === '') {
 				continue;
 			}
-			$apps[$id] = ['version' => $field('version'), 'enabled' => $field('enable') === '1', 'name' => $field('show'),
+			// (the version in the app's own apkg.rc: WD's list can lag behind an update - e.g. the Store's update of itself)
+			$rc = (string)@file_get_contents(store_apps_path() . '/' . basename($id) . '/apkg.rc');
+			$version = preg_match('/^Version:[ \t]*(\S+)/m', $rc, $m) ? $m[1] : $field('version');
+			$apps[$id] = ['version' => $version, 'enabled' => $field('enable') === '1', 'name' => $field('show'),
 				'center_type' => $field('center_type'), 'url' => $field('url'), 'url_port' => $field('url_port'),
 				'icon' => $field('icon'), 'description' => $field('description'), 'installed' => $field('inst_date'),
 				'depends' => array_values(array_filter(array_map('trim', preg_split('/[,\s]+/', $field('inst_depend'))), 'strlen')),
@@ -837,8 +842,12 @@ function store_load_recipe($dir, array $entry)
 	}
 	$hooks = isset($recipe['hooks']) && is_array($recipe['hooks']) ? $recipe['hooks'] : [];
 	foreach ($hooks as $hook => $path) {
-		if (!in_array($hook, ['pre_install', 'post_install', 'pre_update', 'post_update', 'pre_uninstall'], true) || !is_string($path) || !isset($files[$path])) {
-			$errors[] = 'hooks must be its own files';
+		// (hooks this Store doesn't know - a newer Store's - are ignored: it only ever runs those it knows)
+		if (!in_array($hook, STORE_HOOKS, true)) {
+			continue;
+		}
+		if (!is_string($path) || !isset($files[$path])) {
+			$errors[] = 'its ' . $hook . ' hook isn\'t one of its files' . (is_string($path) ? ' (' . $path . ')' : '');
 			break;
 		}
 	}

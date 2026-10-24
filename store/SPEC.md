@@ -24,7 +24,7 @@ recipes/
     compose.yaml                <- a Docker Compose file, using the options as ${VARIABLES}
     description.md              <- shown on the recipe's page in the Store
     icon.svg                    <- optional
-    hooks/post_install.sh       <- optional: small steps Compose can't do
+    hooks/post_install.sh       <- optional: small steps Compose can't do (hooks/ also holds files they use)
 ```
 
 - **Native apps** are listed in `store.json` with a download (and checksum) per NAS model. The Store installs them the way the NAS dashboard does.
@@ -328,10 +328,11 @@ Values MUST NOT contain newlines. The Store writes `.env` as `KEY=value` lines, 
 
 ### Hooks
 
-Optional POSIX `sh` scripts (BusyBox), for the steps Compose can't do - e.g. a setting in the app's database on a new install. Keys: `pre_install`, `post_install`, `pre_update`, `post_update`, `pre_uninstall`.
+Optional POSIX `sh` scripts (BusyBox), for the steps Compose can't do - e.g. a setting in the app's database on a new install. Keys: `pre_install`, `post_install`, `pre_update`, `post_update`, `post_change`, `pre_uninstall`.
 
-- They run as root, in the recipe's folder (`{data}`), with every `.env` variable in their environment plus `STORE_ACTION` (`install`, `update` or `uninstall`), `STORE_DATA` (the folder), `STORE_VERSION` (the recipe's version) and `STORE_PREVIOUS_VERSION` (on updates).
-- `post_install` and `post_update` run once `docker compose up -d` has returned - a hook that needs a container to be ready MUST wait for it itself (e.g. its health status), for up to 10 minutes.
+- They run as root, in the recipe's folder (`{data}`), with every `.env` variable in their environment plus `STORE_ACTION` (`install`, `update`, `change` or `uninstall`), `STORE_DATA` (the folder), `STORE_VERSION` (the recipe's version) and `STORE_PREVIOUS_VERSION` (on updates).
+- `post_install`, `post_update` and `post_change` (after a change of settings) run once `docker compose up -d` has returned - a hook that needs a container to be ready MUST wait for it itself (e.g. its health status), for up to 10 minutes.
+- Every file in `hooks/` is part of the recipe's `files` (and downloaded with it): a hook can use others there, e.g. a script it runs. A Store ignores hooks it doesn't know (a newer Store's), so a recipe using them still installs.
 - They SHOULD be idempotent. Their output is shown in the Store's log; a non-zero exit stops the install (`pre_*`) or is reported as a warning (`post_*`).
 
 ### What the Store does
@@ -339,7 +340,7 @@ Optional POSIX `sh` scripts (BusyBox), for the steps Compose can't do - e.g. a s
 - **Install**: checks the requirements (section 5); downloads the files listed in `store.json` and checks their SHA256; shows the wizard; validates the answers (on the NAS, whatever the wizard allowed); creates `{data}` (mode `700`) with the compose file (saved as `compose.yaml`), `recipe.json`, `.env` (mode `600`) and `compose.override.yaml` (for `mount` options) in it; creates the `folder` options marked `create`; runs `pre_install`; runs `docker compose -p <project> pull` then `up -d` in `{data}`, showing their progress; runs `post_install`; adds the Nginx site (if `web.nginx` and the Nginx app is installed - section 7), pointing at `web.port` on `127.0.0.1`; waits (if `web`) until `http://127.0.0.1:<port><path>` gives any HTTP answer below 500, for up to `web.ready_timeout` seconds - the same after an update or a change of settings - and says whether it's ready or still starting; records the install in `{data}/.store/installed.json` (the repository, the recipe's version and the answers - except `secret` and `password` values, which stay in `.env` only), and keeps the recipe's files in `{data}/.store/recipe/` (its hooks run from there). Docker Compose runs in `{data}` with `-p <project>` and no `-f`, so that it reads `compose.yaml` and `compose.override.yaml` by itself, as it does for commands typed there by hand. If the install fails part-way, it's undone (`docker compose down`, and `{data}` removed if the Store created it).
 - **Existing settings**: when `{data}` already has a `.env` - an earlier install whose folder was kept, or a recipe set up by hand - its values are the wizard's defaults, and `secret` and `password` values are reused (e.g. a database's password, which it was created with). `{data}` is refused if it belongs to an app (it has an `apkg.rc`) or to another recipe.
 - **Update** (a newer `version`): downloads and checks the new files; asks only new options (with their defaults), keeping the existing answers; writes `.env` (and `compose.override.yaml`) again; runs `pre_update`, `docker compose pull` and `up -d`, then `post_update`.
-- **Change settings**: the options not marked `install_only` can be changed; `.env` (and `compose.override.yaml`) are written again and `docker compose up -d` applies them.
+- **Change settings**: the options not marked `install_only` can be changed; `.env` (and `compose.override.yaml`) are written again, `docker compose up -d` applies them, then `post_change` runs.
 - **Uninstall**: runs `pre_uninstall`, then `docker compose down`, and removes the Nginx site. It then offers to delete `{data}` and the folders of `folder` options marked `create` - except those listed in `uninstall.keep` - each one separately, unticked by default.
 - **Manual use**: a recipe is also usable without the Store (e.g. over SSH) - its folder has everything needed, apart from the `.env` the wizard writes. A repository MAY add a `README.md` explaining that.
 

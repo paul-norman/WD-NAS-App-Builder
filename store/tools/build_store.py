@@ -141,13 +141,24 @@ def external_entry(app_id, metadata):
     return entry
 
 
+def recipe_file_names(recipe_dir, recipe):
+    """The files the Store downloads for a recipe: recipe.json, its icon, compose file and description, and everything in
+    hooks/ - the hooks, and the files they use (e.g. a script a hook runs). Not its README, setup.sh or example.env (for
+    installing by hand)"""
+    names = set(RECIPE_FILES) | {recipe["compose"]} | set(recipe.get("hooks", {}).values())
+    if recipe.get("description"):
+        names.add(recipe["description"])
+    hooks = recipe_dir / "hooks"
+    if hooks.is_dir():
+        names |= {f"hooks/{p.name}" for p in hooks.iterdir() if p.is_file() and not p.name.startswith(".") and p.suffix != ".pyc"}
+    return names
+
+
 def recipe_entry(recipe_dir, metadata, validate):
     recipe = json.loads((recipe_dir / "recipe.json").read_text(encoding="utf-8"))
     if validate:
         validate(recipe, "recipe.schema.json", recipe_dir / "recipe.json")
-    names = set(RECIPE_FILES) | {recipe["compose"]} | set(recipe.get("hooks", {}).values())
-    if recipe.get("description"):
-        names.add(recipe["description"])
+    names = recipe_file_names(recipe_dir, recipe)
     files = {name: sha256(recipe_dir / name) for name in sorted(names) if (recipe_dir / name).is_file()}
     missing = [name for name in names - set(RECIPE_FILES) if name not in files]
     if missing:

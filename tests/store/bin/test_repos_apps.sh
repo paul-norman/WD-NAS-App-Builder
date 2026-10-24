@@ -46,6 +46,12 @@ python3 /tbin/repotool.py set-app /www/repo python version '"99.0"'; post refres
 get catalogue >/dev/null; [ "$(j 'array_values(array_filter($d["apps"], function($a){return $a["id"]==="python";}))[0]["update"]')" = true ] && pass "update offered (python 99.0)" || fail "no update"
 post start -d job=app_update -d repo=$REPO -d id=python >/dev/null; job_wait
 [ "$JOB_STATE" = '"done"' ] && grep -q "99.0" $P/python/apkg.rc && grep -q "del_apkg python" /tmp/wdtools.log && pass "python (keeps_data) updated by del_apkg + install: $JOB_MSG" || fail "update: $JOB_STATE $JOB_MSG"
+# WD's list lagging behind an update (as it does after the Store updates itself): the app's own apkg.rc wins
+sed -i 's#<name>python</name>\(.*\)<version>99.0</version>#<name>python</name>\1<version>3.0.1</version>#' /var/www/xml/apkg_all.xml
+get catalogue >/dev/null; [ "$(j 'array_values(array_filter($d["apps"], function($a){return $a["id"]==="python";}))[0]["update"]')" = false ] \
+	&& [ "$(j 'array_values(array_filter($d["installed_apps"], function($a){return $a["id"]==="python";}))[0]["version"]')" = '"99.0"' ] \
+	&& grep -q '<version>3.0.1</version>' /var/www/xml/apkg_all.xml && pass "WD's list says 3.0.1, apkg.rc 99.0: shown as 99.0, no update offered" || fail "lagging list: $(grep -o '<name>python</name>.*</version>' /var/www/xml/apkg_all.xml)"
+sh /tbin/apkg_xml.sh
 echo "== a fork (the same apps, under the same name)"
 FORK=https://evil.test:8443/fork/store.json; rm -rf /www/evil/fork; cp -r /www/repo /www/evil/fork; python3 /tbin/repotool.py set-app /www/evil/fork python version '"99.1"'
 post add_repo -d url=$FORK -d confirm=1 >/dev/null; get catalogue >/dev/null

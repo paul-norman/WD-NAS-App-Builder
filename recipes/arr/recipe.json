@@ -1,0 +1,124 @@
+{
+	"recipe_version": 1,
+	"id": "arr",
+	"name": "Arr stack",
+	"version": "2026.10.24-1",
+	"summary": "Request films and TV, and have them found, downloaded and filed into your Jellyfin or Plex library - all connected for you",
+	"description": "description.md",
+	"compose": "compose.yaml",
+	"project": "arr",
+	"data_folder": "_arr",
+	"requires": {
+		"arch": "amd64",
+		"apps": ["docker"],
+		"docker_memory_mb": 1024,
+		"disk_mb": 6144
+	},
+	"web": { "port": 5055, "ready_timeout": 300, "nginx": { "name": "requests" } },
+	"options": [
+		{
+			"key": "DATA_ROOT",
+			"type": "folder",
+			"label": "Downloads and library folder",
+			"help": "On a share. It gets torrents/ and usenet/ (downloads) and media/ (the library: tv, movies, music, books) - point Jellyfin or Plex at media/. Downloads and library must be together, so that finished downloads are linked into the library rather than copied (no double disk space).",
+			"default": "{share:Media}",
+			"on_share": true,
+			"create": true
+		},
+		{
+			"key": "ADMIN_USER",
+			"type": "string",
+			"label": "User name",
+			"help": "For every app's web interface (qBittorrent, Prowlarr, Sonarr, Radarr, Bazarr...). Seerr has its own users: those of your Jellyfin or Plex.",
+			"default": "admin",
+			"pattern": "^[A-Za-z0-9._-]{1,32}$"
+		},
+		{
+			"key": "ADMIN_PASSWORD",
+			"type": "password",
+			"label": "Password",
+			"help": "For every app's web interface, with the user name above. Changing it here changes it in every app.",
+			"min_length": 8
+		},
+		{
+			"key": "LIDARR",
+			"type": "boolean",
+			"label": "Music (Lidarr)",
+			"help": "Albums by the artists you follow, filed into media/music (for Navidrome, Jellyfin or Plex). About 250MB of memory.",
+			"default": false,
+			"values": ["on", "off"]
+		},
+		{
+			"key": "BOOKS",
+			"type": "boolean",
+			"label": "Books (Bookshelf)",
+			"help": "E-books and audiobooks by the authors you follow, filed into media/books (for Calibre-Web or Audiobookshelf). Bookshelf continues Readarr, with Hardcover's book data. About 250MB of memory.",
+			"default": false,
+			"values": ["on", "off"]
+		},
+		{
+			"key": "SABNZBD",
+			"type": "boolean",
+			"label": "Usenet downloads (SABnzbd)",
+			"help": "Downloads from Usenet as well as torrents - it needs a Usenet provider's account (added in SABnzbd afterwards). About 150MB of memory.",
+			"default": false,
+			"values": ["on", "off"]
+		},
+		{
+			"key": "FLARESOLVERR",
+			"type": "boolean",
+			"label": "FlareSolverr",
+			"help": "Gets Prowlarr past Cloudflare's \"checking your browser\" page, which some indexers have: tag those indexers flaresolverr in Prowlarr. It runs a browser: about 500MB of memory.",
+			"default": false,
+			"values": ["on", "off"]
+		},
+		{
+			"key": "SUBTITLE_LANGUAGE",
+			"type": "choice",
+			"label": "Subtitle language",
+			"help": "What Bazarr looks for. More languages, and subtitle sources with accounts, can be added in Bazarr.",
+			"default": "en",
+			"choices": [
+				{ "value": "en", "label": "English" }, { "value": "fr", "label": "French" }, { "value": "de", "label": "German" },
+				{ "value": "es", "label": "Spanish" }, { "value": "it", "label": "Italian" }, { "value": "nl", "label": "Dutch" },
+				{ "value": "pt", "label": "Portuguese" }, { "value": "sv", "label": "Swedish" }, { "value": "da", "label": "Danish" },
+				{ "value": "fi", "label": "Finnish" }, { "value": "pl", "label": "Polish" }
+			],
+			"install_only": true
+		},
+		{
+			"key": "TORRENT_PORT",
+			"type": "port",
+			"label": "Torrent port",
+			"help": "qBittorrent's incoming connections. Forwarding it on your router (TCP and UDP) helps downloads, but isn't needed.",
+			"default": 6881,
+			"min": 1024,
+			"max": 65535,
+			"advanced": true
+		},
+		{
+			"key": "TZ",
+			"type": "timezone",
+			"label": "Time zone",
+			"default": "{nas:timezone}",
+			"advanced": true
+		},
+		{ "key": "PROWLARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+		{ "key": "SONARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+		{ "key": "RADARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+		{ "key": "LIDARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+		{ "key": "BOOKSHELF_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+		{ "key": "CONFIG_ROOT", "type": "hidden", "default": "{data}" },
+		{ "key": "COMPOSE_PROFILES", "type": "hidden", "default": "on" },
+		{ "key": "PUID", "type": "hidden", "default": "84" },
+		{ "key": "PGID", "type": "hidden", "default": "1000" }
+	],
+	"hooks": {
+		"pre_install": "hooks/pre_install.sh",
+		"post_install": "hooks/wire.sh",
+		"post_update": "hooks/wire.sh",
+		"post_change": "hooks/wire.sh",
+		"pre_uninstall": "hooks/pre_uninstall.sh"
+	},
+	"uninstall": { "keep": ["DATA_ROOT"] }
+}
