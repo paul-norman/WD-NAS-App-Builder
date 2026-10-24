@@ -5,6 +5,8 @@ Tests that run without a NAS: each suite starts containers standing in for it *(
 | Suite | Tests | Run |
 |---|---|---|
 | [`apps`](apps/README.md) | **Every app**'s package through its life as WD's installer runs it: install, start and its port or command, file permissions, its page, stop, clean, remove keeping its data | `tests/apps/run_tests.sh [app ...]` |
+| [`nginx`](nginx/README.md) | The [Nginx app](../apps/nginx/README.md): proxied apps and their headers, the home app and start page, uploads and streaming, sites added by other apps, user sites with PHP, its own certificate, a configuration error | `tests/nginx/run_tests.sh [--php 7.4\|8.5\|both]` |
+| [`php`](php/README.md) | The [PHP app](../apps/php/README.md): the switch to PHP 8.5 with no failed request, WD's pages patched, php.ini restored byte for byte, falling back to 7.4 by itself | `tests/php/run_tests.sh` |
 | [`store`](store/README.md) | The [Store app](../apps/store/README.md): repositories and signatures, installing apps and recipes, the page | `tests/store/run_tests.sh [group] [--php 7.4\|8.5\|both]` |
 | [`copyparty`](copyparty/README.md) | The [copyparty app](../apps/copyparty/README.md): logins, uploads into WD's shares, thumbnails and transcoding, search, access levels, SFTP, the page, the package | `tests/copyparty/run_tests.sh [group] [--php 7.4\|8.5\|both]` |
 | [`wireguard`](wireguard/README.md) | The [WireGuard app](../apps/wireguard/README.md): a real tunnel from a stand-in phone to the NAS and a device at home, access levels, the page, the package | `tests/wireguard/run_tests.sh [group] [--php 7.4\|8.5]` |
