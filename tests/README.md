@@ -4,6 +4,7 @@ Tests that run without a NAS: each suite starts containers standing in for it *(
 
 | Suite | Tests | Run |
 |---|---|---|
+| [`apps`](apps/README.md) | **Every app**'s package through its life as WD's installer runs it: install, start and its port or command, file permissions, its page, stop, clean, remove keeping its data | `tests/apps/run_tests.sh [app ...]` |
 | [`store`](store/README.md) | The [Store app](../apps/store/README.md): repositories and signatures, installing apps and recipes, the page | `tests/store/run_tests.sh [group] [--php 7.4\|8.5\|both]` |
 | [`copyparty`](copyparty/README.md) | The [copyparty app](../apps/copyparty/README.md): logins, uploads into WD's shares, thumbnails and transcoding, search, access levels, SFTP, the page, the package | `tests/copyparty/run_tests.sh [group] [--php 7.4\|8.5\|both]` |
 | [`wireguard`](wireguard/README.md) | The [WireGuard app](../apps/wireguard/README.md): a real tunnel from a stand-in phone to the NAS and a device at home, access levels, the page, the package | `tests/wireguard/run_tests.sh [group] [--php 7.4\|8.5]` |
