@@ -1,0 +1,23 @@
+Package:			audiobookshelf
+Version:			2.37.2
+Packager:			PDN
+Email:
+Homepage:			https://www.audiobookshelf.org/
+Description:		Audiobookshelf: your audiobooks and podcasts, streamed to your phone and browser - with your place kept across devices.
+Icon:				audiobookshelf.svg
+AddonShowName:		Audiobookshelf
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

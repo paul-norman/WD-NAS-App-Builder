@@ -48,6 +48,8 @@ function sites_known_apps()
 		'music-assistant' => ['folder' => 'music-assistant', 'label' => 'Music Assistant', 'target' => 'http://127.0.0.1:8095', 'stream' => true],
 		// (stream: radio streams never end)
 		'radio' => ['folder' => 'icecast', 'label' => 'Icecast', 'target' => 'http://127.0.0.1:8000', 'stream' => true],
+		// (stream: audio as it's played; uploads: audiobooks are added through the browser)
+		'audiobooks' => ['folder' => 'audiobookshelf', 'label' => 'Audiobookshelf', 'target' => 'http://127.0.0.1:13378', 'stream' => true, 'uploads' => true],
 		// (uploads: books are added through the browser - large PDFs and comics included)
 		'books' => ['folder' => 'calibre-web', 'label' => 'Calibre-Web', 'target' => 'http://127.0.0.1:8083', 'uploads' => true],
 		// (uploads and stream: files of any size both ways, passed on as they come)

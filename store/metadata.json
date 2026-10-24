@@ -7,6 +7,7 @@
 		"maintainer": "Paul Norman"
 	},
 	"apps": {
+		"audiobookshelf": { "categories": ["books", "music"], "license": "GPL-3.0-only", "data_folder": "_audiobookshelf", "keeps_data": true, "web": { "port": 13378, "nginx": { "name": "audiobooks" } } },
 		"calibre-web": { "categories": ["books", "media"], "license": "GPL-3.0-only", "data_folder": "_calibre-web", "keeps_data": true, "web": { "port": 8083, "nginx": { "name": "books" } } },
 		"copyparty": { "categories": ["files", "photos"], "license": "MIT", "data_folder": "_copyparty", "keeps_data": true, "web": { "port": 3923, "nginx": { "name": "files" } } },
 		"docker": { "categories": ["system", "development"], "license": "Apache-2.0", "data_folder": "_docker", "keeps_data": true, "web": { "port": 9000, "nginx": { "name": "portainer" } } },
