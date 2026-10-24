@@ -69,6 +69,14 @@ function build_sqlite() {
 	fetch "https://www.sqlite.org/${SQLITE_YEAR}/sqlite-amalgamation-${SQLITE_VERSION}.zip" sqlite.zip ${SQLITE_SHA256}
 	unzip -q sqlite.zip
 	cd sqlite-amalgamation-${SQLITE_VERSION}
+	# A static binary that looks up users loads the system's own NSS libraries at run time, and crashes when their glibc
+	# isn't the one it was built with (e.g. after a firmware update): its shell looks up its user's home folder only for
+	# ~/.sqliterc, so that's left to $HOME - and the build stops if any such lookup is left
+	sed -i 's/pwent=getpwuid(uid)/pwent=(struct passwd *)0/' shell.c
+	if grep -qE '\<(getpw|getgr|gethostby|getaddrinfo|getservby)[a-z_]*\(' shell.c sqlite3.c; then
+		echo "SQLite's shell looks up users or hosts: a static build would need the NAS's own NSS libraries"
+		exit 1
+	fi
 	gcc -O2 -static -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_DQS=0 shell.c sqlite3.c -o sqlite3
 	strip sqlite3
 }

@@ -265,8 +265,8 @@ backup() {
 	mkdir -m 700 "${work}" || return 1
 	# SQLite's online backup: a consistent copy, even while Grafana writes to it. Its dashboards, users, data sources,
 	# alerts and settings are all in it
-	if ! "${BIN}/sqlite3" "${GRAF_DATA}/grafana.db" ".backup '${work}/grafana.db'" \
-		|| [ "$("${BIN}/sqlite3" "${work}/grafana.db" 'PRAGMA integrity_check;')" != ok ]; then
+	if ! "${BIN}/sqlite3" -init /dev/null "${GRAF_DATA}/grafana.db" ".backup '${work}/grafana.db'" \
+		|| [ "$("${BIN}/sqlite3" -init /dev/null "${work}/grafana.db" 'PRAGMA integrity_check;')" != ok ]; then
 		log "The database backup failed"
 		rm -rf "${work}"
 		return 1

@@ -158,9 +158,9 @@ backup() {
 	file="${dir}/uptime-kuma-${stamp}.tar.gz"
 	rm -rf "${work}"
 	mkdir -m 700 "${work}" || return 1
-	# SQLite's online backup: a consistent copy, even while Uptime Kuma writes to it
-	if ! "${BIN}/sqlite3" "${KUMA_DATA}/kuma.db" ".backup '${work}/kuma.db'" \
-		|| [ "$("${BIN}/sqlite3" "${work}/kuma.db" 'PRAGMA integrity_check;')" != ok ]; then
+	# SQLite's online backup: a consistent copy, even while Uptime Kuma writes to it (and no ~/.sqliterc read: -init /dev/null)
+	if ! "${BIN}/sqlite3" -init /dev/null "${KUMA_DATA}/kuma.db" ".backup '${work}/kuma.db'" \
+		|| [ "$("${BIN}/sqlite3" -init /dev/null "${work}/kuma.db" 'PRAGMA integrity_check;')" != ok ]; then
 		log "The database backup failed"
 		rm -rf "${work}"
 		return 1

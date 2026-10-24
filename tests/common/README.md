@@ -1,0 +1,29 @@
+# App suites
+
+Suites for the apps whose own logic matters *(first starts, logins and passwords, wiring to other apps, backups, settings)*, sharing one way of running: each app's package installed in a stand-in for the NAS, as WD's installer does, and its management page served as the dashboard serves it - to a NAS admin, with its CSRF token. Each suite is `tests/<app>/test_app.sh`; the shared parts are here.
+
+```bash
+MODEL_OVERRIDE=MyCloudPR4100 ./build.sh ntfy      # first: its package (and the others' a suite lists)
+tests/common/run.sh ntfy [--php 7.4|8.5|both]
+```
+
+- **`nas.sh`**: the stand-in *(BusyBox's `sh`, `adduser`, `addgroup`, `ps` and `ip` first in the PATH; the share group; `/dev/urandom` root's only, as WD has it; root's crontab; a Public share)* and the helpers the suites use: `install_app`, `page_up` *(also checks the page refuses requests without a NAS login, or with a wrong CSRF token)*, `get` / `post` *(the page's actions)*, `j` *(reads JSON)*, `code`, `wait_port`, `listening`, `finish_app` *(stop, clean, remove: stopped, its data kept)*.
+- **`run.sh`**: runs a suite in the PHP 7.4 image *(WD's PHP, Debian 11 - the NAS's glibc; see [`images`](../images))* or 8.5's *(the [PHP app](../../apps/php/README.md)'s - the page runs on whichever the NAS has)*. A suite can add, in its folder:
+  - `docker-options`: options for its container *(`--privileged`, to change the kernel settings the app changes on the NAS)*
+  - `with`: other apps it installs too *(apps that work together)*
+  - `image.Dockerfile`: a stand-in of its own, in place of the PHP images *(WD's MariaDB, for the MariaDB app)*
+
+| Suite | What it checks | Left for the NAS |
+|---|---|---|
+| [`navidrome`](../navidrome) | The admin user with a generated password *(not the throwaway first one - in neither its log nor its configuration)*, a music folder scanned *(tagged MP3s made with its own ffmpeg)*, streaming to a Subsonic app transcoded to Opus, new passwords, settings and their checks, where it listens | Real libraries, players |
+| [`kopia`](../kopia) | Its server with a generated password *(never on a command line)*, a real backup *(a filesystem repository on a share, a snapshot, a restore identical to the original)* seen by its page, new passwords, where it listens | Remote storage *(B2, S3...)*, the Nginx site |
+| [`ntfy`](../ntfy) | Deny-all *(nothing without the app's login or token)*, a phone's subscription receiving the page's test notification, new passwords and tokens, where it listens, the iPhone relay | Phones, the relay |
+| [`forgejo`](../forgejo) | Its admin user with the page's password, sign-in required and no sign-ups, a private repository pushed and cloned with its own Git over HTTP, SSH switched on, backups from the page, new passwords, where it listens | The Nginx site |
+| [`vaultwarden`](../vaultwarden) | Only on the NAS itself *(for the Nginx app)*, its web vault, the admin panel *(only the token's argon2 hash given to Vaultwarden)*, sign-ups on for the first accounts then off and on from the page, backups *(a sound copy of the database, the number kept)*, new admin tokens | The apps and browser extensions *(need HTTPS - the Nginx app)* |
+| [`uptime-kuma`](../uptime-kuma) | First start without database questions, the admin account as the browser creates it *(socket.io, `kuma.js`)*, a ping monitor as its own user *(unprivileged pings for its group only, off again when it stops)*, password reset, backups while it runs, where it listens | Notifications |
+| [`music-assistant`](../music-assistant) | The admin account claimed by the app before anyone else can, Smart Fades removed, the page's token, new passwords, a music folder scanned with its own ffmpeg/ffprobe, backups *(stopped for the copy, started again)* | Players *(Sonos, Chromecast...)*, streaming services |
+| [`grafana`](../grafana) | The monitoring apps together *(Node Exporter, Prometheus, Loki, Grafana - `with`)*: Node Exporter's password handed to Prometheus, which scrapes it *(and keeps working after a new password, or a broken file of your own)*; the apps' logs in Loki *(root's only too)*; Grafana's data sources and dashboards provisioned, a panel's query; password reset, backups | WD's own metrics *(`xmldbc`, SMART)*, the NAS's system logs |
+| [`postgresql`](../postgresql) | First start as its own user *(no `su` on the NAS - `pg_runas`)*, passwords only, databases with their own users from the page, PostGIS with PROJ's data, pgvector, pg_cron once preloaded, the network switch | |
+| [`mariadb`](../mariadb) | On a stand-in for WD's MariaDB 10.5 *(`wd.sh`: WD's layout and `startup-mysql`, none of WD's files)*: 11.8 swapped in underneath it on an upgraded copy of WD's data, still found and restarted the way WD's scripts do, WD's lock left free; switching back *(WD's data untouched, `my.cnf` byte for byte)* and again; starting afresh; removal | WD's real data *(e.g. from MySQL 5.1)*, phpMyAdmin |
+
+Logs go in `$APP_TEST_WORK`, by default `/tmp/app-tests`. Needs Docker on Linux *(e.g. WSL)*.

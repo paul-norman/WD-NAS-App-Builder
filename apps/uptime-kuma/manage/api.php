@@ -50,7 +50,7 @@ if ($action === 'status') {
 	// Its admin account (none until it has been set up in Uptime Kuma itself)
 	$user = '';
 	if (is_file($kuma_data . '/kuma.db')) {
-		list($rc, $out) = manage_run([$app_path . '/binaries/sqlite3', '-readonly', $kuma_data . '/kuma.db', 'SELECT username FROM user LIMIT 1;']);
+		list($rc, $out) = manage_run([$app_path . '/binaries/sqlite3', '-init', '/dev/null', '-readonly', $kuma_data . '/kuma.db', 'SELECT username FROM user LIMIT 1;']);
 		$user = $rc === 0 ? $out : '';
 	}
 
