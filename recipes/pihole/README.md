@@ -4,7 +4,7 @@
 
 ## Before you start
 
-- **Port 53 must be free on the NAS** *(DNS)*, and port 8053 *(Pi-hole's web interface - the NAS's own dashboard has 80 and 443)*. The install checks both and stops, with a message, if something already has them.
+- **Port 53 must be free on the NAS** *(DNS)*, as must port 8053 *(Pi-hole's web interface - the NAS's own dashboard has 80 and 443)*. The installation checks both and stops, with a message, if something already has them.
 - **A fixed address for the NAS** on your network *(e.g. a reserved address in your router's DHCP settings)*: devices will be told to use it for DNS.
 - **DNS only**: your router keeps handing out addresses *(DHCP)* - Pi-hole just answers names. That keeps it simple, and the network still works if the NAS is off *(once the router's DNS setting is changed back)*.
 - It's light: about 25MB of memory once running, and a few MB of disk for its block lists and query history.

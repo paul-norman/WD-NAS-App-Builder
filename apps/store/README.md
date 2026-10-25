@@ -1,15 +1,15 @@
 # Store App
 
-An unofficial Store for the NAS: it installs **native apps** *(WD `.bin` packages)* and **Docker recipes** from repositories - this project's, and any others you add - from a page in the NAS dashboard, without SSH. Repositories follow the [Store and recipe format](../../store/SPEC.md).
+An unofficial Store for WD NAS systems: it installs **native apps** *(WD `.bin` packages)* and **Docker recipes** from repositories - this project's, and any others you add - from a page in the NAS dashboard, without SSH. Repositories follow the [Store and recipe format](../../store/SPEC.md).
 
 While it's on, the Store **is the dashboard's Apps page**: the list of installed apps down the side is replaced by the Store, full width *(see [The Apps page](#the-apps-page))*. Its tabs:
 
-- **Installed**: every app on the NAS *(this project's, WD's and any installed by hand)* and every recipe. An app's page has **Configure** *(its own page, as the side list opened it)*, a **Running** switch *(the NAS's own on/off switch)*, and Update and Remove.
+- **Installed**: every app on the NAS *(this project's, WD's and any installed by hand)* and every recipe. An app's page has **Configure** *(its own page, as the side list previously opened it)*, a **Running** switch *(the NAS's own on/off switch)*, and Update and Remove.
 - **Apps**: install, update and remove native apps. The Store downloads the package for your NAS model, checks it against the checksum in the repository's catalogue, and installs it with the NAS's own installer *(the same one as the dashboard's manual install)*.
 - **Recipes**: apps that run in Docker *(e.g. [Immich](../../recipes/immich/README.md))*. Each recipe's settings are a short form *(e.g. which share the photos go in)*: the Store writes them to a `.env` file next to the recipe's compose file, starts it with `docker compose`, and - with the [Nginx app](../nginx/README.md) installed - gives it an HTTPS address. Settings can be changed later, and recipes updated or removed, from the same page.
 - **Manual install**: installing an app from its package file *(`.bin`)* on your computer, with the NAS's own installer - as the Apps page's "install an app manually" did.
 - **WD Store**: Western Digital's own app store, as the Apps page offered it.
-- **Repositories**: the list of catalogues the Store reads. New versions are looked for by themselves: every night, and when the page opens if it's been over an hour *(Refresh does it now)*. This project's is there by default; others can be added by their address *(a GitHub repository, or the HTTPS address of a `store.json`)*.
+- **Repositories**: the list of catalogues the Store reads. New versions are looked for by themselves: every night, and when the page opens if it's been over an hour *(Refresh does it now)*. This project is there by default; others can be added by their address *(a GitHub repository, or the HTTPS address of a `store.json`)*.
 
 The Store works only when its page is used: nothing runs in the background. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*. **Activity** shows the log of the latest install, update or removal.
 

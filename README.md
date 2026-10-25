@@ -1,6 +1,16 @@
-# Building WD NAS apps
+# WD NAS Apps
 
 This is a repository to provide apps for the WD NAS machines running OS5 *(FW > 5.27.157 - Debian Bullseye)*. It will also provide a base for others to build their own apps.
+
+To make this process as simple as possible for non-expert users, a [Store](apps/store/README.md) app has been created that will replace the now end-of-life *(EOL)* WD Store *(those apps will still be available)*. This will offer native apps and Docker "Recipes" to provide up-to-date software for this NAS.
+
+Much of the underlying Linux system is now badly out of date, so a few replacement apps are strongly recommended to be installed initially for security reasons:
+
+- [OpenSSH](apps/openssh/README.md)
+- [Python](apps/python/README.md)
+- [PHP](apps/php/README.md)
+
+In addition, the [Nginx](apps/nginx/README.md) app will allow a
 
 ## Building an existing app
 
@@ -12,7 +22,7 @@ To build an existing app, there is a build script in the root directory that wil
 
 The WD bin files will be created in `/packages/<app_name>/<version>/*`.
 
-To build for a single model only *(much quicker while developing)*, set `MODEL_OVERRIDE` to its model name, e.g. `MODEL_OVERRIDE=MyCloudPR4100 ./build.sh <app_name>`. Each build replaces that version's release directory, so run a normal build again before publishing all models. A file containing the most recently built version number will also be created in `/packages/<app_name>/latest`.
+To build for a single model only *(much quicker)*, set `MODEL_OVERRIDE` to its model name, e.g. `MODEL_OVERRIDE=MyCloudPR4100 ./build.sh <app_name>`. Each build replaces that version's release directory, so run a normal build again before publishing all models. A file containing the most recently built version number will also be created in `/packages/<app_name>/latest`.
 
 If you don't have docker installed, see the [guide](docker/README.md) in the `docker` directory. If you're on Windows 10 or 11, see the [Windows guide](docker/WINDOWS.md) for WSL / docker installation.
 
@@ -61,13 +71,6 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
   - ---
   - `/packages` - the built apps (static and for devices)
 
-## Where to find other apps?
-
-There's a list of compiled apps:
-
-- [First Party](https://community.wd.com/t/apps-my-cloud-os5-apps-matrix/286467)
-- [Third Party](https://community.wd.com/t/apps-my-cloud-os5-apps-matrix-third-party/286505)
-
 ## Inspiration / acknowledgements
 
-This project is building principally upon work done by [Stefan (aka TFL)](https://github.com/stefaang) in the [WDCommunity](https://github.com/WDCommunity/wdpksrc/) Github Repo, but the `helper.sh` script was heavily influenced by Cerberus's [App Template](https://drive.google.com/uc?export=download&id=1Qds0Nh2o4DPlGG6WfIlXLkcChsZlqrp7) from the [WD Community Support forums](https://community.wd.com/t/my-cloud-os5-app-template/286542).
+This project is building principally upon work done by [Stefan (aka TFL)](https://github.com/stefaang) in the [WDCommunity](https://github.com/WDCommunity/wdpksrc/) Github Repo, but the `helper.sh` script was heavily influenced by Cerberus's App Template from the WD Community Support forums.

@@ -1,16 +1,35 @@
 # Nginx App
 
-[Nginx](https://nginx.org/) gives the NAS's apps proper HTTPS addresses - e.g. `https://jellyfin.example.com` instead of `http://nas:8096` - with free, automatically renewed certificates from [Let's Encrypt](https://letsencrypt.org/) *(or another ACME certificate authority)*. Intel models only.
+[Nginx](https://nginx.org/) gives the NAS's apps proper HTTPS addresses - e.g. `https://jellyfin.nas.example.com` instead of `http://nas:8096` - with free, automatically renewed certificates from [Let's Encrypt](https://letsencrypt.org/) *(or another ACME certificate authority)*. **Intel models only**.
 
-- Nginx listens on port `443` *(HTTPS, with HTTP/2 and HTTP/3)* next to the NAS's own web interface *(which keeps ports 80 and 8543)*. It's meant for the local network: forwarding port 443 from the internet would expose every app.
+- Nginx listens on port `443` *(HTTPS, with HTTP/2 and HTTP/3)* next to the NAS's own web interface *(which keeps ports 80 and 8543)*. **It's meant for the local network only**: forwarding port 443 from the Internet would expose every app.
 - Nginx is a static build *(`static/nginx`: OpenSSL 3.5, PCRE2, zlib and Brotli built in)*; certificates come from [lego](https://go-acme.github.io/lego/), downloaded from its official releases and checked against their published checksums.
 - Its worker processes run as `nobody`. Access logging is off by default *(it would keep the NAS's disks from spinning down)*; the error log stays on.
 
 ## Management page
 
-The app's page in the NAS dashboard *(Apps → Nginx)* sets everything up. Only NAS admins can use it *(see [Management pages](../README.md#management-pages))*.
+Nginx's Configuration page in the NAS dashboard *(Apps → Nginx → Configuration)* sets everything up. Only NAS admins can use it *(see [Management pages](../README.md#management-pages))*.
 
-- **Apps** - the NAS's own dashboard *(as `gui`)* and the installed apps with a web interface are listed *(Jellyfin, Portainer, Mailpit, Syncthing, Plex, phpMyAdmin, Vaultwarden, Uptime Kuma, Grafana, Kopia, ntfy, Forgejo - as `git`, Navidrome - as `music`, Music Assistant, and Calibre-Web - as `books`)*, each reached at `https://<name>.<domain>` - except the NAS's dashboard, which is at the domain itself *(`https://<domain>` - its own login still applies)*. Which app the domain shows can be changed on the page *(or set to the start page)*. They can be renamed or switched off, and other addresses added *(anything on the network, e.g. a router)*. Each has two options, set already for the apps that need them:
+### Getting a certificate (once)
+
+Scroll down to the Certificate section.
+
+Remember, **this app is only designed to be for LAN use**, so in addition to getting a certificate, you will also need to add this domain to your local DNS resolver (e.g. [Pi Hole](../../recipes/pihole/README.md)) manually. You can forward port 443 on your router if you wish, but it's not recommended.
+
+There are two types of certificate possible, a self-signed certificate ([guide](OWN-CERTIFICATE.md)), or one from a certificate authority. Since domain names are cheap *(~$10-15 USD per year)* and SSL certificates are free these days, it's far better to use the latter method.
+
+No domain? [deSEC](https://desec.io/) *(free `dedyn.io` names, wildcards supported)* and [Duck DNS](https://www.duckdns.org/) work too.
+
+If you choose to use an official domain name *(recommended)*, you need to ensure your registrar uses a [supported DNS provider](https://go-acme.github.io/lego/dns/) - the list is quite long, so there's plenty of choice. If your domain name is being used online, it's best to use a subdomain in this system, e.g. `nas.example.com`. You select your DNS provider from the dropdown, enter whatever information that provider requires and then press the "Save and get the certificate" button.
+
+Issuing a certificate takes a few minutes: the DNS record has to spread before the CA checks it, and some providers confirm each change slowly (on Route 53, `AWS_WAIT_FOR_RECORD_SETS_CHANGED=false` skips that wait - lego still checks the record is visible before the CA does). The staging server is only tried again after the settings change.
+
+If the domain has a wildcard CNAME *(e.g. `*.example.com → example.com`)*, lego follows it and writes the challenge record at its target - add `LEGO_DISABLE_CNAME_SUPPORT=true` under "Other variables" to keep it at `_acme-challenge.<domain>`. `LEGO_DNS_RESOLVERS=1.1.1.1:53` helps where a local DNS server answers for the domain itself.
+
+### Assigning apps pretty URLs
+
+- **Apps** - the installed apps with a web interface are listed, each reached at `https://<app_name>.<domain>` - except the NAS's dashboard, which is at the domain itself *(`https://<domain>` - its own login still applies)*. Which app the domain shows can be changed on the page *(or set to the start page)*. They can be renamed or switched off, and other addresses added *(anything on the network, e.g. a router)*. Each has two options, set already for the apps that need them:
+
   - **Uploads** - no size limit on requests, and long ones allowed *(e.g. photos and videos, git pushes)*;
   - **Streaming** - each response passed on as it comes, and connections kept open *(e.g. music, notifications, live updates)*.
 
@@ -19,18 +38,14 @@ The app's page in the NAS dashboard *(Apps → Nginx)* sets everything up. Only 
   - **From an ACME CA, using a DNS-01 challenge:** lego briefly adds a TXT record through the DNS provider's API, so nothing on the NAS has to be reachable from the internet. Every DNS provider lego supports can be chosen *(over 200, e.g. Cloudflare, Route 53, Gandi, OVH, Hetzner, deSEC, Duck DNS)*: the page builds each provider's form from lego's own description of it. Credentials are saved root-only and never shown again. It's tried on the CA's staging server first *(where it has one)*, and renewed automatically *(checked daily; the NAS shows an alert if renewal fails)*.
   - **Your own certificate**, pasted in *(PEM)*.
   - Until either is set up, a temporary self-signed certificate is used *(browsers warn about it)*.
-- **Sites** - your own websites, each a folder on the NAS *(e.g. `/mnt/HD/HD_a2/Web/blog`)* reached at `https://<name>.<domain>`, with or without PHP *(see below)*.
+- **Sites** - your own websites, each a folder on the NAS *(e.g. `/mnt/HD/HD_a2/Web/blog`)* reached at `https://<app_name>.<domain>`, with or without PHP *(see below)*.
 - **Quick links** - every app and site, once the certificate is trusted.
 - **Local DNS** - the records to add *(e.g. to Pi-hole or a router)* so that devices find the NAS under those names.
 - **Start page** - `https://apps.<domain>` lists every app and site *(`apps` is kept for it - apps and sites can't use that name)*. It also answers for any name without a site of its own.
 
-Getting a certificate takes a few minutes: the DNS record has to spread before the CA checks it, and some providers confirm each change slowly (on Route 53, `AWS_WAIT_FOR_RECORD_SETS_CHANGED=false` skips that wait - lego still checks the record is visible before the CA does). The staging server is only tried again after the settings change.
-
-If the domain has a wildcard CNAME *(e.g. `*.example.com → example.com`)*, lego follows it and writes the challenge record at its target - add `LEGO_DISABLE_CNAME_SUPPORT=true` under "Other variables" to keep it at `_acme-challenge.<domain>`. `LEGO_DNS_RESOLVERS=1.1.1.1:53` helps where a local DNS server answers for the domain itself.
-
 ## Adding a site from another app
 
-Apps and scripts can add, update and remove their own site, without editing `apps.json`:
+If you are a developer and create your own web services, apps and scripts can add, update and remove their own site, without editing `apps.json`:
 
 ```sh
 php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php add-app /mnt/HD/HD_a2/Nas_Prog/_nginx photos http://127.0.0.1:2283 "Immich" --uploads
@@ -54,8 +69,6 @@ Sites with PHP use **PHP 8.5 from the [PHP app](../php/README.md)** *(install it
 - The PHP app's switch *(replacing the NAS's own PHP 7.4)* is independent: sites get PHP 8.5 either way.
 
 Each site can send unknown paths to `index.php` *(front controllers, e.g. WordPress, or Laravel with the folder set to its `public` folder)*. Without PHP, a site refuses `.php` files *(`server.d/php-off.conf`)* rather than showing their source.
-
-No domain? [deSEC](https://desec.io/) *(free `dedyn.io` names, wildcards supported)* and [Duck DNS](https://www.duckdns.org/) work too.
 
 ### Locking down DNS credentials
 
@@ -86,16 +99,16 @@ Most other providers offer tokens limited to one domain's DNS.
 
 Everything lives in `Nas_Prog/_nginx` *(kept across reinstalls)*, in folders named after the block their files are included in. Every included file ends in `.conf`, so renaming one *(e.g. to `.conf.off`)* switches it off:
 
-| Folder | Included in | Holds |
-| ------ | ----------- | ----- |
-| `nginx.conf` | - | The skeleton: includes the folders below |
-| `modules/` | the top level | e.g. a `stream { }` block for TCP / UDP proxying |
-| `http.d/` | `http { }` | TLS, gzip, Brotli, proxy buffers, timeouts, logs, MIME types... |
-| `server.d/` | `server { }` | `https.conf` *(the HTTPS listen lines and certificate)*, `proxy.conf` *(proxy and WebSocket headers)*, `php.conf` / `php-off.conf`, `headers.conf`, `hidden.conf`... |
-| `ssl.d/` | `server { }` | `default.conf`: the default certificate |
-| `sites/` | `http { }` | One file per site |
-| `params/` | - | Nginx's MIME types and FastCGI parameters |
-| `php/` | - | The sites' PHP: `php.ini` and `php-fpm.conf` |
+| Folder       | Included in   | Holds                                                                                                                                                                |
+|--------------|---------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `nginx.conf` | -             | The skeleton: includes the folders below                                                                                                                             |
+| `modules/`   | the top level | e.g. a `stream { }` block for TCP / UDP proxying                                                                                                                     |
+| `http.d/`    | `http { }`    | TLS, gzip, Brotli, proxy buffers, timeouts, logs, MIME types...                                                                                                      |
+| `server.d/`  | `server { }`  | `https.conf` *(the HTTPS listen lines and certificate)*, `proxy.conf` *(proxy and WebSocket headers)*, `php.conf` / `php-off.conf`, `headers.conf`, `hidden.conf`... |
+| `ssl.d/`     | `server { }`  | `default.conf`: the default certificate                                                                                                                              |
+| `sites/`     | `http { }`    | One file per site                                                                                                                                                    |
+| `params/`    | -             | Nginx's MIME types and FastCGI parameters                                                                                                                            |
+| `php/`       | -             | The sites' PHP: `php.ini` and `php-fpm.conf`                                                                                                                         |
 
 So a site only needs:
 

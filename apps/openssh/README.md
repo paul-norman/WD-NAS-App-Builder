@@ -5,7 +5,7 @@ Replaces the NAS's own SSH server - **OpenSSH 8.4p1**, from 2020 - with **OpenSS
 - OpenSSH's own release is used *(checked against its SHA256; also signed with OpenSSH's release key)*, built by `static/openssh` fully static against musl, with OpenSSL's libcrypto *(for RSA keys - the NAS's host key is one)*. Nothing depends on the NAS's own libraries, and musl reads `/etc/passwd` and `/etc/shadow` itself: a static glibc build would load the NAS's own user lookup libraries at every login, and break when they change.
 - **What's newer**: post-quantum key exchange *(`mlkem768x25519` - OpenSSH 10.1+ clients warn about servers without it)*, the pre-login code in its own process *(`sshd-auth`)* inside a system call sandbox, penalties for addresses that keep failing to log in *(the internet's scanners - except the NAS itself)*, strict key exchange *(against the Terrapin attack)* and six years of fixes.
 - **Enabling** the app switches the NAS to OpenSSH 10.6, **disabling** it switches back to WD's 8.4. The NAS's `/` and `/etc` are rebuilt on every boot, so the switch is made again on every boot.
-- SSH is still switched on and off in the dashboard *(Settings → Network → SSH)*: with SSH off, the app's sshd starts when it's switched on.
+- SSH is still switched on and off in the dashboard *(Settings → Network → SSH)*: with SSH off, the app's `sshd` starts when it's switched on.
 
 ## Keys
 
@@ -17,13 +17,13 @@ The page also shows the NAS's fingerprint *(to check when a computer first conne
 
 ```
 Host nas
-    HostName 192.168.1.3
+    HostName 192.168.1.2
     User sshd
     IdentityFile ~/.ssh/nas_ed25519
     IdentitiesOnly yes
 ```
 
-Then `ssh nas`, `sftp nas`, `scp file nas:/shares/Public/`. **Don't open SSH's port on your router** - anyone on the internet can then try to log in; use the [WireGuard app](../wireguard/README.md) to reach the NAS from outside.
+Then commands like: `ssh nas`, `sftp nas`, `scp file nas:/shares/Public/` will work. **Don't open SSH's port on your router** - anyone on the internet can then try to log in; use the [WireGuard app](../wireguard/README.md) to reach the NAS from outside.
 
 ## How it works
 
