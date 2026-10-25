@@ -240,7 +240,9 @@ function job_app_install(array $spec, $update)
 	}
 	store_record_app($id, $repo['url'], $app['version']);
 	$apps = store_installed_apps();
-	return $app['name'] . ' ' . (isset($apps[$id]) ? $apps[$id]['version'] : $app['version']) . ' is installed'
+	// (unless WD's list says it's switched off - the NAS starts apps straight after installing them, and its list can lag)
+	$ready = (isset($apps[$id]) && $apps[$id]['enabled'] === false) || job_wait_web(isset($app['web']) ? $app['web'] : null, 'its page in the NAS dashboard, and /tmp/debug_apkg');
+	return $app['name'] . ' ' . (isset($apps[$id]) ? $apps[$id]['version'] : $app['version']) . ($ready ? ' is installed' : ' is installed but still starting')
 		. (!empty($app['data_folder']) && $update ? ' (its data in ' . $app['data_folder'] . ' was kept)' : '');
 }
 
@@ -386,16 +388,19 @@ function job_create_folders(array $recipe, array $values)
 	}
 }
 
-// Waits for its web interface (if it has one) to answer on the NAS, so that the job ends once it can be used: containers
-// are "started" long before the program in them is ready (Immich takes 20-30 seconds). Any HTTP answer below 500 counts
-// (e.g. a login page's 401), not a 502/503 from a proxy in front of a server still starting. Returns whether it answered
-function job_wait_ready(array $recipe)
+// Waits for a web interface (if there's one: web's port, or local_port where it only listens on the NAS itself) to answer
+// on the NAS, so that the job ends once it can be used - not with a 502 from the Nginx app when it's opened: programs
+// and containers are "started" long before they're ready (Immich takes 20-30 seconds). Any HTTP answer below 500 counts
+// (e.g. a login page's 401), not a 502/503 from a proxy in front of a server still starting. $hint: where to look if it
+// doesn't answer. Returns whether it answered
+function job_wait_web($web, $hint)
 {
-	if (empty($recipe['web']['port'])) {
+	$port = isset($web['port']) ? $web['port'] : (isset($web['local_port']) ? $web['local_port'] : 0);
+	if (!$port) {
 		return true;
 	}
-	$url = 'http://127.0.0.1:' . $recipe['web']['port'] . (isset($recipe['web']['path']) ? $recipe['web']['path'] : '/');
-	$timeout = isset($recipe['web']['ready_timeout']) ? $recipe['web']['ready_timeout'] : 300;
+	$url = 'http://127.0.0.1:' . $port . (isset($web['path']) ? $web['path'] : '/');
+	$timeout = isset($web['ready_timeout']) ? $web['ready_timeout'] : 300;
 	job_log('Waiting for it to be ready (up to ' . ($timeout >= 120 ? round($timeout / 60) . ' minutes' : $timeout . ' seconds') . ')');
 	$start = time();
 	while (true) {
@@ -405,11 +410,17 @@ function job_wait_ready(array $recipe)
 			return true;
 		}
 		if (time() - $start >= $timeout) {
-			job_log('Warning: it hasn\'t answered on port ' . $recipe['web']['port'] . ' yet - it may still be starting (its logs: docker compose -p ' . $recipe['project'] . ' logs)');
+			job_log('Warning: it hasn\'t answered on port ' . $port . ' yet - it may still be starting (' . $hint . ')');
 			return false;
 		}
 		sleep(3);
 	}
+}
+
+// A recipe's web interface (see job_wait_web)
+function job_wait_ready(array $recipe)
+{
+	return job_wait_web(isset($recipe['web']) ? $recipe['web'] : null, 'its logs: docker compose -p ' . $recipe['project'] . ' logs');
 }
 
 // The recipe's site in the Nginx app, if installed

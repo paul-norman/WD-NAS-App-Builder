@@ -10,9 +10,9 @@ for ARCH in "${!MODELS[@]}"; do
 	# Skip architectures without a wanted model (MODEL_OVERRIDE)
 	models_wanted ${MODELS[${ARCH}]} || continue
 
-	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
+	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_UPSTREAM_VERSION}/${ARCH}"
 	if [ ! -x "${STATIC_PATH}/bin/mariadbd" ] || [ ! -f "${STATIC_PATH}/lib/libsystemd.so.0" ]; then
-		abort "MariaDB not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+		abort "MariaDB not found in: ${STATIC_PATH} (set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
 	fi
 	mkdir -p binaries
 	cp -r "${STATIC_PATH}" binaries/mariadb

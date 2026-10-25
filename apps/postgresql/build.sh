@@ -10,9 +10,9 @@ for ARCH in "${!MODELS[@]}"; do
 	# Skip architectures without a wanted model (MODEL_OVERRIDE)
 	models_wanted ${MODELS[${ARCH}]} || continue
 
-	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
+	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_UPSTREAM_VERSION}/${ARCH}"
 	if [ ! -x "${STATIC_PATH}/bin/postgres" ] || [ ! -x "${STATIC_PATH}/bin/pg_runas" ]; then
-		abort "PostgreSQL not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+		abort "PostgreSQL not found in: ${STATIC_PATH} (set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
 	fi
 	mkdir -p binaries
 	cp -r "${STATIC_PATH}" binaries/postgresql

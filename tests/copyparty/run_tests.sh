@@ -28,7 +28,8 @@ esac
 
 # The app as built: its prepared binaries and its package
 VERSION="$(sed -n 's/^Version:[[:space:]]*//p' "${PROJ}/apps/copyparty/apkg.rc" | tr -d '\r')"
-STATIC="${PROJ}/packages/static/copyparty/${VERSION}/amd64"
+# (its static build is for the upstream version: the app's without its packaging revision, e.g. 1.2.3-1)
+STATIC="${PROJ}/packages/static/copyparty/$(echo "${VERSION}" | sed 's/-[0-9]*$//')/amd64"
 PACKAGE="${PROJ}/packages/copyparty/${VERSION}/copyparty_${VERSION}_amd64.tar.gz"
 if [ ! -x "${STATIC}/python/bin/python3" ] || [ ! -f "${PACKAGE}" ]; then
 	echo "Build copyparty ${VERSION} first: MODEL_OVERRIDE=MyCloudPR4100 ./build.sh copyparty"

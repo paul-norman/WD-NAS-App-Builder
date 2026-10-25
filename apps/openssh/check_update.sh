@@ -7,7 +7,7 @@ LAST_FILE="$(dirname "${APP_PATH}")/_openssh/last_update_alert"
 RELEASES="https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/"
 
 # (the app's 10.6.1 is OpenSSH's 10.6p1)
-INSTALLED="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r' | sed 's/\.\([0-9]*\)$/p\1/')"
+INSTALLED="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r' | sed 's/-[0-9]*$//; s/\.\([0-9]*\)$/p\1/')"
 if command -v curl > /dev/null; then
 	RESPONSE="$(curl -sf --max-time 20 "${RELEASES}")"
 else

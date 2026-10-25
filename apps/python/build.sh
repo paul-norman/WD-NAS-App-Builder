@@ -17,13 +17,13 @@ for ARCH in "${!MODELS[@]}"; do
 	# Skip architectures without a wanted model (MODEL_OVERRIDE)
 	models_wanted ${MODELS[${ARCH}]} || continue
 
-	PYTHON_FILE="cpython-${APP_VERSION}+${PYTHON_RELEASE}-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+	PYTHON_FILE="cpython-${APP_UPSTREAM_VERSION}+${PYTHON_RELEASE}-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
 	UV_FILE="uv-${UV_VERSION}-x86_64-unknown-linux-musl.tar.gz"
 	mkdir -p binaries
 	cd binaries
 	if ! download "https://github.com/astral-sh/python-build-standalone/releases/download/${PYTHON_RELEASE}/${PYTHON_FILE}" "${PYTHON_FILE}" \
 		|| ! download "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-musl.tar.gz" "${UV_FILE}"; then
-		abort "Python ${APP_VERSION} or uv ${UV_VERSION} could not be downloaded"
+		abort "Python ${APP_UPSTREAM_VERSION} or uv ${UV_VERSION} could not be downloaded"
 	fi
 	if ! echo "${PYTHON_SHA256}  ${PYTHON_FILE}" | sha256sum -c - || ! echo "${UV_SHA256}  ${UV_FILE}" | sha256sum -c -; then
 		abort "The downloads failed their checksum checks"

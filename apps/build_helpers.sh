@@ -9,6 +9,9 @@ if [ -z ${APP_PATH+x} ]; then
 	check_apkg_variables
 
 	APP_VERSION="${APKG_VERSION}"
+	# The version of what the app packages: its own version without a packaging revision (e.g. 2.10.7-1 is the app's
+	# first revision of 2.10.7 - a fix in the app itself, so that the Store offers it as an update)
+	APP_UPSTREAM_VERSION="$(echo "${APP_VERSION}" | sed 's/-[0-9]*$//')"
 	APPS_PATH="$(dirname ${APP_PATH})"
 	REPO_PATH="$(dirname ${APPS_PATH})"
 	RELEASE_DIR="../../packages/${APP_NAME}/${APP_VERSION}"
@@ -102,7 +105,10 @@ if [ -z ${APP_PATH+x} ]; then
 				abort "mksapkg-OS5 did not create a package for: ${model}"
 			fi
 		done
-		mv "${stage_root}/"*.bin* "${APPS_PATH}/"
+		if ! mv "${stage_root}/"*.bin* "${APPS_PATH}/"; then
+			rm -rf "${stage_root}"
+			abort "The packages could not be moved out of: ${stage_root} (is there enough space there and in ${APPS_PATH}?)"
+		fi
 
 		# Create a source bundle for this architecture
 		echo -e "\nBundle sources for ${arch} into release dir"

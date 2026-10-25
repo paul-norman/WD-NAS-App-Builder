@@ -136,7 +136,7 @@ Apps and recipes share these:
 | `data_folder` | optional | The app's folder of data kept outside its install folder (e.g. `_navidrome` in `Nas_Prog`) - mentioned when uninstalling                                                                                                           |
 | `keeps_data`  | optional | `true` if the app keeps everything it needs in `data_folder` (or elsewhere outside its install folder), so that it can be removed and installed again without losing anything - which is how the Store updates it. Default `false` |
 | `replaces`    | optional | System programs the app takes over (e.g. `["php"]`, `["python3"]`, `["mariadb"]`) - shown as a notice before installing                                                                                                            |
-| `web`         | optional | Its web interface, for the Store's "Open" button once installed: the Nginx app's site for it (`nginx.name`), else `port` (and `path`, default `/`) on the NAS - only when it listens on the network by default                       |
+| `web`         | optional | Its web interface, for the Store's "Open" button once installed: the Nginx app's site for it (`nginx.name`), else `port` (and `path`, default `/`) on the NAS - only when it listens on the network by default. After installing or updating it, the Store waits (up to `ready_timeout` seconds, default 300) until `port` - or `local_port`, where it only listens on the NAS itself (e.g. for the Nginx app) - gives any HTTP answer below 500 |
 
 ### What the Store does
 

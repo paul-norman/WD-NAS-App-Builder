@@ -20,6 +20,9 @@ DATA_PATH="${APPS_PATH}/_music-assistant"
 PATH="${PATH}:/usr/bin:/usr/local/bin"
 BIN="${APP_PATH}/binaries"
 PYTHON="${BIN}/python/bin/python3"
+# The certificate authorities its Python trusts (certifi's, bundled): it looks in /etc/ssl by default, where the NAS has
+# none it can use - so no HTTPS connection could be checked (streaming services, radio, servers on the NAS's own domain)
+CA_FILE="${BIN}/python/lib/python3.14/site-packages/certifi/cacert.pem"
 MA_DATA="${DATA_PATH}/data"
 BACKUP_DIR="${DATA_PATH}/backups"
 MA_LOG="${DATA_PATH}/console.log"
@@ -75,7 +78,7 @@ start() {
 	# the NAS's RAM). Its output is appended to (so that it can be cut short while it runs)
 	cd "${MA_DATA}" || return 1
 	( exec env -i HOME="${MA_DATA}" PATH="${BIN}:${BIN}/python/bin:/usr/bin:/bin:/usr/sbin:/sbin" TMPDIR="${MA_DATA}/tmp" \
-		LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 URLLIB3_NO_OVERRIDE=1 \
+		LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 URLLIB3_NO_OVERRIDE=1 SSL_CERT_FILE="${CA_FILE}" \
 		"${BIN}/ma_runas" "$1" "$2" "${PYTHON}" -m music_assistant --data-dir "${MA_DATA}" --cache-dir "${MA_DATA}/.cache" \
 		--log-level info ) >> "${MA_LOG}" 2>&1 &
 	echo $! > "${PID_FILE}"

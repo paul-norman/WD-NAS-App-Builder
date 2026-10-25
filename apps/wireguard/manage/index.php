@@ -14,6 +14,10 @@ header('Cache-Control: no-store');
 		#wireguard-manage .wg-columns { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; }
 		#wireguard-manage .wg-columns > div:last-child { flex: 1; min-width: 20rem; }
 		#wireguard-manage select { min-width: 22rem; }
+		#wireguard-manage h3 [data-wg-action="refresh"] { vertical-align: middle; margin-left: 0.5rem; padding: 0 0.4rem; line-height: 1; }
+		#wireguard-manage h3 [data-wg-action="refresh"] svg { width: 14px; height: 14px; vertical-align: middle; }
+		#wireguard-manage .wg-spin svg { animation: wg-spin 0.8s linear infinite; }
+		@keyframes wg-spin { to { transform: rotate(360deg); } }
 	</style>
 
 	<h2>WireGuard</h2>
@@ -26,7 +30,9 @@ header('Cache-Control: no-store');
 	<p class="mg-bad" data-wg="endpoint-note" hidden>Set the address devices connect to (under Settings) before adding them.</p>
 	<p><button type="button" data-wg-action="restart">Restart WireGuard</button></p>
 
-	<h3>Devices</h3>
+	<h3>Devices <button type="button" data-wg-action="refresh" title="Refresh the devices' connections" aria-label="Refresh">
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+			<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/></svg></button></h3>
 	<table data-wg="peers"></table>
 	<p><label>New device <input type="text" data-wg="new-peer" autocomplete="off" placeholder="e.g. Paul's phone"></label>
 		<button type="button" data-wg-action="add-peer">Add device</button></p>
@@ -227,6 +233,16 @@ header('Cache-Control: no-store');
 			if (!document.body.contains(root)) { clearInterval(timer); return; }
 			refresh();
 		}, 15000);
+
+		// (now, rather than at the next 15-second refresh: the devices' connections as they are)
+		button('refresh').addEventListener('click', function () {
+			var refreshButton = button('refresh');
+			refreshButton.classList.add('wg-spin');
+			refreshButton.disabled = true;
+			refresh().then(function () {
+				setTimeout(function () { refreshButton.classList.remove('wg-spin'); refreshButton.disabled = false; }, 400);
+			});
+		});
 
 		button('restart').addEventListener('click', function () {
 			act('restart', { confirm: 1 }, 'Restarting WireGuard…', 'WireGuard restarted.');

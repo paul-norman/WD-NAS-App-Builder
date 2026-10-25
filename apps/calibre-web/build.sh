@@ -12,10 +12,10 @@ for ARCH in "${!MODELS[@]}"; do
 	models_wanted ${MODELS[${ARCH}]} || continue
 
 	# Prepared for exactly this app's version
-	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
+	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_UPSTREAM_VERSION}/${ARCH}"
 	for file in cw_runas kepubify-linux-64bit python/bin/python3 calibre/ebook-convert runtime/ld-linux-x86-64.so.2; do
 		if [ ! -e "${STATIC_PATH}/${file}" ]; then
-			abort "${file} not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+			abort "${file} not found in: ${STATIC_PATH} (set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
 		fi
 	done
 	mkdir -p binaries

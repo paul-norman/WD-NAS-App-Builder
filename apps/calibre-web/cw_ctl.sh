@@ -66,7 +66,8 @@ random_text() {
 # Runs a program as Calibre-Web's user, with the environment its programs need (Calibre's converter: a writable home and
 # settings folder, Chromium - for PDFs - without a sandbox or a GPU, and with its shared memory in the temporary folder:
 # WD's /dev/shm isn't writable by other users; ImageMagick, Ghostscript and libmagic: where their
-# files are). With CW_EXEC=exec, it replaces the shell (so that the PID started is Calibre-Web's)
+# files are; the certificate authorities to trust for HTTPS - certifi's, bundled: its Python looks in /etc/ssl, where
+# the NAS has none it can use - e.g. for the book details it looks up). With CW_EXEC=exec, it replaces the shell (so that the PID started is Calibre-Web's)
 as_cw() {
 	set -- $(cw_ids) "$@"
 	${CW_EXEC} env -i PATH="${BIN}/bin:${BIN}/calibre:/usr/sbin:/usr/bin:/sbin:/bin" LANG=C.UTF-8 HOME="${CW_DATA}/home" \
@@ -76,7 +77,8 @@ as_cw() {
 		MAGICK_CODER_MODULE_PATH="${BIN}/magick/modules-Q16/coders" MAGICK_CODER_FILTER_PATH="${BIN}/magick/modules-Q16/filters" \
 		GS_LIB="${BIN}/ghostscript/Resource/Init:${BIN}/ghostscript/lib:${BIN}/ghostscript/Resource/Font" \
 		GS_OPTIONS="-sICCProfilesDir=${BIN}/ghostscript/iccprofiles/" \
-		MAGIC="${BIN}/magic.mgc" PYTHONDONTWRITEBYTECODE=1 "${BIN}/cw_runas" "$@"
+		MAGIC="${BIN}/magic.mgc" PYTHONDONTWRITEBYTECODE=1 SSL_CERT_FILE="${BIN}/python/lib/python3.14/site-packages/certifi/cacert.pem" \
+		"${BIN}/cw_runas" "$@"
 }
 
 # The app's helper (lib/cw.py), run by root with the app's Python
@@ -130,7 +132,8 @@ versions() {
 	grep -q "^APP=${app_version}$" "${VERSIONS_FILE}" 2>/dev/null && return 0
 	calibre="$(as_cw "${BIN}/calibre/ebook-convert" --version 2>/dev/null | sed -n 's/.*(calibre \([^)]*\)).*/\1/p' | head -n 1)"
 	kepubify="$("${BIN}/kepubify-linux-64bit" --version 2>/dev/null | sed -n 's/^kepubify v\{0,1\}//p' | head -n 1)"
-	printf 'APP=%s\nCALIBRE_WEB=%s\nCALIBRE=%s\nKEPUBIFY=%s\n' "${app_version}" "${app_version}" "${calibre}" "${kepubify}" > "${VERSIONS_FILE}"
+	printf 'APP=%s\nCALIBRE_WEB=%s\nCALIBRE=%s\nKEPUBIFY=%s\n' "${app_version}" "$(echo "${app_version}" | sed 's/-[0-9]*$//')" \
+		"${calibre}" "${kepubify}" > "${VERSIONS_FILE}"
 }
 
 # The library: created in its folder if there isn't one (an empty Calibre library), and Calibre-Web's user must be able

@@ -7,7 +7,8 @@ LAST_FILE="$(dirname "${APP_PATH}")/_wireguard/last_update_alert"
 # (wireguard-go's releases are tags on its own git server: the newest is listed first)
 TAGS="https://git.zx2c4.com/wireguard-go/refs/tags"
 
-INSTALLED="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r')"
+# (without the app's own packaging revision, e.g. 2.10.7-1)
+INSTALLED="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r' | sed 's/-[0-9]*$//')"
 if command -v curl > /dev/null; then
 	RESPONSE="$(curl -sf --max-time 20 "${TAGS}")"
 else

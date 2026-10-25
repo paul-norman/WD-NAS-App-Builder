@@ -15,14 +15,14 @@ for ARCH in "${!MODELS[@]}"; do
 	if [ "$ARCH" = "armhf" ]; then
 		TS_ARCH="arm"
 	fi
-	TS_NAME="tailscale_${APP_VERSION}_${TS_ARCH}"
+	TS_NAME="tailscale_${APP_UPSTREAM_VERSION}_${TS_ARCH}"
 	TS_URL="https://pkgs.tailscale.com/stable/${TS_NAME}.tgz"
 
 	# Download, check against the published checksum and extract (tailscale and tailscaled are static binaries)
 	mkdir -p binaries
 	cd binaries
 	if ! download "${TS_URL}" "${TS_NAME}.tgz" || ! download "${TS_URL}.sha256" "${TS_NAME}.tgz.sha256"; then
-		abort "Tailscale ${APP_VERSION} could not be downloaded for: ${TS_ARCH}"
+		abort "Tailscale ${APP_UPSTREAM_VERSION} could not be downloaded for: ${TS_ARCH}"
 	fi
 	if ! echo "$(cat "${TS_NAME}.tgz.sha256")  ${TS_NAME}.tgz" | sha256sum -c -; then
 		abort "${TS_NAME}.tgz failed its checksum check"

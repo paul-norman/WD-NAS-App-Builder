@@ -10,9 +10,9 @@ for ARCH in "${!MODELS[@]}"; do
 	models_wanted ${MODELS[${ARCH}]} || continue
 
 	# PHP's CLI and FPM, built for exactly this app's version
-	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
+	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_UPSTREAM_VERSION}/${ARCH}"
 	if [ ! -x "${STATIC_PATH}/php" ] || [ ! -x "${STATIC_PATH}/php-fpm" ]; then
-		abort "PHP not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+		abort "PHP not found in: ${STATIC_PATH} (set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
 	fi
 	mkdir -p binaries
 	cp "${STATIC_PATH}/php" "${STATIC_PATH}/php-fpm" binaries/

@@ -19,8 +19,8 @@
 APP_PATH="$(dirname "$(readlink -f "$0")")"
 DATA_PATH="$(dirname "${APP_PATH}")/_openssh"
 BIN="${APP_PATH}/binaries"
-VERSION="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r')"
-# (the app's 10.6.1 is OpenSSH's 10.6p1)
+VERSION="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r' | sed 's/-[0-9]*$//')"
+# (the app's 10.6.1 is OpenSSH's 10.6p1 - and so is 10.6.1-1, its first packaging revision)
 OPENSSH_VERSION="$(echo "${VERSION}" | sed 's/\.\([0-9]*\)$/p\1/')"
 # Where its sshd was built to find its helper programs (sshd-session, sshd-auth): links to the app's, made here
 RUN=/usr/local/openssh

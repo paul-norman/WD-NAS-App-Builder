@@ -11,15 +11,15 @@ for ARCH in "${!MODELS[@]}"; do
 	# Skip architectures without a wanted model (MODEL_OVERRIDE)
 	models_wanted ${MODELS[${ARCH}]} || continue
 
-	JELLYFIN_REPO="https://repo.jellyfin.org/files/server/linux/stable/v${APP_VERSION}/${ARCH}/jellyfin_${APP_VERSION}-${ARCH}.tar.gz"
+	JELLYFIN_REPO="https://repo.jellyfin.org/files/server/linux/stable/v${APP_UPSTREAM_VERSION}/${ARCH}/jellyfin_${APP_UPSTREAM_VERSION}-${ARCH}.tar.gz"
 	FFMPEG_REPO="https://github.com/jellyfin/jellyfin-ffmpeg/releases/download/v${FFMPEG_VERSION}/jellyfin-ffmpeg_${FFMPEG_VERSION}_portable_linux64-gpl.tar.xz"
 
 	# The libraries the portable releases need, built for the NAS's glibc by static/jellyfin (which the root build.sh
 	# runs first). libe_sqlite3.so must match this Jellyfin version's bundled SQLite, so they are built per version
-	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
+	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_UPSTREAM_VERSION}/${ARCH}"
 	for lib in libe_sqlite3.so libva.so.2 libva-drm.so.2 libdrm.so.2 vainfo; do
 		if [ ! -f "${STATIC_PATH}/${lib}" ]; then
-			abort "${lib} not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH} - delete that folder first if it is from an older build)"
+			abort "${lib} not found in: ${STATIC_PATH} (set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH} - delete that folder first if it is from an older build)"
 		fi
 	done
 
@@ -28,7 +28,7 @@ for ARCH in "${!MODELS[@]}"; do
 	cd binaries
 
 	# Download and extract Jellyfin (the server and its web client, with their own .NET runtime)
-	JELLYFIN_FILE="jellyfin_${APP_VERSION}-${ARCH}.tar.gz"
+	JELLYFIN_FILE="jellyfin_${APP_UPSTREAM_VERSION}-${ARCH}.tar.gz"
 	if ! download "${JELLYFIN_REPO}" "${JELLYFIN_FILE}" || ! tar -xzf "${JELLYFIN_FILE}" || [ ! -x jellyfin/jellyfin ]; then
 		abort "Jellyfin could not be downloaded or extracted from: ${JELLYFIN_REPO}"
 	fi

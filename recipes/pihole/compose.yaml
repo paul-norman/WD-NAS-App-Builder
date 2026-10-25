@@ -6,6 +6,8 @@
 #  - its web interface on port 8053 (the NAS's own dashboard has 80 and 443), and the image pinned (version and digest)
 #  - the upstream DNS servers and the web password come from .env
 #  - container logs are capped (Docker keeps them on the NAS's disk, forever otherwise)
+#  - pihole-FTL runs as root inside its container: it normally gives its program file the capabilities it needs and
+#    drops root, but that fails on the NAS's Docker ("Unable to set capabilities for pihole-FTL" - see README.md)
 #
 # Run it from the folder holding this file and its .env (setup.sh puts both in /mnt/HD/HD_a2/Nas_Prog/_pihole).
 
@@ -28,6 +30,8 @@ services:
       FTLCONF_dns_upstreams: ${UPSTREAMS}
       # Answer every device that reaches it: on Docker's bridge network, they all look "remote" to Pi-hole
       FTLCONF_dns_listeningMode: 'ALL'
+      # Root inside its container (Pi-hole's own answer when it can't set its program's capabilities, as on the NAS)
+      DNSMASQ_USER: 'root'
       # No NTP: the NAS keeps its own time
       FTLCONF_ntp_ipv4_active: 'false'
       FTLCONF_ntp_ipv6_active: 'false'

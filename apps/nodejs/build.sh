@@ -7,6 +7,10 @@ MODELS[x64]="MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100"
 # Node.js 24+ no longer publishes 32-bit ARM (armv7l) builds
 #MODELS[armv7l]="WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra"
 
+# Node.js's release for each architecture, checked against its SHA256 (from Node.js's SHASUMS256.txt for this version)
+declare -A NODE_SHA256
+NODE_SHA256[x64]=6170b2d474e1c626f43cff3adc118df9fe3b573258a4fc3d850c8dbc6b079bbd
+
 # pnpm: its native program (pnpm 11+ is no longer plain JavaScript - its package only wraps the program, and would
 # download it on first use), installed as npm's own install script would. Both checked against npm's published integrity
 PNPM_VERSION=12.14.0
@@ -23,7 +27,7 @@ for ARCH in "${!MODELS[@]}"; do
 	# Skip architectures without a wanted model (MODEL_OVERRIDE)
 	models_wanted ${MODELS[${ARCH}]} || continue
 
-	NODE_REPO="https://nodejs.org/dist/v${APP_VERSION}/node-v${APP_VERSION}-linux-${ARCH}.tar.xz"
+	NODE_REPO="https://nodejs.org/dist/v${APP_UPSTREAM_VERSION}/node-v${APP_UPSTREAM_VERSION}-linux-${ARCH}.tar.xz"
 	
 	# Make a directory for the files
 	mkdir -p binaries
@@ -31,6 +35,9 @@ for ARCH in "${!MODELS[@]}"; do
 	
 	# Download and extract the right version of Node.js
 	wget ${NODE_REPO} -O nodejs.tar.xz
+	if ! echo "${NODE_SHA256[${ARCH}]}  nodejs.tar.xz" | sha256sum -c -; then
+		abort "Node.js ${APP_UPSTREAM_VERSION} for ${ARCH} doesn't match its SHA256 (set NODE_SHA256 for this version)"
+	fi
 	
 	# Extract the data
 	if [ -f nodejs.tar.xz ]; then

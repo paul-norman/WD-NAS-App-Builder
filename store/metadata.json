@@ -17,7 +17,7 @@
 		"grafana": { "categories": ["monitoring"], "license": "AGPL-3.0-only", "data_folder": "_grafana", "keeps_data": true, "web": { "port": 3000, "nginx": { "name": "grafana" } } },
 		"icecast": { "categories": ["music", "media"], "license": "GPL-2.0-only", "data_folder": "_icecast", "keeps_data": true, "web": { "port": 8000, "nginx": { "name": "radio" } } },
 		"jellyfin": { "categories": ["media"], "license": "GPL-2.0-only", "web": { "port": 8096, "nginx": { "name": "jellyfin" } } },
-		"kopia": { "categories": ["backup"], "license": "Apache-2.0", "data_folder": "_kopia", "keeps_data": true, "web": { "nginx": { "name": "kopia" } } },
+		"kopia": { "categories": ["backup"], "license": "Apache-2.0", "data_folder": "_kopia", "keeps_data": true, "web": { "local_port": 51515, "nginx": { "name": "kopia" } } },
 		"loki": { "categories": ["monitoring"], "license": "AGPL-3.0-only", "data_folder": "_loki", "keeps_data": true },
 		"mailpit": { "categories": ["development"], "license": "MIT", "web": { "port": 8025, "nginx": { "name": "mailpit" } } },
 		"mariadb": { "categories": ["databases"], "license": "GPL-2.0-only", "data_folder": "_mariadb", "keeps_data": true, "replaces": ["mariadb"] },
@@ -35,11 +35,11 @@
 		"prometheus": { "categories": ["monitoring"], "license": "Apache-2.0", "data_folder": "_prometheus", "keeps_data": true },
 		"python": { "categories": ["development", "system"], "license": "PSF-2.0", "data_folder": "_python", "keeps_data": true, "replaces": ["python3"] },
 		"store": { "categories": ["system"], "data_folder": "_store", "keeps_data": true },
-		"syncthing": { "categories": ["files", "backup"], "license": "MPL-2.0", "data_folder": "_syncthing", "keeps_data": true, "web": { "nginx": { "name": "syncthing" } } },
+		"syncthing": { "categories": ["files", "backup"], "license": "MPL-2.0", "data_folder": "_syncthing", "keeps_data": true, "web": { "local_port": 8384, "nginx": { "name": "syncthing" } } },
 		"tailscale": { "categories": ["network"], "license": "BSD-3-Clause", "data_folder": "_tailscale", "keeps_data": true },
 		"uptime-kuma": { "categories": ["monitoring"], "license": "MIT", "data_folder": "_uptime-kuma", "keeps_data": true, "web": { "port": 3001, "nginx": { "name": "uptime-kuma" } } },
 		"valkey": { "categories": ["databases"], "license": "BSD-3-Clause" },
-		"vaultwarden": { "categories": ["security"], "license": "AGPL-3.0-only", "data_folder": "_vaultwarden", "keeps_data": true, "requires": { "apps": ["nginx"] }, "web": { "nginx": { "name": "vaultwarden" } } },
+		"vaultwarden": { "categories": ["security"], "license": "AGPL-3.0-only", "data_folder": "_vaultwarden", "keeps_data": true, "requires": { "apps": ["nginx"] }, "web": { "local_port": 8222, "nginx": { "name": "vaultwarden" } } },
 		"wireguard": { "categories": ["network", "security"], "license": "MIT AND GPL-2.0-only AND LGPL-2.1-or-later", "data_folder": "_wireguard", "keeps_data": true }
 	},
 	"external": {

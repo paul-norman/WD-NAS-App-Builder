@@ -61,6 +61,13 @@ export FORK; [ "$(j "$F[\"from_here\"]")" = false ] && [ "$(j "$F[\"update\"]")"
 post start -d job=app_update -d repo=$FORK -d id=python >/dev/null; job_wait
 [ "$JOB_STATE" = '"done"' ] && grep -q "99.1" $P/python/apkg.rc && grep -q "$FORK" $P/_store/installed_apps.json && get job >/dev/null && j '$d["job"]["title"]' | grep -q "Switching Python to WD NAS App Builder (evil.test)" && pass "switched to the fork: $(j '$d["job"]["title"]')" || fail "switch: $JOB_STATE $JOB_MSG $(cat $P/_store/installed_apps.json)"
 post remove_repo -d url=$FORK >/dev/null
+# (an app whose web interface only answers a few seconds after it starts, on the NAS itself: the job waits for it)
+python3 /tbin/repotool.py set-app /www/repo python version '"99.2"'; python3 /tbin/repotool.py set-app /www/repo python web '{"local_port": 18999}'; post refresh >/dev/null
+(sleep 4; python3 -m http.server 18999 --bind 127.0.0.1 > /dev/null 2>&1) &
+post start -d job=app_update -d repo=$REPO -d id=python >/dev/null; job_wait
+get job >/dev/null; W=$(j '$d["log"]' | grep -o "It's ready (answered after [0-9]* seconds)")
+[ "$JOB_STATE" = '"done"' ] && [ -n "$W" ] && [ "$(echo "$W" | grep -o '[0-9][0-9]*')" -ge 3 ] && pass "waited for its web interface before saying it's installed: $W" || fail "web wait: $JOB_STATE $JOB_MSG $(j '$d["log"]' | tail -c 300)"
+pkill -f "http.server 18999"
 python3 /tbin/repotool.py set-app /www/repo nano version '"99.0"'; post refresh >/dev/null
 post start -d job=app_update -d repo=$REPO -d id=nano >/dev/null; job_wait
 [ "$JOB_STATE" = '"failed"' ] && grep -q -v "99.0" $P/nano/apkg.rc && pass "nano (no keeps_data) not updated by the Store: $JOB_MSG" || fail "nano update: $JOB_STATE $JOB_MSG"

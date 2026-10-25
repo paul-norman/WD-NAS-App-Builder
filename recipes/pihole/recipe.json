@@ -2,7 +2,7 @@
 	"recipe_version": 1,
 	"id": "pihole",
 	"name": "Pi-hole",
-	"version": "2026.10.0-1",
+	"version": "2026.10.0-2",
 	"summary": "Blocks adverts and trackers for every device on your home network, by answering their DNS lookups",
 	"description": "description.md",
 	"compose": "compose.yaml",

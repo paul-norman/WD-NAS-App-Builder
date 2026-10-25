@@ -19,7 +19,8 @@ APP_PATH="$(dirname "$(readlink -f "$0")")"
 DATA_PATH="$(dirname "${APP_PATH}")/_mariadb"
 COPY="${DATA_PATH}/data"
 MARIADB="${APP_PATH}/binaries/mariadb"
-VERSION="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r')"
+# (MariaDB's version: the app's without its packaging revision, e.g. 11.8.9-1)
+VERSION="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r' | sed 's/-[0-9]*$//')"
 SERIES="${VERSION%.*}"
 WD_SERVER=/usr/local/modules/mysql/libexec/mariadbd
 SOCKET=/var/lib/mysql/mysql.sock

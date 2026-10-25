@@ -28,7 +28,8 @@ esac
 
 # The app as built: its prepared binaries and its package
 VERSION="$(sed -n 's/^Version:[[:space:]]*//p' "${PROJ}/apps/icecast/apkg.rc" | tr -d '\r')"
-STATIC="${PROJ}/packages/static/icecast/${VERSION}/amd64"
+# (its static build is for the upstream version: the app's without its packaging revision, e.g. 1.2.3-1)
+STATIC="${PROJ}/packages/static/icecast/$(echo "${VERSION}" | sed 's/-[0-9]*$//')/amd64"
 PACKAGE="${PROJ}/packages/icecast/${VERSION}/icecast_${VERSION}_amd64.tar.gz"
 if [ ! -x "${STATIC}/icecast" ] || [ ! -f "${PACKAGE}" ]; then
 	echo "Build Icecast ${VERSION} first: MODEL_OVERRIDE=MyCloudPR4100 ./build.sh icecast"

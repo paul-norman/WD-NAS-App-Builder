@@ -40,4 +40,5 @@
 - **The web password** can be changed in Pi-hole *(Settings → Web interface / API)*, or over SSH: `docker exec -it pihole pihole setpassword`.
 - **Its data** *(settings, lists, query history)* is in `/mnt/HD/HD_a2/Nas_Prog/_pihole/etc-pihole`, kept across updates.
 - **Updating**: the Store updates the recipe *(a newer Pi-hole image)*; by hand, change the image in `compose.yaml` and run `docker compose pull && docker compose up -d` in `/mnt/HD/HD_a2/Nas_Prog/_pihole`.
+- **It runs as root inside its container**: Pi-hole normally gives its DNS server's program the network capabilities it needs and then drops root, but that fails on the NAS's Docker *("Unable to set capabilities for pihole-FTL. Cannot run as non-root.")*, so `DNSMASQ_USER` is `root` - Pi-hole's own answer for such systems. It's still shut in its container, with Docker's default capabilities only.
 - **Removing it**: set your router's DNS setting back first - otherwise devices lose DNS while it's gone.

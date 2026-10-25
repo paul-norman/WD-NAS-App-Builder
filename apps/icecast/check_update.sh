@@ -7,7 +7,8 @@ LAST_FILE="$(dirname "${APP_PATH}")/_icecast/last_update_alert"
 # (Icecast's download page names its current source release)
 API="https://icecast.org/download/"
 
-INSTALLED="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r')"
+# (without the app's own packaging revision, e.g. 2.10.7-1)
+INSTALLED="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r' | sed 's/-[0-9]*$//')"
 if command -v curl > /dev/null; then
 	RESPONSE="$(curl -sf --max-time 20 "${API}")"
 else

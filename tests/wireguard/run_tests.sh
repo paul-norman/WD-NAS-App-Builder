@@ -26,7 +26,8 @@ case "${PHP}" in
 esac
 
 VERSION="$(sed -n 's/^Version:[[:space:]]*//p' "${PROJ}/apps/wireguard/apkg.rc" | tr -d '\r')"
-STATIC="${PROJ}/packages/static/wireguard/${VERSION}/amd64"
+# (its static build is for the upstream version: the app's without its packaging revision, e.g. 1.2.3-1)
+STATIC="${PROJ}/packages/static/wireguard/$(echo "${VERSION}" | sed 's/-[0-9]*$//')/amd64"
 PACKAGE="${PROJ}/packages/wireguard/${VERSION}/wireguard_${VERSION}_amd64.tar.gz"
 if [ ! -x "${STATIC}/wireguard-go" ] || [ ! -f "${PACKAGE}" ]; then
 	echo "Build WireGuard ${VERSION} first: MODEL_OVERRIDE=MyCloudPR4100 ./build.sh wireguard"

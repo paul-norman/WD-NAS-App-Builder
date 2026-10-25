@@ -13,9 +13,9 @@ for ARCH in "${!MODELS[@]}"; do
 	models_wanted ${MODELS[${ARCH}]} || continue
 
 	# Nginx and its standard parameter files, built for exactly this app's version
-	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
+	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_UPSTREAM_VERSION}/${ARCH}"
 	if [ ! -x "${STATIC_PATH}/nginx" ] || [ ! -f "${STATIC_PATH}/params/mime.types" ]; then
-		abort "Nginx not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+		abort "Nginx not found in: ${STATIC_PATH} (set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
 	fi
 	mkdir -p binaries params
 	cp "${STATIC_PATH}/nginx" binaries/

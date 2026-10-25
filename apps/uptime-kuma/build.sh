@@ -11,10 +11,10 @@ for ARCH in "${!MODELS[@]}"; do
 	models_wanted ${MODELS[${ARCH}]} || continue
 
 	# Prepared for exactly this app's version
-	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_VERSION}/${ARCH}"
+	STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_UPSTREAM_VERSION}/${ARCH}"
 	for file in node sqlite3 kuma_runas ping uptime-kuma/server/server.js; do
 		if [ ! -e "${STATIC_PATH}/${file}" ]; then
-			abort "${file} not found in: ${STATIC_PATH} (set VERSION=${APP_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+			abort "${file} not found in: ${STATIC_PATH} (set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
 		fi
 	done
 	mkdir -p binaries

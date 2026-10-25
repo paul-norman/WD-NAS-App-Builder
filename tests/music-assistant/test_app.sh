@@ -9,6 +9,9 @@ api() { curl -s -H "Authorization: Bearer ${3:-$(cat $D/page_token)}" -H "Conten
 	-d "{\"message_id\":\"t\",\"command\":\"$1\",\"args\":${2:-{\}}}" $U/api; }
 login() { curl -s -H "Content-Type: application/json" -d "{\"credentials\":{\"username\":\"admin\",\"password\":\"$1\"},\"device_name\":\"test\"}" $U/auth/login | j '$d["success"] ?? false'; }
 
+# (no certificate authorities in /etc/ssl, as on the NAS: Debian's would hide a Python that can't find its own)
+mkdir -p /tmp/ssl-hidden && mv /etc/ssl/certs /etc/ssl/cert.pem /tmp/ssl-hidden/ 2>/dev/null
+
 echo "== first start"
 install_app
 wait_port 8095 240 && pass "answering on 8095" || { fail "not answering: $(tail -n 10 /tmp/start.log; tail -n 10 $D/console.log)"; exit 1; }
@@ -26,6 +29,18 @@ R=$(curl -s -H "Content-Type: application/json" -d '{"username":"intruder","pass
 [ "$(login "$PW")" = true ] && [ "$(login wrong)" != true ] && [ "$(echo "$R" | j '$d["success"] ?? false')" != true ] \
 	&& pass "the page's password logs in; nobody else can set it up: $(echo "$R" | head -c 80)" || fail "admin: $(login "$PW") $R"
 api config/providers | grep -q '"domain":"smart_fades"' && fail "Smart Fades still there" || pass "the Smart Fades provider removed (it needs AVX2 and PyTorch, left out)"
+PROVIDERS=$P/music-assistant/binaries/python/lib/python3.14/site-packages/music_assistant/providers
+[ ! -d $PROVIDERS/smart_fades ] && [ ! -d $PROVIDERS/sonic_analysis ] && [ -d $PROVIDERS/filesystem_local ] && ! grep -q "Failed to install package" $D/data/musicassistant.log \
+	&& pass "providers whose packages were left out aren't offered, so it never tries to install them" || fail "providers: $(grep "Failed to install" $D/data/musicassistant.log | head -n 2)"
+echo "== HTTPS (e.g. the NAS's own Navidrome site, streaming services)"
+MAPY=$P/music-assistant/binaries/python/bin/python3
+HTTPS='import ssl, urllib.request; urllib.request.urlopen("https://www.python.org", timeout=20); print("verified")'
+# (what ma_ctl.sh starts it with - its environment can't be read here, it's another user's process)
+CA=$(sed -n 's|^CA_FILE="${BIN}/\(.*\)"$|\1|p' $P/music-assistant/ma_ctl.sh)
+grep -q 'SSL_CERT_FILE="${CA_FILE}"' $P/music-assistant/ma_ctl.sh && [ -f "$P/music-assistant/binaries/$CA" ] && ENVIRON="SSL_CERT_FILE=$P/music-assistant/binaries/$CA"
+! $MAPY -I -c "$HTTPS" > /dev/null 2>&1 && [ "$(env "$ENVIRON" $MAPY -c "$HTTPS" 2>&1)" = verified ] \
+	&& pass "its Python checks HTTPS certificates with the bundled authorities ($(basename "${ENVIRON#*=}")) - not without them, as on the NAS" \
+	|| fail "https: '$ENVIRON' $(env "$ENVIRON" $MAPY -c "$HTTPS" 2>&1 | tail -n 1)"
 
 echo "== new password"
 NP=$(post new_password | j '$d["password"]' | tr -d '"')
