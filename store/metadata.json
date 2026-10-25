@@ -28,6 +28,7 @@
 		"node_exporter": { "categories": ["monitoring"], "license": "Apache-2.0", "data_folder": "_node_exporter", "keeps_data": true },
 		"nodejs": { "categories": ["development"], "license": "MIT" },
 		"ntfy": { "categories": ["productivity"], "license": "Apache-2.0", "data_folder": "_ntfy", "keeps_data": true, "web": { "port": 2586, "nginx": { "name": "ntfy" } } },
+		"openssh": { "categories": ["network", "security"], "license": "SSH-OpenSSH AND Apache-2.0 AND Zlib AND MIT", "data_folder": "_openssh", "keeps_data": true, "replaces": ["sshd"] },
 		"php": { "categories": ["development", "system"], "license": "PHP-3.01", "data_folder": "_php", "keeps_data": true, "replaces": ["php"] },
 		"phpMyAdmin": { "categories": ["databases"], "license": "GPL-2.0-only", "data_folder": "_phpMyAdmin", "keeps_data": true, "web": { "port": 80, "path": "/phpMyAdmin/", "nginx": { "name": "phpmyadmin" } } },
 		"postgresql": { "categories": ["databases"], "license": "PostgreSQL", "data_folder": "_postgresql", "keeps_data": true },

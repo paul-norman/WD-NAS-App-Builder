@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>OpenSSH 10.6: replaces the NAS's own SSH server (OpenSSH 8.4 from 2020) - same settings, host key and login - and adds SSH keys from its page (Intel models).</en-US>
+	<fr-FR>OpenSSH 10.6 : remplace le serveur SSH du NAS (OpenSSH 8.4 de 2020) - mêmes réglages, clé d'hôte et identifiant - et ajoute des clés SSH depuis sa page (modèles Intel).</fr-FR>
+	<es-ES>OpenSSH 10.6: sustituye al servidor SSH del NAS (OpenSSH 8.4 de 2020) - mismos ajustes, clave de host e inicio de sesión - y añade claves SSH desde su página (modelos Intel).</es-ES>
+	<de-DE>OpenSSH 10.6: ersetzt den SSH-Server des NAS (OpenSSH 8.4 von 2020) - gleiche Einstellungen, Host-Schlüssel und Anmeldung - und fügt SSH-Schlüssel über seine Seite hinzu (Intel-Modelle).</de-DE>
+</config>

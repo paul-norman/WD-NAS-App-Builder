@@ -1,0 +1,23 @@
+Package:			openssh
+Version:			10.6.1
+Packager:			PDN
+Email:
+Homepage:			https://www.openssh.com/
+Description:		OpenSSH 10.6: replaces the NAS's own SSH server (OpenSSH 8.4 from 2020) - same settings, host key and login - and adds SSH keys from its page (Intel models).
+Icon:				openssh.svg
+AddonShowName:		OpenSSH
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
