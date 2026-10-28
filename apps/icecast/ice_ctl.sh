@@ -2,7 +2,7 @@
 # Runs Icecast (an internet radio station) as its own user, with its settings in the persistent path (Nas_Prog/_icecast
 # - kept across reinstalls), and - when turned on - ezstream, broadcasting a folder of music from the NAS:
 #   ice_ctl.sh setup               - create its user, folders, passwords and default settings (where missing)
-#   ice_ctl.sh start               - write its configuration, then start Icecast (on port 8000: the network, or the NAS
+#   ice_ctl.sh start               - write its configuration, then start Icecast (on port 8010: the network, or the NAS
 #                                    itself only) and the station
 #   ice_ctl.sh stop                - stop both
 #   ice_ctl.sh restart             - stop, then start
@@ -24,7 +24,8 @@ SETTINGS_FILE="${DATA_PATH}/settings"
 PLAYLIST="${RUN_PATH}/playlist.m3u"
 ICECAST_PID=/var/run/icecast.pid
 EZSTREAM_PID=/var/run/ezstream.pid
-PORT=8000
+# (not 8000: the NAS's own web server has 127.0.0.1:8000)
+PORT=8010
 # Its own user and group (created if missing): the IDs used when creating them
 ICE_ID=82
 LOG=/tmp/debug_apkg
@@ -246,7 +247,9 @@ EOF
 wait_up() {
 	waited=0
 	while [ ${waited} -lt 20 ]; do
-		curl -s -o /dev/null "http://127.0.0.1:${PORT}/status-json.xsl" && return 0
+		# (Icecast itself, by its Server header: not whatever else answers on the port)
+		running "${ICECAST_PID}" || return 1
+		curl -s -o /dev/null -D - "http://127.0.0.1:${PORT}/status-json.xsl" 2>/dev/null | grep -qi '^server: icecast' && return 0
 		sleep 1
 		waited=$((waited + 1))
 	done
@@ -283,7 +286,7 @@ start() {
 	( exec "${BIN}/ice_runas" "$1" "$2" "${BIN}/icecast" -c "${RUN_PATH}/icecast.xml" ) >> "${RUN_PATH}/logs/console.log" 2>&1 &
 	echo $! > "${ICECAST_PID}"
 	if ! wait_up; then
-		log "Icecast did not answer within 20 seconds (see ${RUN_PATH}/logs)"
+		log "Icecast did not start (see ${RUN_PATH}/logs): $(tail -n 2 "${RUN_PATH}/logs/console.log" 2>/dev/null | tr '\n' ' ')"
 		return 1
 	fi
 	log "Icecast started with PID: $(cat ${ICECAST_PID})"

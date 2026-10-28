@@ -4,7 +4,7 @@
 # each track's title, skipping, new music, hidden folders and other files left out), a live broadcast (and a wrong
 # password refused), listening only on the NAS itself, stopping
 A=/mnt/HD/HD_a2/Nas_Prog/icecast; D=/mnt/HD/HD_a2/Nas_Prog/_icecast; R=$D/run
-U=http://127.0.0.1:8000
+U=http://127.0.0.1:8010
 . /t/bin/setup.sh
 # (& | and \ escaped: they mean something to sed)
 set_setting() { sed -i "s|^$1=.*|$1=$(printf '%s' "$2" | sed 's/[&|\\]/\\&/g')|" $D/settings; }
@@ -16,7 +16,7 @@ title() { status | php -r '$s = json_decode(stream_get_contents(STDIN), true)["i
 echo "== first start"
 sh $A/ice_ctl.sh start > /tmp/start.log 2>&1; cat /tmp/start.log
 [ "$(id -u icecast)" = 82 ] && pass "its own user (82)" || fail "user: $(id icecast)"
-[ "$(curl -s -o /dev/null -w '%{http_code}' $U/status-json.xsl)" = 200 ] && pass "answering on 8000" || { fail "not answering"; cat $R/logs/*.log; exit 1; }
+[ "$(curl -s -o /dev/null -w '%{http_code}' $U/status-json.xsl)" = 200 ] && pass "answering on 8010" || { fail "not answering"; cat $R/logs/*.log; exit 1; }
 [ "$(cat $D/admin_password | wc -c)" = 20 ] && [ "$(cat $D/source_password | wc -c)" = 20 ] && [ "$(stat -c '%U %a' $D/admin_password $D/settings | tr '\n' ' ')" = "root 600 root 600 " ] \
 	&& pass "generated admin and source passwords (root's only)" || fail "passwords: $(ls -l $D)"
 [ "$(stat -c '%U %a' $R/icecast.xml)" = "icecast 600" ] && grep -q "<source-password>$(cat $D/source_password)</source-password>" $R/icecast.xml \
@@ -61,3 +61,10 @@ grep -q '<bind-address>127.0.0.1</bind-address>' $R/icecast.xml && [ "$(curl -s 
 	&& pass "only on 127.0.0.1 (for the Nginx app)" || fail "local"
 sh $A/ice_ctl.sh stop > /dev/null; sleep 1
 [ "$(ps | grep -c '[b]inaries/icecast\|[b]inaries/ezstream')" = 0 ] && pass "stopped: Icecast and the station" || fail "still running: $(ps | grep binaries)"
+
+echo "== its port taken by something else (as the NAS's own web server has 127.0.0.1:8000)"
+(python3 -m http.server 8010 --bind 127.0.0.1 > /dev/null 2>&1 &); sleep 1
+sh $A/ice_ctl.sh start > /tmp/start.log 2>&1; CODE=$?
+[ "$CODE" != 0 ] && grep -q "Icecast did not start" /tmp/debug_apkg && grep -q "Can not listen" /tmp/debug_apkg \
+	&& pass "refused to say it started: $(grep -o 'Icecast did not start.*' /tmp/debug_apkg | tail -n 1 | cut -c1-140)" || fail "port clash: exit $CODE, $(tail -n 3 /tmp/debug_apkg)"
+pkill -f "http.server 8010"

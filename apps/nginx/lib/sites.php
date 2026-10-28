@@ -49,7 +49,7 @@ function sites_builtin_apps()
 		'ntfy' => ['name' => 'ntfy', 'label' => 'ntfy', 'target' => 'http://127.0.0.1:2586', 'stream' => true],
 		'navidrome' => ['name' => 'navidrome', 'label' => 'Navidrome', 'target' => 'http://127.0.0.1:4533', 'stream' => true],
 		'music-assistant' => ['name' => 'music', 'label' => 'Music Assistant', 'target' => 'http://127.0.0.1:8095', 'stream' => true],
-		'icecast' => ['name' => 'radio', 'label' => 'Icecast', 'target' => 'http://127.0.0.1:8000', 'stream' => true],
+		'icecast' => ['name' => 'radio', 'label' => 'Icecast', 'target' => 'http://127.0.0.1:8010', 'stream' => true],
 		'audiobookshelf' => ['name' => 'audiobooks', 'label' => 'Audiobookshelf', 'target' => 'http://127.0.0.1:13378', 'stream' => true, 'uploads' => true],
 		'calibre-web' => ['name' => 'books', 'label' => 'Calibre-Web', 'target' => 'http://127.0.0.1:8083', 'uploads' => true],
 		'copyparty' => ['name' => 'files', 'label' => 'copyparty', 'target' => 'http://127.0.0.1:3923', 'uploads' => true, 'stream' => true],

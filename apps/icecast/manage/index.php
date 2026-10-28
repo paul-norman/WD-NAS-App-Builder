@@ -54,7 +54,7 @@ header('Cache-Control: no-store');
 
 	<h3>Broadcasting live</h3>
 	<p>From a PC with broadcasting software (e.g. <a href="https://danielnoethen.de/butt/" target="_blank" rel="noopener">BUTT</a>,
-		Mixxx or OBS): server <code data-ic="live-server">-</code>, port <code>8000</code>, mount point e.g.
+		Mixxx or OBS): server <code data-ic="live-server">-</code>, port <code>8010</code>, mount point e.g.
 		<code>/live</code> (any but the station's), user <code>source</code> and the broadcasting password above. Listeners
 		tune in at the mount point's address while it's on air.</p>
 
@@ -64,7 +64,7 @@ header('Cache-Control: no-store');
 	<p><label>Listeners at once (each stream) <input type="number" data-ic="max-listeners" min="1" max="500" style="width: 7rem"></label></p>
 	<p><button type="button" data-ic-action="save-settings">Save</button></p>
 	<p class="mg-note">Each listener takes the stream's quality in upload bandwidth (e.g. 10 listeners at 128 kbps: about
-		1.3 Mbit/s). Listeners on the internet need the Nginx app's address, or your router to pass port 8000 on to the NAS.
+		1.3 Mbit/s). Listeners on the internet need the Nginx app's address, or your router to pass port 8010 on to the NAS.
 		Icecast restarts.</p>
 
 	<details class="mg-section">

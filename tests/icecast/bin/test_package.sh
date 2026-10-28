@@ -6,7 +6,7 @@ ln -sf /t/bb/busybox /tmp/bb/sh
 mkdir -p $P/_install/icecast /var/spool/cron/crontabs && touch /var/spool/cron/crontabs/root
 tar -xzf /pkg/package.tar.gz -C $P/_install/icecast
 cd $P && sh $P/_install/icecast/install.sh $P/_install/icecast $P && sh $P/icecast/init.sh $P/icecast && sh $P/icecast/start.sh $P/icecast
-[ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/status-json.xsl)" = 200 ] && pass "installed, initialised and started from the package" || { fail "not answering"; tail -20 /tmp/debug_apkg; }
+[ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8010/status-json.xsl)" = 200 ] && pass "installed, initialised and started from the package" || { fail "not answering"; tail -20 /tmp/debug_apkg; }
 [ "$(grep -c icecast /var/spool/cron/crontabs/root)" = 2 ] && pass "cron: $(grep -o 'ice_ctl.sh [a-z]*\|check_update.sh' /var/spool/cron/crontabs/root | tr '\n' ' ')" || fail "cron: $(cat /var/spool/cron/crontabs/root)"
 [ -L /var/www/apps/icecast/index.php ] && [ -L /var/www/apps/icecast/api.php ] && pass "management page linked" || fail "page links: $(ls -la /var/www/apps/icecast 2>&1)"
 [ "$(stat -c '%a' $P/icecast/ice_ctl.sh $P/icecast/manage/api.php | tr '\n' ' ')" = "755 644 " ] && [ "$(stat -c '%U' $P/icecast/manage/api.php)" = root ] \

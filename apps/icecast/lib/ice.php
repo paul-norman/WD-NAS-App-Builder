@@ -3,7 +3,7 @@
 // (WD's PHP 7.4, or the PHP app's 8.5), so it must work on both:
 //     php ice.php url <apps path>    - prints Icecast's address (e.g. https://radio.nas.example.com/), if any
 
-const ICE_TARGET = 'http://127.0.0.1:8000';
+const ICE_TARGET = 'http://127.0.0.1:8010';
 
 // Where the Nginx app serves Icecast: ['state' => ok|no_nginx|no_domain|off, 'url' => address or '']. It's the
 // enabled app whose target is Icecast's port (offered by the Nginx app as "radio", but it can be renamed)

@@ -78,7 +78,7 @@ if ($action === 'status') {
 		'station_running' => manage_pid_running('/var/run/ezstream.pid'),
 		'version' => preg_match('/^Version:\s*(\S+)/m', (string)@file_get_contents($app_path . '/apkg.rc'), $m) ? $m[1] : '',
 		'site' => ice_site($apps_path),
-		'local_url' => $host !== '' ? 'http://' . $host . ':8000/' : '',
+		'local_url' => $host !== '' ? 'http://' . $host . ':8010/' : '',
 		'host' => $host,
 		'mounts' => $mounts,
 		'tracks' => is_file($playlist) ? count(file($playlist, FILE_SKIP_EMPTY_LINES)) : 0,

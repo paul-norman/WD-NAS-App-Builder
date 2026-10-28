@@ -9,7 +9,7 @@ sh $A/ice_ctl.sh start > /dev/null 2>&1
 echo "administrators:x:1001:admin" >> /etc/group; mkdir -p /tmp/sess; printf 'username|s:5:"admin";' > /tmp/sess/sess_adminsession123
 php -d session.save_path=/tmp/sess -S 127.0.0.1:8080 -t /var/www > /tmp/php.log 2>&1 &
 sleep 1
-B=http://127.0.0.1:8080/apps/icecast; CK='Cookie: PHPSESSID=adminsession123'; U=http://127.0.0.1:8000
+B=http://127.0.0.1:8080/apps/icecast; CK='Cookie: PHPSESSID=adminsession123'; U=http://127.0.0.1:8010
 T=$(curl -s -H "$CK" $B/index.php | sed -n 's/.*var csrf = "\([^"]*\)".*/\1/p')
 get() { curl -s -H "$CK" -H 'X-Requested-With: XMLHttpRequest' "$B/api.php?action=$1"; }
 post() { a=$1; shift; curl -s -H "$CK" -H 'X-Requested-With: XMLHttpRequest' -H "X-CSRF-Token: $T" -X POST "$@" "$B/api.php?action=$a"; }
