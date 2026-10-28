@@ -141,7 +141,7 @@ rotate_log() {
 	fi
 }
 
-# The Nginx app finds Music Assistant by its folder and serves it at https://music-assistant.<its domain>: rewrite its
+# The Nginx app finds Music Assistant by its folder and serves it at https://music.<its domain>: rewrite its
 # sites
 nginx_site() {
 	nginx_app="${APPS_PATH}/nginx"

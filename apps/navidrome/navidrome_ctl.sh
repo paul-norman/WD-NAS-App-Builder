@@ -228,7 +228,7 @@ rotate_log() {
 	fi
 }
 
-# The Nginx app finds Navidrome by its folder and serves it at https://music.<its domain>: rewrite its sites
+# The Nginx app finds Navidrome by its folder and serves it at https://navidrome.<its domain>: rewrite its sites
 nginx_site() {
 	nginx_app="${APPS_PATH}/nginx"
 	if [ -f "${nginx_app}/lib/sites.php" ] && [ -d "${APPS_PATH}/_nginx/sites" ]; then

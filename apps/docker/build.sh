@@ -18,7 +18,7 @@ for ARCH in "${!MODELS[@]}"; do
 		ARCH1="armv7"
 	fi
 			
-	DOCKER_REPO="https://download.docker.com/linux/static/stable/${ARCH}/docker-${APKG_VERSION}.tgz"
+	DOCKER_REPO="https://download.docker.com/linux/static/stable/${ARCH}/docker-${APP_UPSTREAM_VERSION}.tgz"
 	COMPOSE_REPO="https://github.com/docker/compose/releases/download/v${COMPOSE_VERSION}/docker-compose-linux-${ARCH1}"
 	
 	# Make a directory for the files

@@ -36,9 +36,12 @@ header('Cache-Control: no-store');
 	<p><button type="button" data-ng-action="add">Add an app</button> <button type="button" data-ng-action="save-apps">Save</button></p>
 	<p data-ng="apps-message"></p>
 	<p class="mg-note">Each app is reached at https://<em>name</em>.<em>domain</em> (the one chosen above at the domain
-		itself), and the start page listing them at https://apps.<em>domain</em>. The target is where the app answers on
+		itself), and the start page listing them at https://apps.<em>domain</em>. Installed apps and the Store's recipes
+		bring their own sites, with their settings greyed out (only On, Name and Label are yours); they go when their app
+		does. For anything else, add an app: the target is where the app answers on
 		the NAS (or anywhere on the network). Host is only needed for apps that check it (e.g. Syncthing: localhost), and
-		Path for apps under a path (e.g. /phpMyAdmin/). Uploads lifts the size limit on requests and allows long ones (e.g.
+		Path for apps under a path (e.g. /phpMyAdmin/) - only it is passed on. Start is the page the site's root goes to,
+		with every path still passed on (e.g. Pi-hole's /admin/). Uploads lifts the size limit on requests and allows long ones (e.g.
 		photos, videos, git pushes); Streaming passes each response on as it comes and keeps connections open (e.g. music,
 		notifications, live updates). Your own sites go in <code>Nas_Prog/_nginx/sites</code>.</p>
 
@@ -163,16 +166,19 @@ header('Cache-Control: no-store');
 		}
 
 		// The apps table: everything set as text / values, never as HTML (labels and names are the user's)
+		// (an installed app's own site: only whether it's on, its name and its label can be changed - the rest is its app's)
 		function appRow(app) {
 			var row = part('apps').insertRow();
+			var own = !!app.app;
+			row.dataset.app = app.app || '';
 			row.insertCell().appendChild(element('input', { type: 'checkbox', checked: app.enabled, title: 'On' }));
-			[['name', 'name'], ['label', 'label'], ['target', 'http://127.0.0.1:8080'], ['host', ''], ['path', '']].forEach(function (field) {
-				row.insertCell().appendChild(element('input', { type: 'text', value: app[field[0]] || '', placeholder: field[1], spellcheck: false, autocomplete: 'off' }));
+			[['name', 'name'], ['label', 'label'], ['target', 'http://127.0.0.1:8080'], ['host', ''], ['path', ''], ['start', '']].forEach(function (field, i) {
+				row.insertCell().appendChild(element('input', { type: 'text', value: app[field[0]] || '', placeholder: own ? '' : field[1], spellcheck: false, autocomplete: 'off', readOnly: own && i > 1, title: own && i > 1 ? 'Set by the app' : '' }));
 			});
-			row.insertCell().appendChild(element('input', { type: 'checkbox', checked: !!app.uploads, title: 'Uploads: no size limit, long time-outs' }));
-			row.insertCell().appendChild(element('input', { type: 'checkbox', checked: !!app.stream, title: 'Streaming: responses passed on as they come' }));
+			row.insertCell().appendChild(element('input', { type: 'checkbox', checked: !!app.uploads, title: 'Uploads: no size limit, long time-outs', disabled: own }));
+			row.insertCell().appendChild(element('input', { type: 'checkbox', checked: !!app.stream, title: 'Streaming: responses passed on as they come', disabled: own }));
 			var cell = row.insertCell();
-			if (state.known.indexOf(app.name) === -1) {
+			if (!own) {
 				var remove = element('button', { type: 'button', textContent: 'Remove' });
 				remove.addEventListener('click', function () { row.remove(); });
 				cell.appendChild(remove);
@@ -183,7 +189,7 @@ header('Cache-Control: no-store');
 			var table = part('apps');
 			table.textContent = '';
 			var head = table.insertRow();
-			['On', 'Name', 'Label', 'Target', 'Host', 'Path', 'Uploads', 'Streaming', ''].forEach(function (text) {
+			['On', 'Name', 'Label', 'Target', 'Host', 'Path', 'Start', 'Uploads', 'Streaming', ''].forEach(function (text) {
 				var cell = head.insertCell();
 				cell.textContent = text;
 				cell.style.fontWeight = 'bold';
@@ -257,7 +263,7 @@ header('Cache-Control: no-store');
 			var apps = [];
 			[].slice.call(part('apps').rows, 1).forEach(function (row) {
 				var inputs = row.querySelectorAll('input');
-				apps.push({ enabled: inputs[0].checked, name: inputs[1].value, label: inputs[2].value, target: inputs[3].value, host: inputs[4].value, path: inputs[5].value, uploads: inputs[6].checked, stream: inputs[7].checked });
+				apps.push({ app: row.dataset.app, enabled: inputs[0].checked, name: inputs[1].value, label: inputs[2].value, target: inputs[3].value, host: inputs[4].value, path: inputs[5].value, start: inputs[6].value, uploads: inputs[7].checked, stream: inputs[8].checked });
 			});
 			return apps;
 		}
@@ -426,7 +432,7 @@ header('Cache-Control: no-store');
 		part('server').addEventListener('change', function () { part('server-url').hidden = part('server').value !== 'url'; });
 		part('provider').addEventListener('change', function () { showProvider(part('provider').value); });
 
-		button('add').addEventListener('click', function () { appRow({ enabled: true, name: '', label: '', target: '', host: '', path: '', uploads: false, stream: false }); });
+		button('add').addEventListener('click', function () { appRow({ enabled: true, name: '', label: '', target: '', host: '', path: '', start: '', uploads: false, stream: false }); });
 
 		button('add-site').addEventListener('click', function () { siteRow({ enabled: true, name: '', label: '', root: '', php: true, front: false }); });
 

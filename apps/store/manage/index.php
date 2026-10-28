@@ -491,6 +491,15 @@ header('Cache-Control: no-store');
 		}
 
 		function startJob(data, message, onFields) {
+			// (the dashboard reached through the Nginx app - by a name, not the NAS's address: updating or removing Nginx stops
+			// it for a while, and this page loses its connection. The job carries on by itself)
+			var ip = window.IP_ADDRESS || (state.catalogue && state.catalogue.nas.ip);
+			if (data.id === 'nginx' && (data.job === 'app_update' || data.job === 'app_uninstall') && ip && window.location.hostname !== ip
+				&& !window.confirm('You\'re using the dashboard through Nginx, which this ' + (data.job === 'app_update' ? 'update stops for a minute or two' : 'removes')
+					+ ' - so this page will lose its connection (the ' + (data.job === 'app_update' ? 'update' : 'removal') + ' carries on by itself).\n\nBetter: log out here, log in at http://' + ip
+					+ '/ and start it from there (the NAS allows one login at a time).\n\nGo ahead here anyway?')) {
+				return;
+			}
 			message.textContent = 'Starting…';
 			message.className = '';
 			// (an app should be running after it's installed, and after an update if it was before: some apps' installers

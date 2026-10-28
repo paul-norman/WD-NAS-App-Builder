@@ -214,8 +214,19 @@ function job_app_install(array $spec, $update)
 		job_fail('Could not prepare the package');
 	}
 
+	// The app's files as they are, put back (and started) if the new version doesn't install: kept as hard links (the
+	// same volume - nothing copied), as removing the old version only deletes their names
+	$folder = store_apps_path() . '/' . $id;
+	$previous = store_data_path() . '/previous/' . $id;
+	$kept = false;
 	try {
+		store_rmtree($previous);
+		store_mkdir(dirname($previous));
 		if ($update) {
+			$kept = is_dir($folder) && job_run(['cp', '-al', $folder, $previous]) === 0;
+			if (!$kept) {
+				job_log('Warning: could not keep a copy of the installed version, to put back if the new one doesn\'t install');
+			}
 			job_log('Removing the installed version (' . $nas['apps'][$id]['version'] . ') - its data folder stays');
 			job_run(['del_apkg', $id]);
 			for ($i = 0; $i < 120 && isset(store_installed_apps()[$id]); $i++) {
@@ -224,20 +235,34 @@ function job_app_install(array $spec, $update)
 			if (isset(store_installed_apps()[$id])) {
 				job_fail('The installed version could not be removed');
 			}
+		} elseif (is_dir($folder)) {
+			// (its files without the NAS knowing it's installed - e.g. put back after an update that failed, until the NAS
+			// restarts: WD's installer can't install over them)
+			job_log('Its files are already in Nas_Prog/' . $id . ', but the NAS doesn\'t list it as installed: stopping them and setting them aside');
+			if (is_file($folder . '/stop.sh')) {
+				job_run(['sh', $folder . '/stop.sh', $folder]);
+			}
+			$kept = rename($folder, $previous);
+			if (!$kept) {
+				job_fail('Could not set aside the files in Nas_Prog/' . $id);
+			}
 		}
 		job_log('Installing with the NAS\'s own installer');
 		@unlink('/tmp/upload_apkg_status');
+		$debug_size = (int)@filesize('/tmp/debug_apkg');
 		job_run(['upload_apkg', '-m', '-p', $name, '-t', '2'], [], STORE_UPLOAD_PATH);
 		$result = trim((string)@file_get_contents('/tmp/upload_apkg_status'));
 		if ($result === '4') {
 			job_fail('The NAS says it\'s already installed');
 		}
 		if ($result !== '1') {
-			job_fail('The NAS\'s installer failed (status ' . ($result !== '' ? $result : 'none') . ') - see /tmp/debug_apkg');
+			job_installer_log($debug_size);
+			job_fail('The NAS\'s installer failed: ' . job_installer_reason($result) . ($kept ? job_put_back($id, $folder, $previous) : ''));
 		}
 	} finally {
 		@unlink(STORE_UPLOAD_PATH . '/' . $name);
 	}
+	store_rmtree($previous);
 	store_record_app($id, $repo['url'], $app['version']);
 	$apps = store_installed_apps();
 	// (unless WD's list says it's switched off - the NAS starts apps straight after installing them, and its list can lag)
@@ -423,7 +448,9 @@ function job_wait_ready(array $recipe)
 	return job_wait_web(isset($recipe['web']) ? $recipe['web'] : null, 'its logs: docker compose -p ' . $recipe['project'] . ' logs');
 }
 
-// The recipe's site in the Nginx app, if installed
+// The recipe's site in the Nginx app, if installed. Nginx apps that read the recipes' sites from their recipe.json
+// themselves (sites_declared) only need to write their sites again - once its install record is written, or removed;
+// older ones are given the site (add-app / remove-app)
 function job_nginx(array $recipe, $remove)
 {
 	$sites = store_apps_path() . '/nginx/lib/sites.php';
@@ -432,7 +459,14 @@ function job_nginx(array $recipe, $remove)
 		return '';
 	}
 	$nginx = $recipe['web']['nginx'];
-	if ($remove) {
+	if (strpos((string)file_get_contents($sites), 'function sites_declared(') !== false) {
+		job_log($remove ? 'Removing its site from the Nginx app' : 'Updating its site in the Nginx app (' . $nginx['name'] . ')');
+		list($code, $output) = store_run(['php', $sites, 'generate', $data]);
+		if ($code !== 0) {
+			job_log('Warning: the Nginx app didn\'t write its sites: ' . $output);
+			return '';
+		}
+	} elseif ($remove) {
 		job_log('Removing its site from the Nginx app');
 		store_run(['php', $sites, 'remove-app', $data, $nginx['name']]);
 	} else {
@@ -445,7 +479,8 @@ function job_nginx(array $recipe, $remove)
 			$command[] = '--stream';
 		}
 		if (!empty($recipe['web']['path']) && $recipe['web']['path'] !== '/') {
-			$command[] = '--path=' . rtrim($recipe['web']['path'], '/') . '/';
+			// (its start page: the app has the whole site, as its pages may use other paths - e.g. Pi-hole's /api)
+			$command[] = '--start=' . $recipe['web']['path'];
 		}
 		list($code, $output) = store_run($command);
 		if ($code !== 0) {
@@ -459,6 +494,47 @@ function job_nginx(array $recipe, $remove)
 	}
 	list($code, $url) = store_run(['php', $sites, 'url', $data, $nginx['name']]);
 	return $code === 0 ? trim($url) : '';
+}
+
+// What WD's installer's status (/tmp/upload_apkg_status) says about a failed install
+function job_installer_reason($result)
+{
+	if ($result === '') {
+		return 'it stopped without saying how it went';
+	}
+	if ($result === '100') {
+		return 'it unpacked the package, but didn\'t finish installing it';
+	}
+	if ($result === '3') {
+		// (seen when the NAS's app service was stuck: after unpacking, nothing ran for 2 minutes - restarting the NAS cured it)
+		return 'it unpacked the package, then gave up without running its install steps (status 3) - if it happens again, restart the NAS before trying again';
+	}
+	return 'status ' . $result . ' - see /tmp/debug_apkg';
+}
+
+// The app's own install steps' lines (in /tmp/debug_apkg) since the installer started, if any
+function job_installer_log($from)
+{
+	$log = (string)@file_get_contents('/tmp/debug_apkg', false, null, $from);
+	$lines = array_slice(array_filter(array_map('trim', explode("\n", $log)), 'strlen'), -20);
+	job_log($lines ? 'Its install steps logged:' : 'None of its install steps ran (nothing in /tmp/debug_apkg)');
+	foreach ($lines as $line) {
+		job_log('    ' . $line);
+	}
+}
+
+// Puts the app's files back after a failed install and starts them (as the NAS does when it starts): ' - ' and what was
+// done, for the failure's message
+function job_put_back($id, $folder, $previous)
+{
+	if (file_exists($folder) || !is_dir($previous) || !rename($previous, $folder)) {
+		return ' - the previous version could not be put back (it\'s kept in ' . $previous . ')';
+	}
+	job_log('Putting the previous version back and starting it');
+	$ok = (!is_file($folder . '/init.sh') || job_run(['sh', $folder . '/init.sh', $folder]) === 0)
+		&& (!is_file($folder . '/start.sh') || job_run(['sh', $folder . '/start.sh', $folder]) === 0);
+	return ' - the previous version was put back' . ($ok ? ' and started' : ', but didn\'t start (see /tmp/debug_apkg)')
+		. '. The NAS\'s app list may only show it again after the NAS restarts';
 }
 
 function job_store_env(array $spec, $data, $version, $previous = null)
@@ -524,10 +600,10 @@ function job_recipe_install(array $spec)
 	if (job_hook($recipe, $data, 'post_install', $env, $store_env) !== 0) {
 		job_log('Warning: its post_install step failed');
 	}
-	$url = job_nginx($recipe, false);
 	store_write_json($data . '/.store/installed.json', ['id' => $recipe['id'], 'name' => $recipe['name'], 'repo' => $repo['url'],
 		'version' => $recipe['version'], 'project' => $recipe['project'], 'installed' => store_now(), 'updated' => store_now(),
 		'values' => store_public_values($recipe, $values)]);
+	$url = job_nginx($recipe, false);
 	store_rmtree($staging);
 	$ready = job_wait_ready($recipe);
 	return $recipe['name'] . ($ready ? ' is installed and ready' : ' is installed but still starting') . ($url !== '' ? ' - ' . $url : (isset($recipe['web']['port']) ? ' - http://' . store_nas()['ip'] . ':' . $recipe['web']['port'] . '/' : ''));
@@ -635,8 +711,8 @@ function job_recipe_uninstall(array $spec)
 	if (job_compose($recipe, $data, ['down']) !== 0) {
 		job_fail('Docker could not remove its containers');
 	}
-	job_nginx($recipe, true);
 	@unlink($data . '/.store/installed.json');
+	job_nginx($recipe, true);
 	$kept = [];
 	// The folders chosen for deletion (only those the Store created, never those kept by the recipe)
 	$keep = isset($recipe['uninstall']['keep']) && is_array($recipe['uninstall']['keep']) ? $recipe['uninstall']['keep'] : [];

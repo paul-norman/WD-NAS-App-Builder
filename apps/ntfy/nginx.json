@@ -1,0 +1,6 @@
+{
+	"name": "ntfy",
+	"label": "ntfy",
+	"target": "http://127.0.0.1:2586",
+	"stream": true
+}

@@ -79,9 +79,13 @@ patch_wd_files() {
 	done
 }
 
+# Only the app's own copies: other apps mount theirs over WD's pages too (e.g. the Store's Apps page, addons/app.php)
 unpatch_wd_files() {
-	for mnt in $(awk -v pages="${WD_PAGES}/" 'index($2, pages) == 1 { print $2 }' /proc/mounts); do
-		umount "${mnt}" 2>/dev/null || umount -l "${mnt}"
+	for file in cgi_api.php restSDK/cloudAccess.php $(cd "${PATCHED}" 2>/dev/null && find . -type f -name '*.php' | sed 's|^\./||'); do
+		mnt="${WD_PAGES}/${file}"
+		while awk -v mnt="${mnt}" '$2 == mnt { found = 1 } END { exit !found }' /proc/mounts; do
+			umount "${mnt}" 2>/dev/null || umount -l "${mnt}" || break
+		done
 	done
 }
 

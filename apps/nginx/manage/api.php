@@ -183,7 +183,6 @@ if ($action === 'status') {
 			'version' => is_executable($php_fpm) && preg_match('/^PHP (\S+)/m', manage_run([$php_fpm, '-n', '-v'])[1], $m) ? $m[1] : '',
 			'running' => manage_pid_running($data_path . '/logs/php-fpm.pid'),
 		],
-		'known' => array_keys(sites_known_apps()),
 		'own_sites' => sites_own_names($data_path),
 		'nas_ip' => ng_nas_ip(),
 		'job_running' => ng_job_running($job_pid_file),
@@ -212,19 +211,35 @@ if ($action === 'save_apps') {
 	if (!is_array($apps)) {
 		manage_fail(400, 'No apps given');
 	}
+	$settings = sites_load($data_path);
+	// The declared apps (by their app): only whether each is on, its name and its label are the user's
+	$declared = [];
+	foreach ($settings['apps'] as $app) {
+		if (isset($app['app'])) {
+			$declared[$app['app']] = $app;
+		}
+	}
 	$checked = [];
 	$names = [];
 	foreach ($apps as $app) {
+		$id = isset($app['app']) && is_string($app['app']) ? $app['app'] : '';
 		$app = [
 			'name' => strtolower(trim((string)(isset($app['name']) ? $app['name'] : ''))),
 			'label' => trim((string)(isset($app['label']) ? $app['label'] : '')),
 			'target' => trim((string)(isset($app['target']) ? $app['target'] : '')),
 			'host' => trim((string)(isset($app['host']) ? $app['host'] : '')),
 			'path' => trim((string)(isset($app['path']) ? $app['path'] : '')),
+			'start' => trim((string)(isset($app['start']) ? $app['start'] : '')),
 			'stream' => !empty($app['stream']),
 			'uploads' => !empty($app['uploads']),
 			'enabled' => !empty($app['enabled']),
 		];
+		if (isset($declared[$id])) {
+			$app = sites_declared_app($id, $app, $declared[$id]);
+			unset($declared[$id]);
+		} elseif ($id !== '') {
+			continue;
+		}
 		if ($app['label'] === '') {
 			$app['label'] = $app['name'];
 		}
@@ -242,13 +257,13 @@ if ($action === 'save_apps') {
 	if ($home !== '' && !isset($names[$home])) {
 		manage_fail(400, 'Choose one of the apps for the domain itself: ' . $home);
 	}
-	$settings = sites_load($data_path);
 	foreach ($settings['sites'] as $site) {
 		if (isset($names[$site['name']])) {
 			manage_fail(400, 'A site already uses this name: ' . $site['name']);
 		}
 	}
-	$settings['apps'] = $checked;
+	// (a declared app left out is kept as it was)
+	$settings['apps'] = array_merge($checked, array_values($declared));
 	$settings['home'] = $home;
 	if (!manage_write_file($data_path . '/apps.json', json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n")) {
 		manage_fail(500, 'Could not save the apps');

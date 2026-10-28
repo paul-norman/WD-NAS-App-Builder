@@ -15,6 +15,7 @@ apps/*/*.xml
 toolchains/*/work*
 local.mk
 
+.claude
 .idea
 .env
 *.DS_Store

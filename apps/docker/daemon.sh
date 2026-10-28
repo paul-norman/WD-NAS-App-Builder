@@ -250,20 +250,15 @@ docker_start() {
 }
 
 docker_stop() {
-	# Stop all containers
-	containers="$(${DOCKER} ps -q 2>/dev/null)"
-	if [ -n "${containers}" ]; then
-		log "Stopping containers: $(echo ${containers})"
-		${DOCKER} stop ${containers} > /dev/null
-	fi
-
-	# Stop docker and wait for it (and the containerd it manages) to exit before anything is unmounted
+	# Stop docker, which stops its containers itself (each within its own stop timeout), and wait for it (and the
+	# containerd it manages) to exit before anything is unmounted. Not "docker stop": containers stopped that way count as
+	# stopped by the user, so those with "restart: unless-stopped" (e.g. the Store's recipes) wouldn't start again
 	pid="$(docker_pid)"
 	if [ -n "${pid}" ]; then
-		log "Stopping Docker PID: ${pid}"
+		log "Stopping Docker PID: ${pid} (and its containers: $(echo $(${DOCKER} ps -q 2>/dev/null)))"
 		kill "${pid}"
-		if ! wait_for_exit "${pid}" 30; then
-			log "Docker did not stop within 30 seconds, killing it"
+		if ! wait_for_exit "${pid}" 90; then
+			log "Docker did not stop within 90 seconds, killing it"
 			kill -9 "${pid}" 2>/dev/null
 			wait_for_exit "${pid}" 5
 		fi

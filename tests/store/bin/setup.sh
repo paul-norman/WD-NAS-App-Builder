@@ -32,7 +32,14 @@ req -H "$ADMIN" $B/index.php >/dev/null; C=$(sed -n 's/.*var csrf = "\([0-9a-f]*
 post() { a=$1; shift; req -H "$ADMIN" -H "X-CSRF-Token: $C" -X POST "$@" "$B/api.php?action=$a"; }
 get() { req -H "$ADMIN" "$B/api.php?action=$1$2"; }
 # Waits for the running job, then prints its state and message
+# (the job starts in the background: until its status is written, the previous job's is read - so a new job id is waited
+# for first, for up to 30 seconds)
 job_wait() {
-	for i in $(seq 1 900); do get job >/dev/null; [ "$(j '$d["job"]["state"] ?? ""')" != '"running"' ] && break; sleep 1; done
-	JOB_STATE=$(j '$d["job"]["state"]'); JOB_MSG=$(j '$d["job"]["message"]')
+	for i in $(seq 1 900); do
+		get job >/dev/null
+		JOB_ID=$(j '$d["job"]["id"] ?? ""')
+		[ "$JOB_ID" = "${LAST_JOB_ID:-}" ] && [ "$i" -le 30 ] && { sleep 1; continue; }
+		[ "$(j '$d["job"]["state"] ?? ""')" != '"running"' ] && break; sleep 1
+	done
+	LAST_JOB_ID=$JOB_ID; JOB_STATE=$(j '$d["job"]["state"]'); JOB_MSG=$(j '$d["job"]["message"]')
 }

@@ -68,6 +68,17 @@ post start -d job=app_update -d repo=$REPO -d id=python >/dev/null; job_wait
 get job >/dev/null; W=$(j '$d["log"]' | grep -o "It's ready (answered after [0-9]* seconds)")
 [ "$JOB_STATE" = '"done"' ] && [ -n "$W" ] && [ "$(echo "$W" | grep -o '[0-9][0-9]*')" -ge 3 ] && pass "waited for its web interface before saying it's installed: $W" || fail "web wait: $JOB_STATE $JOB_MSG $(j '$d["log"]' | tail -c 300)"
 pkill -f "http.server 18999"
+# WD's installer giving up after the old version was removed: the old one put back and started (its own init/start)
+printf 'echo init >> /tmp/python_ran\n' > $P/python/init.sh; printf 'echo start >> /tmp/python_ran\n' > $P/python/start.sh; rm -f /tmp/python_ran
+python3 /tbin/repotool.py set-app /www/repo python web 'null'; python3 /tbin/repotool.py set-app /www/repo python version '"99.3"'; post refresh >/dev/null
+touch /tmp/upload_apkg_gives_up; post start -d job=app_update -d repo=$REPO -d id=python >/dev/null; job_wait; rm -f /tmp/upload_apkg_gives_up
+get job >/dev/null; LOG=$(j '$d["log"]')
+[ "$JOB_STATE" = '"failed"' ] && echo "$JOB_MSG" | grep -q "status 3" && echo "$JOB_MSG" | grep -q "previous version was put back and started" && grep -q "99.2" $P/python/apkg.rc \
+	&& [ "$(cat /tmp/python_ran 2>/dev/null | tr '\n' ' ')" = "init start " ] && echo "$LOG" | grep -q "None of its install steps ran" && [ ! -d $P/_store/previous/python ] \
+	&& pass "installer gave up after the old version was removed: put back (99.2) and started - $JOB_MSG" || fail "put back: $JOB_STATE $JOB_MSG $(ls $P/_store/previous 2>&1) $(cat /tmp/python_ran 2>&1)"
+sh /tbin/apkg_xml.sh
+post start -d job=app_update -d repo=$REPO -d id=python >/dev/null; job_wait
+[ "$JOB_STATE" = '"done"' ] && grep -q "99.3" $P/python/apkg.rc && [ ! -d $P/_store/previous/python ] && pass "updated afterwards, its kept copy gone: $JOB_MSG" || fail "update after put back: $JOB_STATE $JOB_MSG"
 python3 /tbin/repotool.py set-app /www/repo nano version '"99.0"'; post refresh >/dev/null
 post start -d job=app_update -d repo=$REPO -d id=nano >/dev/null; job_wait
 [ "$JOB_STATE" = '"failed"' ] && grep -q -v "99.0" $P/nano/apkg.rc && pass "nano (no keeps_data) not updated by the Store: $JOB_MSG" || fail "nano update: $JOB_STATE $JOB_MSG"

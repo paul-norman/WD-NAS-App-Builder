@@ -55,13 +55,18 @@ ST=$(curl -s -H 'Cookie: PHPSESSID=adminsession123' -H 'X-Requested-With: XMLHtt
 echo "$ST" | grep -q '8\.5' && echo "$ST" | grep -q 'cgi_api.php' && pass "the page's status: PHP 8.5 serving, the patched files" || fail "page: $(echo "$ST" | head -c 300)"
 
 echo "== switched back (stopped), and again"
+# Another app's copy over one of WD's pages (as the Store's Apps page is), which must stay
+mkdir -p $PAGES/addons; [ -f $PAGES/addons/app.php ] || echo '<?php echo "wd apps";' > $PAGES/addons/app.php
+echo '<?php echo "store apps";' > /tmp/store_app.php; mount --bind /tmp/store_app.php $PAGES/addons/app.php
 sh $P/php/stop.sh $P/php > /tmp/stop.log 2>&1
-wait_serving 60 $WD_FPM && cmp -s /etc/php/php.ini /tmp/php.ini.before && [ -z "$(awk -v p="$PAGES/" 'index($2, p) == 1' /proc/mounts)" ] \
+wait_serving 60 $WD_FPM && cmp -s /etc/php/php.ini /tmp/php.ini.before && [ "$(awk -v p="$PAGES/" 'index($2, p) == 1 { print $2 }' /proc/mounts)" = "$PAGES/addons/app.php" ] \
 	&& page cgi_api.php "a=3" | grep -q "^PHP 7.4.* cgi_api ok query=a=3" && [ "$(readlink /usr/bin/php)" = /usr/local/modules/usr/bin/php ] \
 	&& pass "back to WD's PHP 7.4: php.ini byte for byte as before, WD's pages unpatched, /usr/bin/php WD's" || fail "restore: $(serving) $(diff /tmp/php.ini.before /etc/php/php.ini | head -n 5)"
 sh $P/php/start.sh $P/php > /dev/null 2>&1
 wait_serving 60 $APPFPM && page cgi_api.php | grep -q "^PHP 8.5" && [ "$(grep -c 'added by the php app' /etc/php/php.ini)" = 1 ] \
 	&& pass "switched to 8.5 again (its settings in php.ini once)" || fail "re-enable: $(serving)"
+grep -q "store apps" $PAGES/addons/app.php && pass "another app's copy of a WD page (the Store's Apps page) kept through both switches" || fail "the other app's page was unmounted"
+umount $PAGES/addons/app.php
 
 echo "== falling back to 7.4 when 8.5 can't serve"
 sh $P/php/stop.sh $P/php > /dev/null 2>&1; wait_serving 60 $WD_FPM

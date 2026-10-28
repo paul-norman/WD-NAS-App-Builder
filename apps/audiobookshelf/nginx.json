@@ -1,0 +1,7 @@
+{
+	"name": "audiobooks",
+	"label": "Audiobookshelf",
+	"target": "http://127.0.0.1:13378",
+	"stream": true,
+	"uploads": true
+}

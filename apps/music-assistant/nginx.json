@@ -1,0 +1,6 @@
+{
+	"name": "music",
+	"label": "Music Assistant",
+	"target": "http://127.0.0.1:8095",
+	"stream": true
+}

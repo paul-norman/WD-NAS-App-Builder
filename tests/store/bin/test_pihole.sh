@@ -51,7 +51,9 @@ sleep 2; BLOCKED=$(dns ads.example.org)
 [ "$BLOCKED" = 0.0.0.0 ] && pass "a blocked name answered with 0.0.0.0 (ads.example.org, on its deny list)" || fail "blocking: $BLOCKED"
 [ "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' http://127.0.0.1:18053/admin/)" = "302 http://127.0.0.1:18053/admin/login" ] \
 	&& [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18053/admin/login)" = 200 ] && pass "the dashboard answers on :18053/admin/ (its login page)" || fail "dashboard"
-grep -q 'proxy_pass       http://127.0.0.1:18053' $P/_nginx/sites/60-app-pihole.conf 2>/dev/null && pass "Nginx pihole site" || fail "nginx: $(ls $P/_nginx/sites 2>&1)"
+SITE=$P/_nginx/sites/60-app-pihole.conf
+grep -q 'proxy_pass       http://127.0.0.1:18053' $SITE 2>/dev/null && grep -q '    location / {' $SITE && grep -q 'return 302 /admin/;' $SITE \
+	&& pass "Nginx pihole site: / goes to /admin/, every path passed on (its login calls /api)" || fail "nginx: $(ls $P/_nginx/sites 2>&1) $(grep location $SITE 2>&1)"
 
 echo "== removed"
 post start -d job=recipe_uninstall -d id=pihole-ports -d delete_data=1 --data-urlencode "delete=[]" >/dev/null; job_wait

@@ -7,6 +7,8 @@ P="$(cat /etc/store_test_volume)/Nas_Prog"
 bin="/usr/local/apps_upload/$file"
 if [ ! -f "$bin" ]; then echo 3 > /tmp/upload_apkg_status; exit 0; fi
 id=${file%%_*}; rest=${file#*_}; version=${rest%_*}
+# (as WD's did when its app service was stuck: the package unpacked, then nothing run, status 3)
+if [ -f /tmp/upload_apkg_gives_up ]; then echo 3 > /tmp/upload_apkg_status; exit 0; fi
 if [ -d "$P/$id" ]; then echo 4 > /tmp/upload_apkg_status; exit 0; fi
 # (shaped like this project's apps: a page in the dashboard)
 mkdir -p "$P/$id"; printf 'Package:\t\t\t%s\nVersion:\t\t\t%s\nAddonShowName:\t\t%s\nDescription:\t\t%s for testing\nIcon:\t\t\t\t%s.svg\nAddonIndexPage:\t\tindex.php\nCenterType:\t\t\t1\n' "$id" "$version" "$id" "$id" "$id" > "$P/$id/apkg.rc"

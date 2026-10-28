@@ -1,12 +1,12 @@
 <?php
 // Navidrome's address in the Nginx app. Used by the management page, and by navidrome_ctl.sh through the NAS's PHP CLI
 // (WD's PHP 7.4, or the PHP app's 8.5), so it must work on both:
-//     php navidrome.php url <apps path>    - prints Navidrome's address (e.g. https://music.nas.example.com/), if any
+//     php navidrome.php url <apps path>    - prints Navidrome's address (e.g. https://navidrome.nas.example.com/), if any
 
 const NAVIDROME_TARGET = 'http://127.0.0.1:4533';
 
 // Where the Nginx app serves Navidrome: ['state' => ok|no_nginx|no_domain|off, 'url' => address or '']. It's the
-// enabled app whose target is Navidrome's port (offered by the Nginx app as "music", but it can be renamed)
+// enabled app whose target is Navidrome's port (offered by the Nginx app as "navidrome", but it can be renamed)
 function navidrome_site($apps_path)
 {
 	$sites = $apps_path . '/nginx/lib/sites.php';

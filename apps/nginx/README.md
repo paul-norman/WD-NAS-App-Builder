@@ -28,12 +28,13 @@ If the domain has a wildcard CNAME *(e.g. `*.example.com → example.com`)*, leg
 
 ### Assigning apps pretty URLs
 
-- **Apps** - the installed apps with a web interface are listed, each reached at `https://<app_name>.<domain>` - except the NAS's dashboard, which is at the domain itself *(`https://<domain>` - its own login still applies)*. Which app the domain shows can be changed on the page *(or set to the start page)*. They can be renamed or switched off, and other addresses added *(anything on the network, e.g. a router)*. Each has two options, set already for the apps that need them:
+- **Apps** - the installed apps with a web interface are listed, each reached at `https://<app_name>.<domain>` - except the NAS's dashboard, which is at the domain itself *(`https://<domain>` - its own login still applies)*. Which app the domain shows can be changed on the page *(or set to the start page)*. Each app brings its own site *(see [below](#how-apps-bring-their-own-site))*: it can be renamed or switched off, and the rest is the app's, kept up to date as the app changes. Other addresses can be added *(anything on the network, e.g. a router)*, with these options:
 
+  - **Host** - the name sent to the app, for apps that check it *(e.g. Syncthing: `localhost`)*;
+  - **Path** - only this path is passed on *(e.g. `/phpMyAdmin/`)*, and the site's root goes to it;
+  - **Start** - the page the site's root goes to, with every path still passed on *(e.g. Pi-hole's `/admin/`, whose pages call its `/api`)*;
   - **Uploads** - no size limit on requests, and long ones allowed *(e.g. photos and videos, git pushes)*;
   - **Streaming** - each response passed on as it comes, and connections kept open *(e.g. music, notifications, live updates)*.
-
-  Other apps, [Docker recipes](../../recipes/README.md) and the planned Store add their own site the same way *(below)*.
 - **Certificate** - a wildcard certificate for the domain *(`domain` and `*.domain`)*:
   - **From an ACME CA, using a DNS-01 challenge:** lego briefly adds a TXT record through the DNS provider's API, so nothing on the NAS has to be reachable from the internet. Every DNS provider lego supports can be chosen *(over 200, e.g. Cloudflare, Route 53, Gandi, OVH, Hetzner, deSEC, Duck DNS)*: the page builds each provider's form from lego's own description of it. Credentials are saved root-only and never shown again. It's tried on the CA's staging server first *(where it has one)*, and renewed automatically *(checked daily; the NAS shows an alert if renewal fails)*.
   - **Your own certificate**, pasted in *(PEM)*.
@@ -43,9 +44,29 @@ If the domain has a wildcard CNAME *(e.g. `*.example.com → example.com`)*, leg
 - **Local DNS** - the records to add *(e.g. to Pi-hole or a router)* so that devices find the NAS under those names.
 - **Start page** - `https://apps.<domain>` lists every app and site *(`apps` is kept for it - apps and sites can't use that name)*. It also answers for any name without a site of its own.
 
-## Adding a site from another app
+## How apps bring their own site
 
-If you are a developer and create your own web services, apps and scripts can add, update and remove their own site, without editing `apps.json`:
+Each app declares its site, and the Nginx app reads the declarations every time it writes its sites *(when it starts, when the page saves, and when an app runs `sites.php generate`)*:
+
+- **An app** ships `nginx.json` in its package *(so it's at `Nas_Prog/<app>/nginx.json`)*, with the fields above - `name` *(the one it's offered as)*, `label`, `target`, and any of `host`, `path`, `start`, `uploads` and `stream`:
+
+  ```json
+  {
+  	"name": "git",
+  	"label": "Forgejo",
+  	"target": "http://127.0.0.1:3002",
+  	"uploads": true
+  }
+  ```
+
+- **A [Docker recipe](../../recipes/README.md)** installed by the Store: its `recipe.json`'s `web` block *(`port`, `path` as its start page, and `nginx`: `name`, `uploads`, `stream`)*, read from the recipe's folder.
+- **The NAS's dashboard and Plex** *(packaged by Plex)* are built in, as are this project's apps installed before they shipped `nginx.json` *(only while their folder has none)*.
+
+Only whether each is on, its name and its label are the user's *(on the page)*. When an app's needs change, its update changes its site. When it's removed, its site goes *(its name and label are kept for a reinstall)*. An app whose name is already taken is offered as `<name>-2`. A declaration that isn't valid is ignored. An app should run `php <Nginx app>/lib/sites.php generate <its data>` and reload Nginx when it's installed or removed, so that its site comes or goes straight away.
+
+## Adding a site from a script
+
+Scripts can also add, update and remove a site, without editing `apps.json`:
 
 ```sh
 php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php add-app /mnt/HD/HD_a2/Nas_Prog/_nginx photos http://127.0.0.1:2283 "Immich" --uploads
@@ -54,8 +75,8 @@ php /mnt/HD/HD_a2/Nas_Prog/nginx/lib/sites.php remove-app /mnt/HD/HD_a2/Nas_Prog
 sh /mnt/HD/HD_a2/Nas_Prog/nginx/nginx_ctl.sh reload
 ```
 
-- `add-app <data> <name> <target> [<label>]` takes `--uploads`, `--stream`, `--host=<host>` and `--path=<path>` *(as on the page)*. Adding a name that's already there with the same target updates it, keeping whether it's switched on; a name used for another target, or by one of your sites, is refused.
-- `remove-app` removes it *(an app the page offers by itself is switched off instead, as it would come back while it's installed)*.
+- `add-app <data> <name> <target> [<label>]` takes `--uploads`, `--stream`, `--host=<host>`, `--path=<path>` and `--start=<path>` *(as on the page)*. Adding a name that's already there with the same target updates it, keeping whether it's switched on; a name used for another target, or by one of your sites, is refused.
+- `add-app` and `remove-app` leave an app's own site *(above)* as it is: its app decides.
 - `url` prints its address, or nothing *(exit status 1)* while it has none - no domain set yet, or switched off.
 
 ## Sites and PHP
