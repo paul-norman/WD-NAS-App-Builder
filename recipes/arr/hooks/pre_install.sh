@@ -1,6 +1,7 @@
 #!/bin/sh
 # Before a new install (the Store's pre_install hook, also run by setup.sh): the ports the apps use must be free on the
-# NAS, and Seerr's settings folder must be its user's (it doesn't run as root, unlike the other images' set-up). Run in
+# NAS, and Seerr's and Recyclarr's settings folders must be their user's (they don't run as root, unlike the other images'
+# set-up). Run in
 # the recipe's folder, with .env's variables in the environment.
 
 # Whether a TCP port (in hex) is in use, from the kernel's own tables
@@ -21,6 +22,6 @@ check Radarr 7878; check Bazarr 6767; check Seerr 5055
 [ "${BOOKS}" = on ] && check Bookshelf 8787
 [ "${SABNZBD}" = on ] && check SABnzbd 8085
 
-mkdir -p "${CONFIG_ROOT}/seerr"
-chown "${PUID}:${PGID}" "${CONFIG_ROOT}/seerr"
+mkdir -p "${CONFIG_ROOT}/seerr" "${CONFIG_ROOT}/recyclarr"
+chown "${PUID}:${PGID}" "${CONFIG_ROOT}/seerr" "${CONFIG_ROOT}/recyclarr"
 echo "The ports are free"

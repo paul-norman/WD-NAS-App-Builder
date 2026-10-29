@@ -98,14 +98,17 @@ php $P/nginx/lib/sites.php remove-app $D hello > /dev/null 2>&1 && sh $P/nginx/n
 echo "== sites declared by the apps (nginx.json) and the Store's recipes (their recipe.json)"
 mkdir -p $P/hello $P/_recipe/.store/recipe
 printf '{"name": "hi", "label": "Hello app", "target": "http://127.0.0.1:18081", "uploads": true}\n' > $P/hello/nginx.json
-printf '{"name": "Recipe", "web": {"port": 18081, "path": "/admin/", "nginx": {"name": "rcp", "stream": true}}}\n' > $P/_recipe/.store/recipe/recipe.json
-echo '{}' > $P/_recipe/.store/installed.json
+printf '{"name": "Recipe", "web": {"port": 18081, "path": "/admin/", "nginx": {"name": "rcp", "stream": true}, "sites": [{"name": "rcp-two", "label": "Its second app", "port": 18081}, {"name": "rcp-opt", "port": 18081, "if": "OPTIONAL"}]}}\n' > $P/_recipe/.store/recipe/recipe.json
+echo '{"values": {"OPTIONAL": false}}' > $P/_recipe/.store/installed.json
 php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1 && sh $P/nginx/nginx_ctl.sh reload > /dev/null 2>&1
 [ "$(site hi.$DOMAIN | j '$d["app"]')" = '"hello"' ] && grep -q "client_max_body_size    0" $D/sites/60-app-hi.conf \
 	&& [ "$(site_path rcp.$DOMAIN /api/auth | j '$d["path"]')" = '"/api/auth"' ] && [ "$(site rcp.$DOMAIN -o /dev/null -w '%{http_code} %{redirect_url}')" = "302 https://rcp.$DOMAIN/admin/" ] \
 	&& grep -q "proxy_buffering         off" $D/sites/60-app-rcp.conf \
-	&& pass "an app's nginx.json and a recipe's web block each give it its site, with their options (a recipe opens at its path, every path passed on)" \
+	&& [ "$(site rcp-two.$DOMAIN | j '$d["app"]')" = '"hello"' ] && [ ! -f $D/sites/60-app-rcp-opt.conf ] \
+	&& pass "an app's nginx.json and a recipe's web block each give it its site, with their options (a recipe opens at its path, every path passed on); a recipe's other sites too, an optional one only when switched on" \
 	|| fail "declared: $(ls $D/sites | tr '\n' ' ') $(site_path rcp.$DOMAIN /api/auth | head -c 200)"
+echo '{"values": {"OPTIONAL": true}}' > $P/_recipe/.store/installed.json; php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1 && sh $P/nginx/nginx_ctl.sh reload > /dev/null 2>&1
+[ "$(site rcp-opt.$DOMAIN | j '$d["app"]')" = '"hello"' ] && pass "the optional one once its setting is on" || fail "optional recipe site: $(ls $D/sites | tr '\n' ' ')"
 APPS=$(get status | j '$d["apps"]' | php -r '$a=json_decode(stream_get_contents(STDIN),true); foreach ($a as &$x) { if (isset($x["app"]) && $x["app"]==="hello") { $x["name"]="hey"; $x["label"]="Hey"; $x["target"]="http://127.0.0.1:9"; $x["uploads"]=false; } } echo json_encode($a);')
 R=$(post save_apps --data-urlencode "apps=$APPS" -d home=gui)
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(site hey.$DOMAIN | j '$d["app"]')" = '"hello"' ] && grep -q "client_max_body_size    0" $D/sites/60-app-hey.conf && [ ! -f $D/sites/60-app-hi.conf ] \

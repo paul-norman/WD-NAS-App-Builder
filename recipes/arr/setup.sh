@@ -5,7 +5,7 @@
 # It copies compose.yaml to /mnt/HD/HD_a2/Nas_Prog/_arr, creates .env there from example.env (with a generated password,
 # shown once, and API keys - only the first time: an existing .env is kept), checks the ports, starts the apps, connects
 # them to each other (hooks/wire.py - as the Store does), and adds Seerr's site to the Nginx app
-# (https://requests.<domain>), if installed. Running it again is safe, and applies changes made to .env.
+# (https://seerr.<domain>, radarr. ...), if installed. Running it again is safe, and applies changes made to .env.
 # (It's the manual way: the Store app installs recipes from recipe.json, with a wizard - see store/SPEC.md)
 
 set -e
@@ -72,7 +72,7 @@ with_env() {
 if [ -z "$(docker compose ps -q 2>/dev/null)" ]; then
 	with_env sh "${RECIPE_PATH}/hooks/pre_install.sh"
 else
-	with_env sh -c 'mkdir -p "${CONFIG_ROOT}/seerr" && chown "${PUID}:${PGID}" "${CONFIG_ROOT}/seerr"'
+	with_env sh -c 'mkdir -p "${CONFIG_ROOT}/seerr" "${CONFIG_ROOT}/recyclarr" && chown "${PUID}:${PGID}" "${CONFIG_ROOT}/seerr" "${CONFIG_ROOT}/recyclarr"'
 fi
 
 echo "Starting the Arr stack (the first time, Docker downloads about 3GB of images - this takes a while)"
@@ -81,14 +81,22 @@ docker compose up -d
 echo "Connecting the apps to each other"
 with_env sh "${RECIPE_PATH}/hooks/wire.sh" || true
 
-# Seerr's site in the Nginx app, if installed - as the Store does for recipe.json's web.nginx
+# Each app's site in the Nginx app, if installed - as the Store has it read from recipe.json's web block (the optional
+# apps' only while they're on)
 if [ -f "${APPS_PATH}/nginx/lib/sites.php" ] && [ -d "${APPS_PATH}/_nginx/sites" ]; then
-	if php "${APPS_PATH}/nginx/lib/sites.php" add-app "${APPS_PATH}/_nginx" requests http://127.0.0.1:5055 "Seerr"; then
-		sh "${APPS_PATH}/nginx/nginx_ctl.sh" reload > /dev/null 2>&1
-		url="$(php "${APPS_PATH}/nginx/lib/sites.php" url "${APPS_PATH}/_nginx" requests)" \
-			&& echo "Added Seerr's site to the Nginx app: ${url}" \
-			|| echo "Added Seerr's site to the Nginx app (requests.<domain>, once a domain is set on its page)"
-	fi
+	for site in "seerr 5055 Seerr" "radarr 7878 Radarr" "sonarr 8989 Sonarr" "prowlarr 9696 Prowlarr" "bazarr 6767 Bazarr" \
+		"qbittorrent 8090 qBittorrent" "lidarr 8686 Lidarr LIDARR" "bookshelf 8787 Bookshelf BOOKS" "sabnzbd 8085 SABnzbd SABNZBD"; do
+		set -- ${site}
+		if [ -n "$4" ] && [ "$(setting "$4")" != on ]; then
+			php "${APPS_PATH}/nginx/lib/sites.php" remove-app "${APPS_PATH}/_nginx" "$1" > /dev/null 2>&1
+			continue
+		fi
+		php "${APPS_PATH}/nginx/lib/sites.php" add-app "${APPS_PATH}/_nginx" "$1" "http://127.0.0.1:$2" "$3" > /dev/null
+	done
+	sh "${APPS_PATH}/nginx/nginx_ctl.sh" reload > /dev/null 2>&1
+	url="$(php "${APPS_PATH}/nginx/lib/sites.php" url "${APPS_PATH}/_nginx" seerr)" \
+		&& echo "Added the apps' sites to the Nginx app: ${url} (and radarr., sonarr. ...)" \
+		|| echo "Added the apps' sites to the Nginx app (seerr.<domain> and the others, once a domain is set on its page)"
 fi
 
 echo "Done. Next: add indexers in Prowlarr (http://<nas-ip>:9696), then open Seerr (http://<nas-ip>:5055) to choose your media server"

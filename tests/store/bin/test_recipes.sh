@@ -20,8 +20,12 @@ BAD='{"SITE_FOLDER":"/etc","EXTRA":["'$P'"],"GREETING":"x","LOUD":false,"COLOUR"
 [ "$(post start -d job=recipe_install -d repo=$REPO -d id=hello --data-urlencode "answers=$BAD")" = 400 ] && pass "bad answers refused before starting: $(j 'implode(" | ", array_map(function($k,$v){return "$k: $v";}, array_keys($d["fields"]), $d["fields"]))' | cut -c1-400)" || fail "bad: $(cat /tmp/body)"
 GOOD='{"SITE_FOLDER":"'$V'/Public/hello-site","EXTRA":["'$V'/Public/photos1","'$V'/Public/Paul'"'"'s Photos"],"GREETING":"Hi $HOME '"'"'q'"'"' #hash","LOUD":true,"COLOUR":"red","TZ":"Europe/Paris","ADMIN_PASSWORD":"secret-pass-1"}'
 echo "== install"
+docker rmi -f busybox:1.36 > /dev/null 2>&1
 post start -d job=recipe_install -d repo=$REPO -d id=hello --data-urlencode "answers=$GOOD" >/dev/null; job_wait
 [ "$JOB_STATE" = '"done"' ] && pass "installed: $JOB_MSG" || { fail "install: $JOB_STATE $JOB_MSG"; get job >/dev/null; j '$d["log"]' | tail -20; }
+get job >/dev/null; L=$(j '$d["log"]' | tr '\\' '\n')
+echo "$L" | grep -q "Pulled" && ! echo "$L" | grep -q -E "[0-9a-f]{12} (Downloading|Extracting|Pull complete|Pulling fs layer)" \
+	&& pass "the download in the log: each image pulled, not each layer's progress ($(echo "$L" | grep -c "") lines)" || fail "pull log: $(echo "$L" | grep -E "Pull|Extract" | head -5)"
 get job >/dev/null; j '$d["log"]' | grep -q "It's ready (answered after" && echo "$JOB_MSG" | grep -q "is installed and ready" && pass "waited for its web interface: $(j '$d["log"]' | grep "It's ready")" || fail "ready: $JOB_MSG"
 PAGE=$(curl -s http://127.0.0.1:18081/); echo "  page: $PAGE"
 echo "$PAGE" | grep -qF "Hi \$HOME 'q' #hash red loud=yes v1 extra=Public," && pass ".env values reach the container exactly (\$, quotes, #; boolean as yes)" || fail "page"
@@ -31,6 +35,13 @@ TOKEN1=$(sed -n 's/^TOKEN=//p' $D/.env); [ ${#TOKEN1} = 24 ] && pass "secret gen
 echo "  .env:"; sed 's/^/    /' $D/.env
 grep -c "pwd=$D token_length=24" $D/hooks.log | grep -q 2 && grep -q "^install version=1.0.0-1 previous= " $D/hooks.log && pass "pre/post_install hooks ran in {data} with .env + STORE_* ($(head -1 $D/hooks.log | cut -c1-90))" || fail "hooks: $(cat $D/hooks.log)"
 docker inspect storehello-web-1 --format '{{range .Mounts}}{{.Destination}}={{.RW}} {{end}}' > /tmp/mounts; grep -q "/extra/Public/photos1=false" /tmp/mounts && grep -q "/extra/Public/Paul's Photos=false" /tmp/mounts && pass "extra folders mounted read only: $(cat /tmp/mounts)" || fail "mounts: $(cat /tmp/mounts)"
+# A folder for several services (the same path in each - e.g. Sonarr and Bazarr): checked and written for each
+R=$(STORE_TEST_VOLUME=$V php -r 'require $argv[1]; $o = ["key" => "TV", "type" => "folder", "label" => "TV", "multiple" => true, "mount" => ["service" => ["sonarr", "bazarr"], "target" => "/media"]];
+	$bad = ["key" => "TV", "type" => "folder", "label" => "TV", "mount" => ["service" => ["sonarr", "bad name"], "target" => "/media"]];
+	$text = store_override_text(["options" => [$o]], ["TV" => [$argv[2] . "/Public/TV"]]);
+	echo store_check_option($o) === "" && store_check_option($bad) !== "" && strpos($text, "  sonarr:\n    volumes:") !== false && strpos($text, "  bazarr:\n    volumes:") !== false
+		&& substr_count($text, "target: \"/media/Public/TV\"") === 2 ? "ok" : "no: " . $text;' $P/store/lib/store.php $V)
+[ "$R" = ok ] && pass "a folder mounted into several services, at the same path (a bad service name refused)" || fail "several services: $R"
 [ -f $P/_nginx/sites/60-app-hello.conf ] && grep -q "proxy_buffering         off" $P/_nginx/sites/60-app-hello.conf && echo "$JOB_MSG" | grep -q "https://hello.nas.example.test/" && pass "Nginx site added (stream) and its address shown" || fail "nginx: $(ls $P/_nginx/sites)"
 get job >/dev/null; j '$d["log"]' | grep -q "Extra folders: $V/Public/photos1 is /extra/Public/photos1 in Hello (test)" && pass "mounted folders listed in the log" || fail "mount log: $(j '$d["log"]' | grep -i extra)"
 get details "&kind=recipes&repo=$REPO&id=hello" >/dev/null; [ "$(j '$d["mounts"][1][2]')" = "\"/extra/Public/Paul's Photos\"" ] && pass "details list the folders as the app sees them: $(j '$d["mounts"]')" || fail "mounts: $(j '$d["mounts"]')"

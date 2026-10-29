@@ -30,6 +30,22 @@
 						"uploads": { "type": "boolean" },
 						"stream": { "type": "boolean" }
 					}
+				},
+				"sites": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"required": ["name", "port"],
+						"properties": {
+							"name": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$" },
+							"label": { "type": "string", "maxLength": 60 },
+							"port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+							"path": { "type": "string", "pattern": "^/" },
+							"uploads": { "type": "boolean" },
+							"stream": { "type": "boolean" },
+							"if": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }
+						}
+					}
 				}
 			}
 		},
@@ -83,7 +99,12 @@
 					"required": ["service", "target"],
 					"additionalProperties": false,
 					"properties": {
-						"service": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$" },
+						"service": {
+							"oneOf": [
+								{ "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$" },
+								{ "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$" } }
+							]
+						},
 						"target": { "type": "string", "pattern": "^/(?!(.*/)?\\.\\.?(/|$))[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$" },
 						"read_only": { "type": "boolean" }
 					}

@@ -43,6 +43,16 @@ function store_data_path()
 function store_run(array $command, array $env = [], $cwd = null, $input = '')
 {
 	$env += ['PATH' => '/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin', 'HOME' => getenv('HOME') ?: '/root'];
+	// (a program given by name is found in that PATH: PHP looks for it in the web server's own environment, which PHP-FPM
+	// clears - leaving only /bin:/usr/bin, without e.g. /sbin/ip)
+	if (strpos($command[0], '/') === false) {
+		foreach (explode(':', $env['PATH']) as $dir) {
+			if ($dir !== '' && is_file($dir . '/' . $command[0]) && is_executable($dir . '/' . $command[0])) {
+				$command[0] = $dir . '/' . $command[0];
+				break;
+			}
+		}
+	}
 	$process = @proc_open($command, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['redirect', 1]], $pipes, $cwd, $env);
 	if (!is_resource($process)) {
 		return [-1, 'could not run: ' . $command[0]];
@@ -860,6 +870,18 @@ function store_load_recipe($dir, array $entry)
 				|| !preg_match('/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/', $web['nginx']['name'])))) {
 			$errors[] = 'web isn\'t valid';
 		}
+		// Its other sites in the Nginx app (e.g. each app of a stack): a name, a port, and optionally a label, a path, the
+		// options and the boolean setting that switches it on (if)
+		foreach (is_array($web) && isset($web['sites']) ? (is_array($web['sites']) ? $web['sites'] : [null]) : [] as $site) {
+			if (!is_array($site) || !isset($site['name'], $site['port']) || !is_string($site['name']) || !preg_match('/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/', $site['name'])
+				|| !is_int($site['port']) || $site['port'] < 1 || $site['port'] > 65535
+				|| (isset($site['label']) && (!is_string($site['label']) || mb_strlen($site['label']) > 60))
+				|| (isset($site['path']) && (!is_string($site['path']) || !preg_match('#^/[A-Za-z0-9._~/-]*$#', $site['path'])))
+				|| (isset($site['if']) && (!is_string($site['if']) || !preg_match('/^[A-Z][A-Z0-9_]*$/', $site['if'])))) {
+				$errors[] = 'web.sites isn\'t valid';
+				break;
+			}
+		}
 	}
 	$keys = [];
 	foreach (isset($recipe['options']) && is_array($recipe['options']) ? $recipe['options'] : [] as $option) {
@@ -898,8 +920,12 @@ function store_check_option($option)
 	}
 	if (isset($option['mount'])) {
 		$mount = $option['mount'];
-		if (!is_array($mount) || !isset($mount['service'], $mount['target']) || !is_string($mount['service'])
-			|| !preg_match('/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/', $mount['service'])
+		// (service: one of the compose file's services, or a list of them - the folder at the same path in each)
+		$services = isset($mount['service']) ? (array)$mount['service'] : [];
+		$named = array_filter($services, function ($service) {
+			return is_string($service) && preg_match('/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/', $service);
+		});
+		if (!is_array($mount) || !isset($mount['target']) || !$services || count($named) !== count($services)
 			|| !is_string($mount['target']) || !preg_match(STORE_PATH_PATTERN, substr($mount['target'], 1)) || $mount['target'][0] !== '/') {
 			return "option {$key}: mount isn't valid";
 		}
@@ -1268,9 +1294,11 @@ function store_override_text(array $recipe, array $values)
 			$quote = function ($s) {
 				return '"' . str_replace(['\\', '"', '$'], ['\\\\', '\\"', '$$'], $s) . '"';
 			};
-			$services[$option['mount']['service']][] = "      - type: bind\n        source: " . $quote($folder)
-				. "\n        target: " . $quote(store_mount_target($option['mount']['target'], $folder))
-				. (!empty($option['mount']['read_only']) ? "\n        read_only: true" : '') . "\n";
+			foreach ((array)$option['mount']['service'] as $service) {
+				$services[$service][] = "      - type: bind\n        source: " . $quote($folder)
+					. "\n        target: " . $quote(store_mount_target($option['mount']['target'], $folder))
+					. (!empty($option['mount']['read_only']) ? "\n        read_only: true" : '') . "\n";
+			}
 		}
 	}
 	if (!$services) {

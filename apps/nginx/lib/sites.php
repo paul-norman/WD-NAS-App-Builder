@@ -89,26 +89,50 @@ function sites_declaration($declared, $apps_path = '')
 	return sites_check_app($app) === '' ? $app : null;
 }
 
-// A recipe's declaration, from its recipe.json (web: port, path - where it opens - and nginx: name, uploads, stream)
-function sites_recipe_declaration($folder)
+// A recipe's declarations, from its recipe.json: id => declaration. Its web block's site (port, path - where it opens -
+// and nginx: name, uploads, stream) has the folder's id; each of web.sites (name, label, port, path, uploads, stream, and
+// if: the boolean setting that switches its app on - read from its install record) has <folder>:<name>
+function sites_recipe_declarations($folder)
 {
-	if (!is_file($folder . '/.store/installed.json')) {
-		return null;
+	$installed = json_decode((string)@file_get_contents($folder . '/.store/installed.json'), true);
+	if (!is_array($installed)) {
+		return [];
 	}
 	$recipe = json_decode((string)@file_get_contents($folder . '/.store/recipe/recipe.json'), true);
 	$web = is_array($recipe) && isset($recipe['web']) && is_array($recipe['web']) ? $recipe['web'] : [];
-	if (!isset($web['nginx']['name'], $web['port']) || !is_int($web['port'])) {
-		return null;
+	$values = isset($installed['values']) && is_array($installed['values']) ? $installed['values'] : [];
+	$id = basename($folder);
+	$declared = [];
+	if (isset($web['nginx']['name'], $web['port']) && is_int($web['port'])) {
+		$path = isset($web['path']) && is_string($web['path']) ? $web['path'] : '';
+		$declared[$id] = sites_declaration([
+			'name' => $web['nginx']['name'],
+			'label' => isset($recipe['name']) && is_string($recipe['name']) ? $recipe['name'] : '',
+			'target' => 'http://127.0.0.1:' . $web['port'],
+			'start' => $path !== '/' ? $path : '',
+			'stream' => !empty($web['nginx']['stream']),
+			'uploads' => !empty($web['nginx']['uploads']),
+		]);
 	}
-	$path = isset($web['path']) && is_string($web['path']) ? $web['path'] : '';
-	return sites_declaration([
-		'name' => $web['nginx']['name'],
-		'label' => isset($recipe['name']) && is_string($recipe['name']) ? $recipe['name'] : '',
-		'target' => 'http://127.0.0.1:' . $web['port'],
-		'start' => $path !== '/' ? $path : '',
-		'stream' => !empty($web['nginx']['stream']),
-		'uploads' => !empty($web['nginx']['uploads']),
-	]);
+	foreach (isset($web['sites']) && is_array($web['sites']) ? $web['sites'] : [] as $site) {
+		if (!is_array($site) || !isset($site['name'], $site['port']) || !is_string($site['name']) || !is_int($site['port'])) {
+			continue;
+		}
+		// (switched off: true or "on" - as the Store records a boolean setting - is on)
+		if (isset($site['if']) && (!is_string($site['if']) || !isset($values[$site['if']]) || !in_array($values[$site['if']], [true, 'on', 'true', 1, '1'], true))) {
+			continue;
+		}
+		$path = isset($site['path']) && is_string($site['path']) ? $site['path'] : '';
+		$declared[$id . ':' . $site['name']] = sites_declaration([
+			'name' => $site['name'],
+			'label' => isset($site['label']) && is_string($site['label']) ? $site['label'] : '',
+			'target' => 'http://127.0.0.1:' . $site['port'],
+			'start' => $path !== '/' ? $path : '',
+			'stream' => !empty($site['stream']),
+			'uploads' => !empty($site['uploads']),
+		]);
+	}
+	return array_filter($declared);
 }
 
 // Every declared app that's installed: its id (its folder in Nas_Prog, 'gui' for the dashboard) => its declaration
@@ -125,7 +149,9 @@ function sites_declared($data_path)
 		if (is_file($folder . '/nginx.json')) {
 			$app = sites_declaration(json_decode((string)@file_get_contents($folder . '/nginx.json'), true), $apps_path);
 		} elseif (is_dir($folder . '/.store')) {
-			$app = sites_recipe_declaration($folder);
+			// (a recipe may have several sites)
+			$declared += sites_recipe_declarations($folder);
+			continue;
 		} else {
 			$app = isset($builtin[$id]) ? sites_declaration($builtin[$id]) : null;
 		}

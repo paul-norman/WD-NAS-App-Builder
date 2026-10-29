@@ -2,20 +2,29 @@
 install, an update or a change of settings (the Store's post_install, post_update and post_change hooks), with .env's
 values in the environment. Everything it does can be done again: it only adds what's missing and updates what changed.
 
- - the data folder's layout (torrents/, usenet/, media/ - one file system, so downloads are hard-linked into the library)
+ - the data folder's layout (torrents/, usenet/, media/ - one file system, so downloads are hard-linked into the library),
+   or library folders of your own elsewhere (finished downloads copied into them)
  - one user name and password for every web interface (qBittorrent, Prowlarr, Sonarr, Radarr, Lidarr, Bookshelf, Bazarr,
-   SABnzbd)
- - qBittorrent: its save folder, a category per app, its listening port
- - Sonarr, Radarr (and Lidarr, Bookshelf): their library folder, qBittorrent (and SABnzbd) as download clients, renaming
+   SABnzbd), and - at install - their anonymous usage data (sent to their developers by default) switched off
+ - qBittorrent: its save folder, a category per app, its listening port, how long it seeds (AFTER_IMPORT)
+ - Sonarr, Radarr (and Lidarr, Bookshelf): their library folders, qBittorrent (and SABnzbd) as download clients - each
+   removing a finished download once qBittorrent stops seeding it - and renaming (RENAME)
  - Prowlarr: Sonarr, Radarr (and Lidarr, Bookshelf) as applications - indexers added in Prowlarr reach them all - and
    FlareSolverr as a proxy for indexers tagged "flaresolverr"
  - SABnzbd: its folders, a category per app, the address the other apps reach it at
  - Bazarr: Sonarr and Radarr, a subtitle language, subtitle sources that need no account
  - Seerr: Sonarr and Radarr (its own setup page then only asks for the media server - Jellyfin or Plex)
+ - Radarr, with FLAT_FILMS: a script it runs after each import, filing films without a folder of their own
+ - Sonarr, Radarr (and Lidarr): the media server (MEDIA_SERVER - Plex, Jellyfin or Emby), told about each new file
+ - ntfy (NTFY_TOPIC, with the ntfy app on the NAS): Sonarr, Radarr, Lidarr, Bookshelf, Prowlarr and Seerr send their
+   notifications to a topic - imports, failures, health problems, requests
+ - Recyclarr (RECYCLARR): the TRaSH Guides' quality profiles in Sonarr and Radarr (1080p and 4K) - synced at once, then
+   daily - and the chosen one (QUALITY) for Seerr's requests
  - optional apps switched off: their container removed, and their links in Prowlarr
 
 Written for Python 3.9 (the NAS's own) and its standard library only.
 """
+import glob
 import json
 import os
 import re
@@ -32,12 +41,43 @@ PASSWORD = ENV.get("ADMIN_PASSWORD", "")
 PUID = int(ENV.get("PUID", "84"))
 PGID = int(ENV.get("PGID", "1000"))
 DATA_ROOT = ENV.get("DATA_ROOT", "")
+# The first volume: folders there appear in the containers at /media/<their path relative to it> (else relative to /mnt),
+# as the Store mounts them
+VOLUME = ENV.get("VOLUME", "/mnt/HD/HD_a2")
+# What happens to a torrent once its download is filed: seed (keep seeding), limit (seed to SEED_RATIO or SEED_DAYS, then
+# remove it), remove (stop and remove it straight away)
+AFTER_IMPORT = ENV.get("AFTER_IMPORT", "seed")
+SEED_RATIO = ENV.get("SEED_RATIO", "2")
+SEED_DAYS = int(ENV.get("SEED_DAYS", "14") or 0)
+RENAME = ENV.get("RENAME", "on") == "on"
+# Films without a folder of their own (FLAT_FILMS): once filed, moved up into the library folder and taken off Radarr's
+# list - by a script Radarr runs after each import (Settings -> Connect)
+FLAT_FILMS = ENV.get("FLAT_FILMS", "off") == "on"
+# Installing (the Store's STORE_ACTION - setup.sh is always an install): settings only set the first time, which may then
+# be changed in the apps (e.g. their anonymous usage data, sent by default - switched off)
+INSTALLING = ENV.get("STORE_ACTION", "install") == "install"
+# The media server told about new files: none, plex, jellyfin or emby - at MEDIA_SERVER_URL (empty: on the NAS, at its
+# usual port), with its key (Plex: its token - empty, read from Plex on the NAS)
+MEDIA_SERVER = ENV.get("MEDIA_SERVER", "none")
+MEDIA_SERVER_URL = ENV.get("MEDIA_SERVER_URL", "").strip()
+MEDIA_SERVER_KEY = ENV.get("MEDIA_SERVER_KEY", "").strip()
+# The ntfy topic the apps send notifications to (empty: none) - through the ntfy app on the NAS, with its apps' token
+NTFY_TOPIC = ENV.get("NTFY_TOPIC", "").strip()
+# Recyclarr's quality profiles (the TRaSH Guides'), and the one Seerr requests with: 1080p or 2160p
+RECYCLARR = ENV.get("RECYCLARR", "off") == "on"
+QUALITY = ENV.get("QUALITY", "1080p")
 TORRENT_PORT = int(ENV.get("TORRENT_PORT", "6881"))
 LANGUAGE = ENV.get("SUBTITLE_LANGUAGE", "en")
 # (how long to wait for an app to answer: the first start of some takes minutes on the NAS)
 READY_TIMEOUT = int(ENV.get("WIRE_READY_TIMEOUT", "600"))
 # The recipe's folder (where the Store runs its hooks)
 DATA = ENV.get("STORE_DATA") or os.getcwd()
+# The ntfy app (in Nas_Prog, next to the recipe's folder), and its data folder: its apps' token and settings (kept when
+# the app is removed - so only used while the app is installed)
+NTFY_APP = os.path.join(os.path.dirname(DATA.rstrip("/")), "ntfy")
+NTFY_DATA = os.path.join(os.path.dirname(DATA.rstrip("/")), "_ntfy")
+# Where the apps' settings are (Radarr's at radarr/ - /config in its container)
+CONFIG_ROOT = ENV.get("CONFIG_ROOT") or DATA
 # The password last given to qBittorrent: it only takes a new one from someone logged in with the old one (root only,
 # next to .env - which holds the password too)
 QBIT_PASSWORD_FILE = os.path.join(DATA, ".qbittorrent-password")
@@ -48,20 +88,21 @@ def on(name):
 
 
 # The library apps: name, port, API version, its key's setting, the option switching it on (None: always), its folder
-# in media/ and its category's setting name in download clients
+# in media/ (unless its folders option - a list - names folders of your own), and its category's setting name in download
+# clients
 LIBRARY_APPS = [
     {"name": "sonarr", "title": "Sonarr", "port": 8989, "api": "v3", "key": "SONARR_API_KEY", "option": None,
-     "folder": "tv", "category": "tvCategory", "rename": "renameEpisodes", "prowlarr": "Sonarr"},
+     "folder": "tv", "folders": "TV_FOLDERS", "category": "tvCategory", "rename": "renameEpisodes", "prowlarr": "Sonarr", "ntfy_tag": "tv"},
     {"name": "radarr", "title": "Radarr", "port": 7878, "api": "v3", "key": "RADARR_API_KEY", "option": None,
-     "folder": "movies", "category": "movieCategory", "rename": "renameMovies", "prowlarr": "Radarr"},
+     "folder": "movies", "folders": "MOVIES_FOLDERS", "category": "movieCategory", "rename": "renameMovies", "prowlarr": "Radarr", "ntfy_tag": "movie_camera"},
     {"name": "lidarr", "title": "Lidarr", "port": 8686, "api": "v1", "key": "LIDARR_API_KEY", "option": "LIDARR",
-     "folder": "music", "category": "musicCategory", "rename": "renameTracks", "prowlarr": "Lidarr"},
+     "folder": "music", "folders": "MUSIC_FOLDERS", "category": "musicCategory", "rename": "renameTracks", "prowlarr": "Lidarr", "ntfy_tag": "musical_note"},
     {"name": "bookshelf", "title": "Bookshelf", "port": 8787, "api": "v1", "key": "BOOKSHELF_API_KEY", "option": "BOOKS",
      # (Readarr - which Bookshelf continues - kept Lidarr's name for its download clients' category)
-     "folder": "books", "category": "musicCategory", "rename": "renameBooks", "prowlarr": "Readarr"},
+     "folder": "books", "folders": "BOOKS_FOLDERS", "category": "musicCategory", "rename": "renameBooks", "prowlarr": "Readarr", "ntfy_tag": "books"},
 ]
 # Optional containers, by their option
-OPTIONAL = {"LIDARR": "lidarr", "BOOKS": "bookshelf", "SABNZBD": "sabnzbd", "FLARESOLVERR": "flaresolverr"}
+OPTIONAL = {"LIDARR": "lidarr", "BOOKS": "bookshelf", "SABNZBD": "sabnzbd", "FLARESOLVERR": "flaresolverr", "RECYCLARR": "recyclarr"}
 
 problems = []
 
@@ -79,6 +120,7 @@ class HttpError(Exception):
     def __init__(self, status, body):
         super().__init__("HTTP %s: %s" % (status, body[:300]))
         self.status = status
+        self.body = body
 
 
 def http(method, url, headers=None, body=None, form=None, timeout=30):
@@ -127,12 +169,49 @@ def container_running(name):
 # ---------------------------------------------------------------------------------------------------------------------
 # The data folder
 
+def library_folders(app):
+    """The app's library folders on the NAS: those chosen (TV_FOLDERS...), else media/<its folder> in DATA_ROOT"""
+    chosen = [f.rstrip("/") for f in ENV.get(app["folders"], "").split("|") if f.strip()]
+    return chosen or [os.path.join(DATA_ROOT, "media", app["folder"])]
+
+
+def in_container(folder):
+    """Where a folder on the NAS appears in the containers: under /data if it's in DATA_ROOT (so that downloads are
+    hard-linked into it - one mount), else where the Store mounts it: /media/<its path relative to the first volume>"""
+    root = DATA_ROOT.rstrip("/")
+    if folder == root or folder.startswith(root + "/"):
+        return "/data" + folder[len(root):]
+    volume = VOLUME.rstrip("/") + "/"
+    return "/media/" + (folder[len(volume):] if folder.startswith(volume) else re.sub(r"^/mnt/", "", folder))
+
+
+def writable_by_apps(folder):
+    """Whether the apps (PUID, in the group PGID) can write into a folder of the user's - which is never changed"""
+    try:
+        info = os.stat(folder)
+    except OSError:
+        return False
+    return bool((info.st_uid == PUID and info.st_mode & 0o200) or (info.st_gid == PGID and info.st_mode & 0o020)
+                or info.st_mode & 0o002)
+
+
 def folders():
     if not DATA_ROOT:
         return
-    names = ["torrents", "usenet/incomplete", "media"]
+    # Library folders of the user's own, outside DATA_ROOT: left as they are - only checked
     for app in LIBRARY_APPS:
-        names += ["torrents/" + app["folder"], "usenet/complete/" + app["folder"], "media/" + app["folder"]]
+        if app["option"] is not None and not on(app["option"]):
+            continue
+        for folder in library_folders(app):
+            if in_container(folder).startswith("/media/") and not writable_by_apps(folder):
+                problem("%s can't write into %s: it needs to be writable by the share users' group (the apps run as user %d, "
+                        "group %d)" % (app["title"], folder, PUID, PGID))
+    names = ["torrents", "usenet/incomplete"]
+    for app in LIBRARY_APPS:
+        names += ["torrents/" + app["folder"], "usenet/complete/" + app["folder"]]
+        # (media/<its folder> only where it's the app's library - not with folders of your own)
+        if not ENV.get(app["folders"], "").strip():
+            names += ["media", "media/" + app["folder"]]
     for name in names:
         path = os.path.join(DATA_ROOT, name)
         if not os.path.isdir(path):
@@ -213,6 +292,20 @@ def qbittorrent():
         "save_path_changed_tmm_enabled": True,
         "category_changed_tmm_enabled": True,
     }
+    # How long finished torrents seed: stopped at the limit (never removed by qBittorrent itself - the library apps remove
+    # each once it's filed and stopped, with its files). "remove": a ratio of 0 - stopped as soon as it's complete
+    ratio = None if AFTER_IMPORT == "seed" else (0 if AFTER_IMPORT == "remove" else (None if SEED_RATIO == "none" else float(SEED_RATIO)))
+    days = SEED_DAYS if AFTER_IMPORT == "limit" else 0
+    if AFTER_IMPORT == "limit" and ratio is None and not days:
+        # (no limit chosen: as "remove")
+        ratio = 0
+    preferences.update({
+        "max_ratio_enabled": ratio is not None,
+        "max_ratio": ratio if ratio is not None else -1,
+        "max_seeding_time_enabled": bool(days),
+        "max_seeding_time": days * 1440 if days else -1,
+        "max_ratio_act": 0,
+    })
     status, text, _ = http("POST", QBIT + "/api/v2/app/setPreferences", headers=headers,
                            form={"json": json.dumps(preferences)})
     if status != 200:
@@ -230,7 +323,9 @@ def qbittorrent():
             http("POST", QBIT + "/api/v2/torrents/createCategory", headers=headers, form={"category": category, "savePath": path})
         elif existing[category].get("savePath") != path:
             http("POST", QBIT + "/api/v2/torrents/editCategory", headers=headers, form={"category": category, "savePath": path})
-    log("qBittorrent: user %s, saving to /data/torrents (a category per app), listening on port %d" % (USER, TORRENT_PORT))
+    seeding = {"seed": "seeding without limit", "remove": "not seeding (removed once filed)"}.get(
+        AFTER_IMPORT, "seeding to %s" % " or ".join(filter(None, ["ratio %g" % ratio if ratio else "", "%d days" % days if days else ""])))
+    log("qBittorrent: user %s, saving to /data/torrents (a category per app), listening on port %d, %s" % (USER, TORRENT_PORT, seeding))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -304,19 +399,23 @@ class Arr:
         host = self.call("GET", "/config/host")
         host.update({"authenticationMethod": "forms", "authenticationRequired": "enabled", "username": USER,
                      "password": PASSWORD, "passwordConfirmation": PASSWORD})
+        # (no anonymous usage data sent to its developers - on by default; only at install, so it can be switched on again)
+        if INSTALLING:
+            host["analyticsEnabled"] = False
         self.call("PUT", "/config/host/%s" % host["id"], host)
 
-    def ensure(self, path, match, item, schema_path=None):
+    def ensure(self, path, match, item, schema_path=None, force=True):
         """Adds (or updates) a thing - a download client, an application... - from its schema: match picks the existing one,
-        item(schema) fills in the fields"""
+        item(schema) fills in the fields. force: saved even if its connection test fails (else refused - HttpError)"""
+        save = "?forceSave=true" if force else ""
         existing = [x for x in self.call("GET", path) if match(x)]
         schema = existing[0] if existing else [x for x in self.call("GET", schema_path or path + "/schema") if match(x)][0]
         wanted = item(json.loads(json.dumps(schema)))
         if existing:
             if wanted != existing[0]:
-                self.call("PUT", "%s/%s?forceSave=true" % (path, existing[0]["id"]), wanted)
+                self.call("PUT", "%s/%s%s" % (path, existing[0]["id"], save), wanted)
         else:
-            self.call("POST", path + "?forceSave=true", wanted)
+            self.call("POST", path + save, wanted)
 
     def remove(self, path, match):
         for thing in self.call("GET", path):
@@ -337,16 +436,21 @@ def library_app(app, sab_api_key):
         return
     try:
         arr.login()
-        folder = "/data/media/" + app["folder"]
-        if not any(r["path"].rstrip("/") == folder for r in arr.call("GET", "/rootfolder")):
+        # Its library folders (as the containers see them), added where missing - any others added in the app are kept
+        roots = [in_container(folder) for folder in library_folders(app)]
+        existing = [r["path"].rstrip("/") for r in arr.call("GET", "/rootfolder")]
+        for folder in roots:
+            if folder in existing:
+                continue
             root = {"path": folder}
             if app["api"] == "v1":
                 # (Lidarr and Bookshelf: a name, and the profiles new artists or authors get)
-                root.update({"name": app["title"], "defaultQualityProfileId": arr.call("GET", "/qualityprofile")[0]["id"],
+                root.update({"name": os.path.basename(folder) or app["title"], "defaultQualityProfileId": arr.call("GET", "/qualityprofile")[0]["id"],
                              "defaultMetadataProfileId": arr.call("GET", "/metadataprofile")[0]["id"],
                              "defaultMonitorOption": "all", "defaultNewItemMonitorOption": "all", "defaultTags": [],
                              "isCalibreLibrary": False})
             arr.call("POST", "/rootfolder", root)
+        folder = ", ".join(roots)
 
         def client(implementation, values):
             def fill(item):
@@ -362,14 +466,162 @@ def library_app(app, sab_api_key):
                                "password": PASSWORD, app["category"]: app["folder"]})
         else:
             arr.remove("/downloadclient", lambda x: x["implementation"] == "Sabnzbd")
-        # Files renamed as they're imported (tidy names for Jellyfin and Plex)
+        # Files renamed as they're imported (tidy names for Jellyfin and Plex) - or kept as downloaded (RENAME off)
         naming = arr.call("GET", "/config/naming")
-        if app["rename"] in naming and not naming[app["rename"]]:
-            naming[app["rename"]] = True
+        if app["rename"] in naming and naming[app["rename"]] != RENAME:
+            naming[app["rename"]] = RENAME
             arr.call("PUT", "/config/naming/%s" % naming["id"], naming)
-        log("%s: user %s, library %s, downloads through qBittorrent%s" % (app["title"], USER, folder, " and SABnzbd" if sab_api_key else ""))
+        log("%s: user %s, library %s, downloads through qBittorrent%s, %s" % (app["title"], USER, folder, " and SABnzbd" if sab_api_key else "",
+                                                                             "renamed as filed" if RENAME else "names kept"))
     except (HttpError, KeyError, IndexError, ValueError) as error:
         problem("%s: %s" % (app["title"], error))
+        return
+    try:
+        media_server(arr, app)
+    except (HttpError, KeyError, IndexError, ValueError, OSError) as error:
+        problem("%s: the media server: %s" % (app["title"], error))
+    ntfy(arr, app["ntfy_tag"])
+
+
+# The media servers: name, the apps' connection for it (Settings -> Connect), its usual port
+MEDIA_SERVERS = {"plex": ("Plex", "PlexServer", 32400), "jellyfin": ("Jellyfin", "MediaBrowser", 8096),
+                 "emby": ("Emby", "MediaBrowser", 8096)}
+# (the recipe's connections are named "<server> (library updates)" - any others the user added are left alone)
+MEDIA_SERVER_SUFFIX = " (library updates)"
+# The events changing what's in the library - the media server is told of these (not of grabs, health issues...)
+LIBRARY_EVENTS = ("Download", "ImportComplete", "Upgrade", "Rename", "Delete", "ReleaseImport", "TrackRetag")
+
+
+def plex_token():
+    """The token of Plex on the NAS (the WD app, or one installed by hand in Nas_Prog): from its Preferences.xml"""
+    for top in glob.glob(os.path.join(os.path.dirname(VOLUME.rstrip("/")), "HD_*", "Nas_Prog", "*")):
+        if "plex" not in os.path.basename(top).lower():
+            continue
+        for depth in range(5):
+            for path in glob.glob(os.path.join(glob.escape(top), *(["*"] * depth), "Plex Media Server", "Preferences.xml")):
+                try:
+                    with open(path, encoding="utf-8", errors="replace") as f:
+                        match = re.search(r'\bPlexOnlineToken="([^"]+)"', f.read())
+                except OSError:
+                    continue
+                if match:
+                    return match.group(1)
+    return ""
+
+
+def media_server(arr, app):
+    """Tells the media server about each new (or renamed, or deleted) file - so it shows at once, not at its next scan"""
+    ours = lambda x: x["implementation"] in ("PlexServer", "MediaBrowser") and x.get("name", "").endswith(MEDIA_SERVER_SUFFIX)
+    if MEDIA_SERVER not in MEDIA_SERVERS:
+        arr.remove("/notification", ours)
+        return
+    title, implementation, default_port = MEDIA_SERVERS[MEDIA_SERVER]
+    name = title + MEDIA_SERVER_SUFFIX
+    arr.remove("/notification", lambda x: ours(x) and x.get("name") != name)
+    if not [x for x in arr.call("GET", "/notification/schema") if x["implementation"] == implementation]:
+        # (not one it can tell: Bookshelf)
+        return
+    key = MEDIA_SERVER_KEY or (plex_token() if MEDIA_SERVER == "plex" else "")
+    if not key:
+        problem("%s: not connected to %s - it needs %s (the recipe's settings)" % (
+            app["title"], title, "Plex's token: it wasn't found on the NAS" if MEDIA_SERVER == "plex" else "an API key from its dashboard"))
+        return
+    # (on the NAS - host.docker.internal, as the apps see it - at the server's usual port, unless set)
+    address = urllib.parse.urlsplit(MEDIA_SERVER_URL or "http://host.docker.internal:%d" % default_port)
+    ssl = address.scheme == "https"
+    values = {"host": address.hostname, "port": address.port or (443 if ssl else default_port), "useSsl": ssl, "updateLibrary": True}
+    if MEDIA_SERVER == "plex":
+        # (Plex is told to scan the series' or film's folder in each library of that kind: no paths needed)
+        values["authToken"] = key
+    else:
+        # Jellyfin and Emby are told of the file by its path: theirs (on the NAS), not the containers'
+        inside = in_container(library_folders(app)[0])
+        prefix = "/data" if inside.startswith("/data") else "/media"
+        values.update({"apiKey": key, "notify": False, "mapFrom": prefix,
+                       "mapTo": (DATA_ROOT if prefix == "/data" else VOLUME).rstrip("/")})
+
+    def fill(item):
+        item.update({"name": name, "tags": []})
+        for event in [k for k in item if k.startswith("on") and isinstance(item[k], bool)]:
+            item[event] = any(e in event for e in LIBRARY_EVENTS) and item.get("supports" + event[0].upper() + event[1:], True)
+        return set_fields(item, values)
+    # (the app tests the connection as it's saved - and refuses it if the server doesn't answer)
+    try:
+        arr.ensure("/notification", lambda x: x["implementation"] == implementation and x.get("name", "") in ("", name), fill, force=False)
+    except HttpError as error:
+        try:
+            body = json.loads(error.body)
+            reason = "; ".join("%s (%s)" % (e.get("errorMessage", ""), e.get("detailedDescription", "")) for e in body)
+        except (ValueError, AttributeError, TypeError):
+            reason = str(error)
+        problem("%s: not connected to %s at %s:%s - %s. Tried again at the next update or change of settings" % (
+            app["title"], title, values["host"], values["port"], reason))
+        return
+    log("%s: tells %s (%s:%s) about new files" % (app["title"], title, values["host"], values["port"]))
+
+
+# # The script Radarr runs after each import (in its container - its paths) with FLAT_FILMS. Radarr keeps each film in a
+# folder of its own: the film's files are moved up into the library folder, the folder removed, and the film taken off
+# Radarr's list (its files kept) - or Radarr would see it missing and fetch it again. Nothing is moved if a file of the
+# same name is already there: the film keeps its folder (and its place in Radarr)
+FLAT_FILMS_SCRIPT = r"""#!/bin/sh
+# Written by the Arr stack recipe ("Films without their own folder") - run by Radarr after it files a film (Settings ->
+# Connect): rewritten by the recipe's setup, edits here are lost
+[ "${radarr_eventtype}" = Download ] || exit 0
+folder="${radarr_movie_path%/}"
+library="$(dirname "${folder}")"
+[ -n "${folder}" ] && [ -d "${folder}" ] && [ -f "${radarr_moviefile_path}" ] || exit 0
+for f in "${folder}"/*; do
+	if [ -f "${f}" ] && [ -e "${library}/$(basename "${f}")" ]; then
+		echo "Not moved: ${library}/$(basename "${f}") already exists - ${radarr_movie_title} keeps its folder"
+		exit 0
+	fi
+done
+for f in "${folder}"/*; do
+	if [ -f "${f}" ] && ! mv "${f}" "${library}/"; then
+		echo "Couldn't move ${f} into ${library}"
+		exit 1
+	fi
+done
+rmdir "${folder}" 2>/dev/null
+# Off Radarr's list (its files kept), once Radarr has finished with this import
+key="${RADARR__AUTH__APIKEY:-$(sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' /config/config.xml)}"
+nohup sh -c "sleep 15; curl -s -o /dev/null -X DELETE -H 'X-Api-Key: ${key}' 'http://localhost:7878/api/v3/movie/${radarr_movie_id}?deleteFiles=false&addImportExclusion=false'" > /dev/null 2>&1 &
+echo "Filed ${radarr_movie_title} in ${library}, without a folder of its own"
+"""
+FLAT_FILMS_NAME = "Films without their own folder"
+
+
+def radarr_flat_films():
+    radarr = [app for app in LIBRARY_APPS if app["name"] == "radarr"][0]
+    arr = Arr(radarr["title"], radarr["port"], radarr["api"], ENV.get(radarr["key"], ""))
+    if not arr.ready():
+        return
+    # (only the recipe's own script - any other the user added is left alone)
+    match = lambda x: x["implementation"] == "CustomScript" and x.get("name", "") in ("", FLAT_FILMS_NAME)
+    try:
+        if not FLAT_FILMS:
+            arr.remove("/notification", lambda x: x["implementation"] == "CustomScript" and x.get("name") == FLAT_FILMS_NAME)
+            return
+        folder = os.path.join(CONFIG_ROOT, "radarr", "scripts")
+        os.makedirs(folder, exist_ok=True)
+        script = os.path.join(folder, "films-without-folders.sh")
+        with open(script, "w") as f:
+            f.write(FLAT_FILMS_SCRIPT)
+        for path in (folder, script):
+            os.chown(path, PUID, PGID)
+            os.chmod(path, 0o755)
+
+        def fill(item):
+            item.update({"name": FLAT_FILMS_NAME, "onDownload": True, "onUpgrade": False, "onRename": False,
+                         "onMovieAdded": False, "onMovieDelete": False, "onMovieFileDelete": False,
+                         "onMovieFileDeleteForUpgrade": False, "onHealthIssue": False, "onApplicationUpdate": False,
+                         "onManualInteractionRequired": False, "tags": []})
+            return set_fields(item, {"path": "/config/scripts/films-without-folders.sh", "arguments": ""})
+        arr.ensure("/notification", match, fill)
+        log("Radarr: films filed without a folder of their own (then taken off its list)")
+    except (HttpError, KeyError, IndexError, ValueError, OSError) as error:
+        problem("Radarr: films without folders: %s" % error)
 
 
 def prowlarr(enabled_apps):
@@ -392,6 +644,10 @@ def prowlarr(enabled_apps):
         tag = [t for t in tags if t["label"] == "flaresolverr"]
         if on("FLARESOLVERR"):
             tag_id = tag[0]["id"] if tag else arr.call("POST", "/tag", {"label": "flaresolverr"})["id"]
+            # (Prowlarr tests a proxy as it's saved: FlareSolverr - just started, if it was switched on - must answer first.
+            # It has no port on the NAS, so it's asked from Prowlarr's container, as Prowlarr reaches it)
+            wait_for("FlareSolverr", lambda: docker("exec", "prowlarr", "curl", "-s", "-m", "5", "-o", "/dev/null", "-w", "%{http_code}",
+                                                    "http://flaresolverr:8191/")[1].strip() == "200")
             def proxy(item):
                 item.update({"name": "FlareSolverr", "tags": [tag_id]})
                 return set_fields(item, {"host": "http://flaresolverr:8191/", "requestTimeout": 60})
@@ -402,6 +658,71 @@ def prowlarr(enabled_apps):
             " (FlareSolverr for indexers tagged flaresolverr)" if on("FLARESOLVERR") else ""))
     except (HttpError, KeyError, IndexError, ValueError) as error:
         problem("Prowlarr: %s" % error)
+    ntfy(arr, "mag")
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# ntfy
+
+# The ntfy app, as the containers reach it (the NAS: host.docker.internal), and the name of the apps' connection to it
+# (Settings -> Connect - any other the user added is left alone)
+NTFY_URL = "http://host.docker.internal:2586"
+NTFY_NAME = "ntfy (Arr stack)"
+# What's sent: a release filed (once for it all - else per file), an upgrade, a download or import that failed, one that
+# needs a person, health problems (and their end) - not grabs, renames, additions...
+NTFY_EVENTS = ("onUpgrade", "onDownloadFailure", "onImportFailure", "onManualInteractionRequired", "onHealthIssue",
+               "onHealthRestored")
+NTFY_IMPORT_EVENTS = ("onImportComplete", "onReleaseImport", "onDownload")
+# Seerr's notifications: a request awaiting approval, or approved by itself; available; failed; an issue reported
+SEERR_NTFY_TYPES = 2 | 128 | 8 | 16 | 256
+ntfy_token = None
+
+
+def ntfy_setup():
+    """The ntfy app's token for the NAS's apps, if notifications are on and it's installed (and reachable from the apps)"""
+    global ntfy_token
+    if not NTFY_TOPIC:
+        return
+    try:
+        if not os.path.isfile(os.path.join(NTFY_APP, "apkg.rc")):
+            raise OSError("not installed")
+        with open(os.path.join(NTFY_DATA, "token")) as f:
+            token = f.read().strip()
+    except OSError:
+        log("ntfy: the ntfy app isn't installed - no notifications (install it, then save the recipe's settings again)")
+        return
+    try:
+        with open(os.path.join(NTFY_DATA, "settings")) as f:
+            local = re.search(r"^LISTEN=local$", f.read(), re.M)
+    except OSError:
+        local = None
+    if local:
+        problem("ntfy only listens on the NAS itself (its page: \"Listen on\") - the apps reach it from Docker: no notifications")
+        return
+    ntfy_token = token
+
+
+def ntfy(arr, tag):
+    """The app's notifications, sent to the ntfy topic"""
+    ours = lambda x: x["implementation"] == "Ntfy" and x.get("name") == NTFY_NAME
+    try:
+        if not ntfy_token:
+            arr.remove("/notification", ours)
+            return
+
+        def fill(item):
+            item.update({"name": NTFY_NAME, "tags": [], "includeHealthWarnings": False})
+            supported = lambda event: event in item and item.get("supports" + event[0].upper() + event[1:], True)
+            imported = ([e for e in NTFY_IMPORT_EVENTS if supported(e)] or [None])[0]
+            for event in [k for k in item if k.startswith("on") and isinstance(item[k], bool)]:
+                item[event] = bool(supported(event) and (event in NTFY_EVENTS or event == imported))
+            return set_fields(item, {"serverUrl": NTFY_URL, "accessToken": ntfy_token, "userName": "", "password": "",
+                                     "priority": 3, "topics": [NTFY_TOPIC], "tags": [tag], "clickUrl": ""})
+        # (it sends a test notification as it's first saved - refused if ntfy doesn't answer)
+        arr.ensure("/notification", lambda x: x["implementation"] == "Ntfy" and x.get("name", "") in ("", NTFY_NAME), fill)
+        log("%s: notifications to ntfy (topic %s)" % (arr.title, NTFY_TOPIC))
+    except (HttpError, KeyError, IndexError, ValueError) as error:
+        problem("%s: notifications to ntfy: %s" % (arr.title, error))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -441,6 +762,9 @@ def bazarr():
             ("settings-general-movie_default_enabled", "true"), ("settings-general-movie_default_profile", "1"),
             ("settings-general-enabled_providers", "podnapisi"), ("settings-general-enabled_providers", "embeddedsubtitles"),
         ]
+    if INSTALLING:
+        # (no anonymous usage data sent to its developers - on by default)
+        form.append(("settings-analytics-enabled", "false"))
     status, text, _ = http("POST", BAZARR + "/api/system/settings", headers={"X-API-KEY": key}, form=form)
     if status not in (200, 204):
         problem("Bazarr's settings weren't saved: %s %s" % (status, text[:200]))
@@ -449,9 +773,66 @@ def bazarr():
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Recyclarr
+
+# The TRaSH Guides' quality profiles it makes (their ids in the guides, and names): 1080p, then 4K
+QUALITY_PROFILES = {
+    "sonarr": [("72dae194fc92bf828f32cde7744e51a1", "WEB-1080p"), ("d1498e7d189fbe6c7110ceaabb7473e6", "WEB-2160p")],
+    "radarr": [("d1d67249d3890e49bc12e275d989a7e9", "HD Bluray + WEB"), ("64fb5f9858489bdac2af690e27c8f42f", "UHD Bluray + WEB")],
+}
+# The profiles Sonarr and Radarr start with
+STOCK_PROFILES = ("Any", "SD", "HD-720p", "HD-1080p", "Ultra-HD", "HD - 720p/1080p")
+RECYCLARR_HEADER = "# Written by the Arr stack recipe (its quality rules): rewritten by its setup while this line is here\n"
+
+
+def recyclarr_config():
+    lines = [RECYCLARR_HEADER.rstrip("\n"),
+             "# - remove it to make this file your own (https://recyclarr.dev/). The API keys come from the container's environment"]
+    for kind, port, definition in (("sonarr", 8989, "series"), ("radarr", 7878, "movie")):
+        lines += ["%s:" % kind, "  %s:" % kind, "    base_url: http://%s:%d" % (kind, port),
+                  "    api_key: !env_var %s_API_KEY" % kind.upper(), "    quality_definition:", "      type: %s" % definition,
+                  "    quality_profiles:"]
+        for trash_id, name in QUALITY_PROFILES[kind]:
+            lines += ["      - trash_id: %s  # %s" % (trash_id, name), "        reset_unmatched_scores:", "          enabled: true"]
+    return "\n".join(lines) + "\n"
+
+
+def recyclarr():
+    """The quality profiles, synced now (Recyclarr then syncs them daily): whether they're there"""
+    if not RECYCLARR:
+        return False
+    folder = os.path.join(CONFIG_ROOT, "recyclarr")
+    path = os.path.join(folder, "recyclarr.yml")
+    try:
+        os.makedirs(folder, exist_ok=True)
+        os.chown(folder, PUID, PGID)
+        mine = os.path.isfile(path) and not open(path).read().startswith(RECYCLARR_HEADER)
+        if mine:
+            log("Recyclarr: its settings (recyclarr/recyclarr.yml) are your own - left as they are")
+        else:
+            with open(path, "w") as f:
+                f.write(recyclarr_config())
+            os.chown(path, PUID, PGID)
+    except OSError as error:
+        problem("Recyclarr's settings couldn't be written: %s" % error)
+        return False
+    if not wait_for("Recyclarr", lambda: container_running("recyclarr")):
+        return False
+    # (the first time, it downloads the guides: a minute or two)
+    code, output = docker("exec", "recyclarr", "recyclarr", "sync")
+    if code != 0:
+        problem("Recyclarr's sync failed (it tries again daily): %s" % output.strip()[-400:])
+        return False
+    if not mine:
+        log("Recyclarr: the TRaSH Guides' profiles in Sonarr (%s) and Radarr (%s), kept up to date daily" % (
+            ", ".join(n for _, n in QUALITY_PROFILES["sonarr"]), ", ".join(n for _, n in QUALITY_PROFILES["radarr"])))
+    return True
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Seerr
 
-def seerr():
+def seerr(quality_rules):
     if not wait_for("Seerr", lambda: http("GET", "http://127.0.0.1:5055/api/v1/status")[0] == 200 and
                     docker("exec", "seerr", "test", "-f", "/app/config/settings.json")[0] == 0):
         return
@@ -463,19 +844,31 @@ def seerr():
         return
     changed = False
     for app, kind in ((LIBRARY_APPS[0], "sonarr"), (LIBRARY_APPS[1], "radarr")):
-        if settings.get(kind):
-            continue
         try:
             arr = Arr(app["title"], app["port"], app["api"], ENV.get(app["key"], ""))
             profiles = arr.call("GET", "/qualityprofile")
-            # (a 1080p profile if there is one: the usual choice for a home library)
-            profile = ([p for p in profiles if p["name"] in ("HD-1080p", "HD - 720p/1080p")] or profiles)[0]
+            # The quality rules' profile chosen (QUALITY), else a 1080p one if there is one: the usual choice for a home
+            # library
+            names = [QUALITY_PROFILES[kind][1 if QUALITY == "2160p" else 0][1]] if quality_rules else []
+            profile = ([p for p in profiles if p["name"] in names] or [p for p in profiles if p["name"] in ("HD-1080p", "HD - 720p/1080p")]
+                       or profiles)[0]
         except (HttpError, IndexError, ValueError) as error:
             problem("Seerr: %s's profiles: %s" % (app["title"], error))
             continue
+        if settings.get(kind):
+            # Already set: only its profile changes - to the quality rules' chosen one, from one Sonarr or Radarr started
+            # with (or the quality rules' other): one chosen in Seerr is kept
+            entry = settings[kind][0]
+            ruled = STOCK_PROFILES + tuple(n for _, n in QUALITY_PROFILES[kind])
+            if quality_rules and profile["name"] in names:
+                for field in ("activeProfile", "activeAnimeProfile"):
+                    if entry.get(field + "Name") in ruled and entry.get(field + "Id") != profile["id"]:
+                        entry.update({field + "Id": profile["id"], field + "Name": profile["name"]})
+                        changed = True
+            continue
         entry = {"id": 0, "name": app["title"], "hostname": app["name"], "port": app["port"], "apiKey": ENV.get(app["key"], ""),
                  "useSsl": False, "baseUrl": "", "activeProfileId": profile["id"], "activeProfileName": profile["name"],
-                 "activeDirectory": "/data/media/" + app["folder"], "tags": [], "is4k": False, "isDefault": True,
+                 "activeDirectory": in_container(library_folders(app)[0]), "tags": [], "is4k": False, "isDefault": True,
                  "externalUrl": "", "syncEnabled": True, "preventSearch": False, "tagRequests": False, "overrideRule": []}
         if kind == "sonarr":
             entry.update({"seriesType": "standard", "animeSeriesType": "anime", "activeAnimeProfileId": profile["id"],
@@ -485,6 +878,20 @@ def seerr():
             entry["minimumAvailability"] = "released"
         settings[kind] = [entry]
         changed = True
+    # Its notifications to ntfy: set the first time (what's sent may then be changed in Seerr), and kept pointing at the
+    # ntfy app - one set up by hand (another address) is left alone
+    agent = settings.setdefault("notifications", {}).setdefault("agents", {}).setdefault("ntfy", {})
+    options = agent.setdefault("options", {})
+    if options.get("url", "") in ("", NTFY_URL):
+        before = json.dumps(agent, sort_keys=True)
+        if ntfy_token:
+            if not options.get("url"):
+                agent.update({"enabled": True, "types": SEERR_NTFY_TYPES, "embedPoster": agent.get("embedPoster", True)})
+            options.update({"url": NTFY_URL, "topic": NTFY_TOPIC, "authMethodToken": True, "token": ntfy_token,
+                            "authMethodUsernamePassword": False, "priority": options.get("priority", 3), "tags": options.get("tags", "")})
+        elif options.get("url"):
+            agent["enabled"] = False
+        changed = changed or json.dumps(agent, sort_keys=True) != before
     if changed:
         # (written through its own container, then read again as it restarts)
         code, output = docker("exec", "-i", "seerr", "sh", "-c", "cat > /app/config/settings.json.new && mv /app/config/settings.json.new /app/config/settings.json",
@@ -492,7 +899,8 @@ def seerr():
         if code != 0:
             problem("Seerr's settings couldn't be written: " + output)
         docker("restart", "seerr")
-        log("Seerr: linked to Sonarr and Radarr - open it to choose your media server (Jellyfin or Plex)")
+        log("Seerr: linked to Sonarr and Radarr, requesting with their profiles %s - open it to choose your media server (Jellyfin or Plex)" % (
+            " and ".join(str((settings.get(k) or [{}])[0].get("activeProfileName")) for k in ("sonarr", "radarr"))))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -505,13 +913,16 @@ def main():
             docker("rm", "-f", container)
             log("Removed %s (switched off)" % container)
     enabled = [app for app in LIBRARY_APPS if app["option"] is None or on(app["option"])]
+    ntfy_setup()
     qbittorrent()
     sab_api_key = sabnzbd()
     for app in enabled:
         library_app(app, sab_api_key)
+    radarr_flat_films()
     prowlarr(enabled)
+    quality_rules = recyclarr()
     bazarr()
-    seerr()
+    seerr(quality_rules)
     if problems:
         log("Finished with %d problem(s) - the rest is connected" % len(problems))
         return 1

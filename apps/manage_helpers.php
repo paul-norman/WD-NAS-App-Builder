@@ -81,7 +81,9 @@ function manage_require_action($app)
 // [exit code, output]
 function manage_run(array $command, array $env = [], $input = '')
 {
-	$process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, $env + ['PATH' => '/usr/bin:/bin:/usr/sbin:/sbin']);
+	$env += ['PATH' => '/usr/bin:/bin:/usr/sbin:/sbin'];
+	$command[0] = manage_find_program($command[0], $env['PATH']);
+	$process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, $env);
 	if (!is_resource($process)) {
 		return [-1, 'could not run: ' . $command[0]];
 	}
@@ -91,6 +93,21 @@ function manage_run(array $command, array $env = [], $input = '')
 	fclose($pipes[1]);
 	fclose($pipes[2]);
 	return [proc_close($process), trim($output)];
+}
+
+// A program given by name (e.g. ip), found in the PATH given: PHP looks for it in the web server's own environment, which
+// PHP-FPM clears - leaving only /bin:/usr/bin, without e.g. /sbin/ip
+function manage_find_program($program, $path)
+{
+	if (strpos($program, '/') !== false) {
+		return $program;
+	}
+	foreach (explode(':', $path) as $dir) {
+		if ($dir !== '' && is_file($dir . '/' . $program) && is_executable($dir . '/' . $program)) {
+			return $dir . '/' . $program;
+		}
+	}
+	return $program;
 }
 
 // Sends a request to a service on the NAS itself (e.g. http://127.0.0.1:8096/health) with the NAS's own curl, as WD's

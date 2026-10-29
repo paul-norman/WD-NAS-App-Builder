@@ -73,6 +73,11 @@ function job_run(array $command, array $env = [], $cwd = null)
 		if (strpos($line, 'deprecated key derivation') !== false || strpos($line, 'Using -iter or -pbkdf2') !== false) {
 			continue;
 		}
+		// (Docker's progress for each layer of an image - thousands of lines for a stack: each image's "Pulling" and
+		// "Pulled", and any errors, are kept)
+		if (preg_match('/^[0-9a-f]{12} (Waiting|Pulling fs layer|Downloading|Extracting|Verifying Checksum|Download complete|Pull complete|Already exists)\b/', $line)) {
+			continue;
+		}
 		if ($line !== '') {
 			fwrite($GLOBALS['job_log'], '    ' . $line . "\n");
 			fflush($GLOBALS['job_log']);
@@ -695,6 +700,8 @@ function job_recipe_change(array $spec)
 	$record['values'] = store_public_values($recipe, $values);
 	unset($record['data']);
 	store_write_json($data . '/.store/installed.json', $record);
+	// (its sites in the Nginx app can depend on its settings - web.sites' if)
+	job_nginx($recipe, false);
 	return 'The settings of ' . $recipe['name'] . ' were changed' . (job_wait_ready($recipe) ? '' : ' (still starting)');
 }
 
