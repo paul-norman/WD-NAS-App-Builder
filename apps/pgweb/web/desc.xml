@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>pgweb: browse and query the PostgreSQL app's databases in a web browser.</en-US>
+	<fr-FR>pgweb : parcourir et interroger les bases de données de l'app PostgreSQL dans un navigateur web.</fr-FR>
+	<es-ES>pgweb: explora y consulta las bases de datos de la app PostgreSQL en un navegador web.</es-ES>
+	<de-DE>pgweb: die Datenbanken der PostgreSQL-App im Webbrowser durchsuchen und abfragen.</de-DE>
+</config>

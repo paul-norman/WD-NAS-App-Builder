@@ -24,6 +24,19 @@ header('Cache-Control: no-store');
 		<button type="button" data-pma-action="set">Change password</button></p>
 	<p class="mg-note">The new password takes effect immediately, and is kept if the app is reinstalled. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
 	<p class="mg-note">MariaDB's <code>root</code> account can't log in to phpMyAdmin: it has no password, as the NAS's own services rely on that, and MariaDB only accepts connections from the NAS itself.</p>
+	<h3>Its HTTPS address</h3>
+	<p>Through the Nginx app: <span data-pma="site">…</span></p>
+	<p>It asks first for the user name <code>admin</code> and its own password (not the account's above):
+		<code data-pma="site-password">••••••••••••</code>
+		<button type="button" data-pma-action="site-show">Show</button> <button type="button" data-pma-action="site-copy">Copy</button></p>
+	<p><input type="text" data-pma="site-new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+		<button type="button" data-pma-action="site-set">Change password</button></p>
+	<p><label><input type="checkbox" data-pma="auth"> Ask for this password first (before phpMyAdmin's own login)</label>
+		<button type="button" data-pma-action="auth">Save</button></p>
+	<p class="mg-note">Without it, anyone who reaches its HTTPS address gets phpMyAdmin's login, and only the MariaDB
+		accounts' passwords protect the data. Keep it on if the address can be reached from the internet. The NAS's own
+		address (http://<span data-pma="host">nas</span>/phpMyAdmin/, on the local network) has only phpMyAdmin's login.</p>
+
 	<p data-pma="message"></p>
 
 	<script>
@@ -33,6 +46,8 @@ header('Cache-Control: no-store');
 		var api = '/apps/phpMyAdmin/api.php';
 		var csrf = <?php echo json_encode(manage_csrf_token('phpMyAdmin')); ?>;
 		<?php manage_secret_script(); ?>
+
+		var loaded = false;
 
 		function part(name) { return root.querySelector('[data-pma="' + name + '"]'); }
 
@@ -63,6 +78,13 @@ header('Cache-Control: no-store');
 				status.className = d.running ? 'mg-ok' : 'mg-bad';
 				part('listen').textContent = d.running ? d.bind + ', port ' + d.port + (d.bind === '127.0.0.1' ? ' (the NAS only)' : '') : '-';
 				part('version').textContent = d.phpmyadmin_version + (d.admin_exists ? '' : ' - the admin account is missing: reinstall the app to recreate it');
+				var states = { no_nginx: 'none - the Nginx app isn\'t set up', no_domain: 'none yet - set a domain in the Nginx app', off: 'switched off in the Nginx app' };
+				part('site').textContent = d.site.url || states[d.site.state];
+				part('host').textContent = window.location.hostname;
+				if (!loaded) {
+					part('auth').checked = d.auth;
+					loaded = true;
+				}
 			});
 		}
 
@@ -82,6 +104,32 @@ header('Cache-Control: no-store');
 				input.value = '';
 				secret.set(d.password);
 				say('Password changed - use it to log in to phpMyAdmin.', true);
+			});
+		});
+
+		// Its HTTPS address's password: Show / Hide, Copy and Change - and whether it's asked for
+		var siteSecret = mgSecret(part('site-password'), root.querySelector('[data-pma-action="site-show"]'), root.querySelector('[data-pma-action="site-copy"]'), function () {
+			return call('site_password', { show: 1 }).then(function (d) {
+				if (!d.ok) { say(d.error, false); return null; }
+				return d.password || '(none)';
+			});
+		});
+
+		root.querySelector('[data-pma-action="site-set"]').addEventListener('click', function () {
+			var input = part('site-new');
+			call('set_site_password', { password: input.value }).then(function (d) {
+				if (!d.ok) { say(d.error, false); return; }
+				input.value = '';
+				siteSecret.set(d.password);
+				say('New password for the HTTPS address in use.', true);
+			});
+		});
+
+		root.querySelector('[data-pma-action="auth"]').addEventListener('click', function () {
+			var auth = part('auth').checked;
+			call('auth', { auth: auth ? 1 : '' }).then(function (d) {
+				if (!d.ok) { say(d.error, false); return; }
+				say(auth ? 'Its HTTPS address asks for the password first.' : 'Its HTTPS address no longer asks for the password first: only phpMyAdmin\'s login.', true);
 			});
 		});
 

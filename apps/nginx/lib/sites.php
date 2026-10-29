@@ -28,7 +28,7 @@ const SITES_START_NAME = 'apps';
 //    they shipped nginx.json (only used while their folder has none)
 // The user only chooses whether each is on, its name and its label; everything else is its app's. A declared app's
 // site goes when its app does (its choices kept, for a reinstall)
-const SITES_DECLARATION_FIELDS = ['target', 'host', 'path', 'start', 'stream', 'uploads'];
+const SITES_DECLARATION_FIELDS = ['target', 'host', 'path', 'start', 'stream', 'uploads', 'auth'];
 
 // Folder in Nas_Prog => declaration ('' for the dashboard, which every NAS has)
 function sites_builtin_apps()
@@ -58,13 +58,16 @@ function sites_builtin_apps()
 	];
 }
 
-// A declaration with every field, or null if it isn't valid
-function sites_declaration($declared)
+// A declaration with every field, or null if it isn't valid. auth_file: a password file the app keeps (an htpasswd file,
+// readable by Nginx's workers - nobody and its group), relative to Nas_Prog (e.g. _kvweb/htpasswd): its site then asks for a
+// user name and password before anything is passed on (and refuses everything while the file is missing)
+function sites_declaration($declared, $apps_path = '')
 {
 	if (!is_array($declared)) {
 		return null;
 	}
-	$app = ['name' => '', 'label' => '', 'target' => '', 'host' => '', 'path' => '', 'start' => '', 'stream' => false, 'uploads' => false];
+	$app = ['name' => '', 'label' => '', 'target' => '', 'host' => '', 'path' => '', 'start' => '', 'stream' => false, 'uploads' => false,
+		'auth_file' => ''];
 	foreach ($app as $key => $default) {
 		if (isset($declared[$key])) {
 			if (is_bool($default) ? !is_bool($declared[$key]) : !is_string($declared[$key])) {
@@ -78,6 +81,11 @@ function sites_declaration($declared)
 	if ($app['label'] === '') {
 		$app['label'] = $app['name'];
 	}
+	if ($app['auth_file'] !== '' && (!preg_match('#^_[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$#', $app['auth_file']) || strpos($app['auth_file'], '..') !== false)) {
+		return null;
+	}
+	$app['auth'] = $app['auth_file'] !== '' ? $apps_path . '/' . $app['auth_file'] : '';
+	unset($app['auth_file']);
 	return sites_check_app($app) === '' ? $app : null;
 }
 
@@ -115,7 +123,7 @@ function sites_declared($data_path)
 			continue;
 		}
 		if (is_file($folder . '/nginx.json')) {
-			$app = sites_declaration(json_decode((string)@file_get_contents($folder . '/nginx.json'), true));
+			$app = sites_declaration(json_decode((string)@file_get_contents($folder . '/nginx.json'), true), $apps_path);
 		} elseif (is_dir($folder . '/.store')) {
 			$app = sites_recipe_declaration($folder);
 		} else {
@@ -150,7 +158,7 @@ function sites_load($data_path)
 	$saved = [];
 	foreach ($settings['apps'] as $app) {
 		if (is_array($app) && isset($app['name'], $app['target'])) {
-			$saved[] = $app + ['label' => '', 'host' => '', 'path' => '', 'start' => '', 'stream' => false, 'uploads' => false, 'enabled' => true];
+			$saved[] = $app + ['label' => '', 'host' => '', 'path' => '', 'start' => '', 'stream' => false, 'uploads' => false, 'auth' => '', 'enabled' => true];
 		}
 	}
 	// Apps saved before they were declared (or this was) are matched to their declaration: by name and target, then
@@ -252,7 +260,7 @@ function sites_save($data_path, array $settings)
 // declared app's site is its declaration's (see sites_declared), so it's left as it is. Returns '' or an error message
 function sites_add_app($data_path, array $app)
 {
-	$app += ['label' => '', 'host' => '', 'path' => '', 'start' => '', 'stream' => false, 'uploads' => false];
+	$app += ['label' => '', 'host' => '', 'path' => '', 'start' => '', 'stream' => false, 'uploads' => false, 'auth' => ''];
 	$app['name'] = strtolower($app['name']);
 	$app['target'] = rtrim($app['target'], '/');
 	if ($app['label'] === '') {
@@ -341,6 +349,10 @@ function sites_check_app(array $app)
 	if ($app['path'] !== '' && !preg_match('#^/[A-Za-z0-9._~/-]*/$#', $app['path'])) {
 		return 'Paths start and end with /, e.g. /phpMyAdmin/ (for ' . $app['name'] . ')';
 	}
+	// (only ever set by an app's declaration - see sites_declaration)
+	if (isset($app['auth']) && $app['auth'] !== '' && (!preg_match('#^/[A-Za-z0-9._/-]+$#', $app['auth']) || strpos($app['auth'], '..') !== false)) {
+		return 'Not a password file, for ' . $app['name'];
+	}
 	if ($app['start'] !== '' && !preg_match('#^/[A-Za-z0-9._~/-]*$#', $app['start'])) {
 		return 'Start pages start with /, e.g. /admin/ (for ' . $app['name'] . ')';
 	}
@@ -392,7 +404,9 @@ function sites_write($file, $contents)
 function sites_app_conf(array $app, $server_name)
 {
 	$host = $app['host'] !== '' ? $app['host'] : '$host';
-	$proxy = "        include          server.d/proxy.conf;\n"
+	// (an app that asks for a password through Nginx: see sites_declaration)
+	$proxy = (!empty($app['auth']) ? "        auth_basic           \"{$app['name']}\";\n        auth_basic_user_file {$app['auth']};\n" : '')
+		. "        include          server.d/proxy.conf;\n"
 		. "        proxy_set_header Host {$host};\n"
 		. "        proxy_pass       {$app['target']};\n";
 	// Its options (see sites_declared) - both can be on, so each directive is written once

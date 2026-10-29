@@ -27,3 +27,8 @@ mysql --user=root --password= -N -e "DROP USER IF EXISTS 'admin'@'localhost';";
 
 log "Removing all files from: ${APP_PATH}";
 rm -rf "${APP_PATH}";
+
+# Without the app's folder (and its nginx.json), the Nginx app no longer serves phpMyAdmin: rewrite its sites
+if [ -f "${APPS_PATH}/nginx/lib/sites.php" ] && [ -d "${APPS_PATH}/_nginx/sites" ]; then
+	php "${APPS_PATH}/nginx/lib/sites.php" generate "${APPS_PATH}/_nginx" && sh "${APPS_PATH}/nginx/nginx_ctl.sh" reload > /dev/null 2>&1
+fi

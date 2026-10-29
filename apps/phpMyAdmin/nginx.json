@@ -2,5 +2,6 @@
 	"name": "phpmyadmin",
 	"label": "phpMyAdmin",
 	"target": "http://127.0.0.1:80",
-	"path": "/phpMyAdmin/"
+	"path": "/phpMyAdmin/",
+	"auth_file": "_phpMyAdmin/htpasswd"
 }

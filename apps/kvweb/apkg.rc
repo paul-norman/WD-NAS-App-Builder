@@ -1,0 +1,23 @@
+Package:			kvweb
+Version:			0.2.5-2
+Packager:			PDN
+Email:
+Homepage:			https://github.com/natrimmer/kvweb
+Description:		kvweb: browse and edit the Valkey app's keys in a web browser (through the Nginx app).
+Icon:				kvweb.svg
+AddonShowName:		kvweb
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

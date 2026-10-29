@@ -1,0 +1,23 @@
+Package:			pgweb
+Version:			0.17.0-2
+Packager:			PDN
+Email:
+Homepage:			https://github.com/sosedoff/pgweb
+Description:		pgweb: browse and query the PostgreSQL app's databases in a web browser (through the Nginx app).
+Icon:				pgweb.svg
+AddonShowName:		pgweb
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

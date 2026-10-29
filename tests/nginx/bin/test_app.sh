@@ -116,6 +116,20 @@ php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1 && sh $P/nginx/nginx_ctl
 [ ! -f $D/sites/60-app-hey.conf ] && [ ! -f $D/sites/60-app-rcp.conf ] && ! get status | grep -q '"hey"' && pass "their sites go with the app and the recipe" || fail "not removed: $(ls $D/sites | tr '\n' ' ')"
 mv /tmp/hello.app $P/hello; php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1
 [ -f $D/sites/60-app-hey.conf ] && [ "$(get status | j 'array_column($d["apps"], "label", "app")["hello"]')" = '"Hey"' ] && pass "reinstalled: back under the name and label chosen" || fail "reinstall: $(ls $D/sites | tr '\n' ' ')"
+# An app asking for a password through Nginx: its htpasswd file (SHA-512 crypt, as the apps write it), Nginx's group's only
+mkdir -p $P/_hello; printf '{"name": "locked", "target": "http://127.0.0.1:18081", "auth_file": "_hello/htpasswd"}\n' > $P/hello/nginx.json
+php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1 && sh $P/nginx/nginx_ctl.sh reload > /dev/null 2>&1
+[ "$(site hey.$DOMAIN -o /dev/null -w '%{http_code}')" = 401 ] && ! site hey.$DOMAIN -u admin:anything | grep -q '"app"' && [ "$(site hey.$DOMAIN -u admin:anything -o /dev/null -w '%{http_code}')" != 200 ] \
+	&& pass "a password file missing: refused without a password (401) and with one ($(site hey.$DOMAIN -u admin:anything -o /dev/null -w '%{http_code}')) - nothing passed on" || fail "no password file: $(site hey.$DOMAIN -u admin:anything -o /dev/null -w '%{http_code}')"
+php -r 'echo "admin:" . crypt("Right-pass-123", "\$6\$rounds=5000\$" . bin2hex(random_bytes(8)) . "\$") . "\n";' > $P/_hello/htpasswd
+chown root:nogroup $P/_hello/htpasswd; chmod 640 $P/_hello/htpasswd
+[ "$(site hey.$DOMAIN -o /dev/null -w '%{http_code}')" = 401 ] && [ "$(site hey.$DOMAIN -u admin:wrong -o /dev/null -w '%{http_code}')" = 401 ] \
+	&& [ "$(site hey.$DOMAIN -u admin:Right-pass-123 | j '$d["app"]')" = '"hello"' ] \
+	&& pass "a site asking for a password (the app's htpasswd, root:nogroup 640): none or a wrong one refused (401), the right one passed on" \
+	|| fail "auth: $(site hey.$DOMAIN -o /dev/null -w '%{http_code}') $(site hey.$DOMAIN -u admin:Right-pass-123 | head -c 200) $(grep auth $D/sites/60-app-hey.conf)"
+printf '{"name": "locked", "target": "http://127.0.0.1:18081", "auth_file": "../etc/passwd"}\n' > $P/hello/nginx.json; php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1
+[ ! -f $D/sites/60-app-hey.conf ] && pass "a password file outside the apps' data folders refused (the declaration ignored)" || fail "auth_file outside Nas_Prog/_*: $(grep auth $D/sites/60-app-hey.conf)"
+rm -rf $P/_hello
 printf '{"name": "Bad name", "target": "file:///etc"}\n' > $P/hello/nginx.json; php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1
 [ ! -f $D/sites/60-app-hey.conf ] && pass "a declaration that isn't valid is ignored" || fail "bad nginx.json used"
 rm -rf $P/hello $P/_recipe; php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1 && sh $P/nginx/nginx_ctl.sh reload > /dev/null 2>&1

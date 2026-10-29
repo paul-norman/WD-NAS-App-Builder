@@ -71,6 +71,12 @@ if ($action === 'set_password') {
 		manage_fail(500, 'The config file could not be saved, so the password was not changed');
 	}
 
+	// The kvweb app (if installed) logs in with the password from the config file: it restarts with the new one
+	$kvweb = dirname($app_path) . '/kvweb/kvweb_ctl.sh';
+	if (is_file($kvweb)) {
+		manage_run(['/bin/sh', $kvweb, 'restart']);
+	}
+
 	manage_json(['password' => $new, 'applied' => valkey_running()]);
 }
 

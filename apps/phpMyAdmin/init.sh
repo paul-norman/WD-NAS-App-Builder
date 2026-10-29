@@ -55,3 +55,8 @@ mysql --user=root --password= -N -e "FLUSH PRIVILEGES;";
 log "linking management page from: ${APP_PATH}/manage/* to: ${APP_MANAGE_PATH}"
 mkdir -p ${APP_MANAGE_PATH}
 ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
+
+# Its HTTPS address in the Nginx app (https://phpmyadmin.<the Nginx app's domain>/phpMyAdmin/, from its nginx.json),
+# asking for the page's password first unless that's switched off
+sh "${APP_PATH}/pma_site.sh" setup >> ${LOG} 2>&1
+sh "${APP_PATH}/pma_site.sh" nginx >> ${LOG} 2>&1

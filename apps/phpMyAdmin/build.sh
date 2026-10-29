@@ -5,7 +5,7 @@
 mkdir -p binaries
 cd binaries
 
-PMA_REPO="https://files.phpmyadmin.net/phpMyAdmin/${APKG_VERSION}/phpMyAdmin-${APKG_VERSION}-all-languages.tar.gz"
+PMA_REPO="https://files.phpmyadmin.net/phpMyAdmin/${APP_UPSTREAM_VERSION}/phpMyAdmin-${APP_UPSTREAM_VERSION}-all-languages.tar.gz"
 
 # Download and extract the right version of phpMyAdmin
 wget ${PMA_REPO} -O pma.tar.gz

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Adminer: manage the MariaDB and PostgreSQL apps' databases in a web browser.</en-US>
+	<fr-FR>Adminer : gérer les bases de données des apps MariaDB et PostgreSQL dans un navigateur web.</fr-FR>
+	<es-ES>Adminer: gestiona las bases de datos de las apps MariaDB y PostgreSQL en un navegador web.</es-ES>
+	<de-DE>Adminer: die Datenbanken der MariaDB- und PostgreSQL-Apps im Webbrowser verwalten.</de-DE>
+</config>

@@ -48,7 +48,7 @@ If the domain has a wildcard CNAME *(e.g. `*.example.com → example.com`)*, leg
 
 Each app declares its site, and the Nginx app reads the declarations every time it writes its sites *(when it starts, when the page saves, and when an app runs `sites.php generate`)*:
 
-- **An app** ships `nginx.json` in its package *(so it's at `Nas_Prog/<app>/nginx.json`)*, with the fields above - `name` *(the one it's offered as)*, `label`, `target`, and any of `host`, `path`, `start`, `uploads` and `stream`:
+- **An app** ships `nginx.json` in its package *(so it's at `Nas_Prog/<app>/nginx.json`)*, with the fields above - `name` *(the one it's offered as)*, `label`, `target`, and any of `host`, `path`, `start`, `uploads` and `stream`. An app can add `auth_file` *(one without a login of its own, or as a second lock in front of its login)*: a password file it keeps in its data folder *(e.g. `"auth_file": "_kvweb/htpasswd"`, relative to `Nas_Prog` - an htpasswd file, owned by root and readable by the group Nginx's workers run as - `nobody`'s own: `nogroup` on most systems, the share users' group on WD's NAS - e.g. SHA-512 crypt hashes)*. Its site then asks for a user name and password before anything is passed on, and refuses everything while the file is missing:
 
   ```json
   {

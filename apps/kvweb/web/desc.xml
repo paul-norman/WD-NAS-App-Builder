@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>kvweb: browse and edit the Valkey app's keys in a web browser.</en-US>
+	<fr-FR>kvweb : parcourir et modifier les clés de l'app Valkey dans un navigateur web.</fr-FR>
+	<es-ES>kvweb: explora y edita las claves de la app Valkey en un navegador web.</es-ES>
+	<de-DE>kvweb: die Schlüssel der Valkey-App im Webbrowser durchsuchen und bearbeiten.</de-DE>
+</config>
