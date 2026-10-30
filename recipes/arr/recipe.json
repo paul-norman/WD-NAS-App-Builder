@@ -2,7 +2,7 @@
 	"recipe_version": 1,
 	"id": "arr",
 	"name": "Arr stack",
-	"version": "2026.10.30-2",
+	"version": "2026.10.30-3",
 	"summary": "Request films and TV, and have them found, downloaded and filed into your Jellyfin or Plex library - all connected for you",
 	"description": "description.md",
 	"compose": "compose.yaml",
@@ -113,6 +113,14 @@
 			"help": "Tidy names (e.g. Show - S01E02 - Title), as Jellyfin and Plex like them, using each app's naming settings. Off: names kept as downloaded.",
 			"default": true,
 			"values": ["on", "off"]
+		},
+		{
+			"key": "SEARCH",
+			"type": "choice",
+			"label": "Searching",
+			"help": "Automatic: what's added or requested is searched for straight away, the best download chosen by the quality profile, and new releases are picked up as they appear (RSS). By hand: nothing is downloaded until you choose a release yourself (Interactive Search, the person icon in Sonarr or Radarr) - Seerr's requests are added without a search. Set in Prowlarr's sync profiles, for the indexers it gives the apps.",
+			"default": "auto",
+			"choices": [{ "value": "auto", "label": "Automatic" }, { "value": "manual", "label": "By hand (Interactive Search)" }]
 		},
 		{
 			"key": "FLAT_FILMS",

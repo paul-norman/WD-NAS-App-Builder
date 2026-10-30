@@ -14,6 +14,8 @@ values in the environment. Everything it does can be done again: it only adds wh
  - SABnzbd: its folders, a category per app, the address the other apps reach it at
  - Bazarr: Sonarr and Radarr, a subtitle language, subtitle sources that need no account
  - Seerr: Sonarr and Radarr (its own setup page then only asks for the media server - Jellyfin or Plex)
+ - searching (SEARCH): automatic - for what's added or requested, and new releases (RSS) - or only by hand (Prowlarr's
+   sync profile for the indexers it gives the apps, and Seerr's requests added without a search)
  - Radarr, with FLAT_FILMS: a script it runs after each import, filing films without a folder of their own
  - Sonarr, Radarr (and Lidarr): the media server (MEDIA_SERVER - Plex, Jellyfin or Emby), told about each new file
  - ntfy (NTFY_TOPIC, with the ntfy app on the NAS): Sonarr, Radarr, Lidarr, Bookshelf, Prowlarr and Seerr send their
@@ -50,6 +52,9 @@ AFTER_IMPORT = ENV.get("AFTER_IMPORT", "seed")
 SEED_RATIO = ENV.get("SEED_RATIO", "2")
 SEED_DAYS = int(ENV.get("SEED_DAYS", "14") or 0)
 RENAME = ENV.get("RENAME", "on") == "on"
+# Searching: auto (what's added or requested is searched for, and new releases are picked up - RSS) or manual (only the
+# apps' Interactive Search)
+SEARCH_BY_HAND = ENV.get("SEARCH", "auto") == "manual"
 # Films without a folder of their own (FLAT_FILMS): once filed, moved up into the library folder and taken off Radarr's
 # list - by a script Radarr runs after each import (Settings -> Connect)
 FLAT_FILMS = ENV.get("FLAT_FILMS", "off") == "on"
@@ -92,14 +97,14 @@ def on(name):
 # clients
 LIBRARY_APPS = [
     {"name": "sonarr", "title": "Sonarr", "port": 8989, "api": "v3", "key": "SONARR_API_KEY", "option": None,
-     "folder": "tv", "folders": "TV_FOLDERS", "category": "tvCategory", "rename": "renameEpisodes", "prowlarr": "Sonarr", "ntfy_tag": "tv"},
+     "folder": "tv", "folders": "TV_FOLDERS", "category": "tvCategory", "rename": "renameEpisodes", "prowlarr": "Sonarr", "items": "/series", "ntfy_tag": "tv"},
     {"name": "radarr", "title": "Radarr", "port": 7878, "api": "v3", "key": "RADARR_API_KEY", "option": None,
-     "folder": "movies", "folders": "MOVIES_FOLDERS", "category": "movieCategory", "rename": "renameMovies", "prowlarr": "Radarr", "ntfy_tag": "movie_camera"},
+     "folder": "movies", "folders": "MOVIES_FOLDERS", "category": "movieCategory", "rename": "renameMovies", "prowlarr": "Radarr", "items": "/movie", "ntfy_tag": "movie_camera"},
     {"name": "lidarr", "title": "Lidarr", "port": 8686, "api": "v1", "key": "LIDARR_API_KEY", "option": "LIDARR",
-     "folder": "music", "folders": "MUSIC_FOLDERS", "category": "musicCategory", "rename": "renameTracks", "prowlarr": "Lidarr", "ntfy_tag": "musical_note"},
+     "folder": "music", "folders": "MUSIC_FOLDERS", "category": "musicCategory", "rename": "renameTracks", "prowlarr": "Lidarr", "items": "/artist", "ntfy_tag": "musical_note"},
     {"name": "bookshelf", "title": "Bookshelf", "port": 8787, "api": "v1", "key": "BOOKSHELF_API_KEY", "option": "BOOKS",
      # (Readarr - which Bookshelf continues - kept Lidarr's name for its download clients' category)
-     "folder": "books", "folders": "BOOKS_FOLDERS", "category": "musicCategory", "rename": "renameBooks", "prowlarr": "Readarr", "ntfy_tag": "books"},
+     "folder": "books", "folders": "BOOKS_FOLDERS", "category": "musicCategory", "rename": "renameBooks", "prowlarr": "Readarr", "items": "/author", "ntfy_tag": "books"},
 ]
 # Optional containers, by their option
 OPTIONAL = {"LIDARR": "lidarr", "BOOKS": "bookshelf", "SABNZBD": "sabnzbd", "FLARESOLVERR": "flaresolverr", "RECYCLARR": "recyclarr"}
@@ -386,7 +391,8 @@ class Arr:
         self.key = key
 
     def call(self, method, path, body=None):
-        status, text, _ = http(method, self.base + path, headers={"X-Api-Key": self.key}, body=body)
+        # (some take a while: e.g. Prowlarr syncing its indexers to the apps, a connection test)
+        status, text, _ = http(method, self.base + path, headers={"X-Api-Key": self.key}, body=body, timeout=120)
         if status >= 400:
             raise HttpError(status, text)
         return json.loads(text) if text.strip() else None
@@ -450,6 +456,20 @@ def library_app(app, sab_api_key):
                              "defaultMonitorOption": "all", "defaultNewItemMonitorOption": "all", "defaultTags": [],
                              "isCalibreLibrary": False})
             arr.call("POST", "/rootfolder", root)
+        # Library folders the recipe gave it before (in the data folder, or mounted at /media) and no longer chosen: taken
+        # off, if nothing in the app is in them - else kept, and said
+        items = None
+        for root in arr.call("GET", "/rootfolder"):
+            path = root["path"].rstrip("/")
+            if path in roots or not (path.startswith("/data/media/") or path.startswith("/media/")):
+                continue
+            if items is None:
+                items = [i.get("path", "") for i in arr.call("GET", app["items"])]
+            if any(i == path or i.startswith(path + "/") for i in items):
+                log("%s: %s is no longer one of its library folders, but has things in it - kept (move them in %s)" % (app["title"], path, app["title"]))
+            else:
+                arr.call("DELETE", "/rootfolder/%s" % root["id"])
+                log("%s: %s taken off its library folders (no longer chosen)" % (app["title"], path))
         folder = ", ".join(roots)
 
         def client(implementation, values):
@@ -473,7 +493,7 @@ def library_app(app, sab_api_key):
             arr.call("PUT", "/config/naming/%s" % naming["id"], naming)
         log("%s: user %s, library %s, downloads through qBittorrent%s, %s" % (app["title"], USER, folder, " and SABnzbd" if sab_api_key else "",
                                                                              "renamed as filed" if RENAME else "names kept"))
-    except (HttpError, KeyError, IndexError, ValueError) as error:
+    except (HttpError, KeyError, IndexError, ValueError, OSError) as error:
         problem("%s: %s" % (app["title"], error))
         return
     try:
@@ -640,6 +660,15 @@ def prowlarr(enabled_apps):
                 arr.ensure("/applications", match, fill)
             else:
                 arr.remove("/applications", match)
+        # Searching: automatic, or only by hand - for the indexers it gives the apps (its sync profiles), synced to them now
+        changed = False
+        for profile in arr.call("GET", "/appprofile"):
+            if profile.get("enableRss") == SEARCH_BY_HAND or profile.get("enableAutomaticSearch") == SEARCH_BY_HAND:
+                profile.update({"enableRss": not SEARCH_BY_HAND, "enableAutomaticSearch": not SEARCH_BY_HAND, "enableInteractiveSearch": True})
+                arr.call("PUT", "/appprofile/%s" % profile["id"], profile)
+                changed = True
+        if changed:
+            arr.call("POST", "/command", {"name": "ApplicationIndexerSync"})
         tags = arr.call("GET", "/tag")
         tag = [t for t in tags if t["label"] == "flaresolverr"]
         if on("FLARESOLVERR"):
@@ -654,9 +683,10 @@ def prowlarr(enabled_apps):
             arr.ensure("/indexerproxy", lambda x: x["implementation"] == "FlareSolverr", proxy)
         else:
             arr.remove("/indexerproxy", lambda x: x["implementation"] == "FlareSolverr")
-        log("Prowlarr: user %s, linked to %s%s - add indexers in Prowlarr" % (USER, ", ".join(a["title"] for a in enabled_apps),
-            " (FlareSolverr for indexers tagged flaresolverr)" if on("FLARESOLVERR") else ""))
-    except (HttpError, KeyError, IndexError, ValueError) as error:
+        log("Prowlarr: user %s, linked to %s%s, %s - add indexers in Prowlarr" % (USER, ", ".join(a["title"] for a in enabled_apps),
+            " (FlareSolverr for indexers tagged flaresolverr)" if on("FLARESOLVERR") else "",
+            "searching only by hand (Interactive Search)" if SEARCH_BY_HAND else "searching automatically"))
+    except (HttpError, KeyError, IndexError, ValueError, OSError) as error:
         problem("Prowlarr: %s" % error)
     ntfy(arr, "mag")
 
@@ -721,7 +751,7 @@ def ntfy(arr, tag):
         # (it sends a test notification as it's first saved - refused if ntfy doesn't answer)
         arr.ensure("/notification", lambda x: x["implementation"] == "Ntfy" and x.get("name", "") in ("", NTFY_NAME), fill)
         log("%s: notifications to ntfy (topic %s)" % (arr.title, NTFY_TOPIC))
-    except (HttpError, KeyError, IndexError, ValueError) as error:
+    except (HttpError, KeyError, IndexError, ValueError, OSError) as error:
         problem("%s: notifications to ntfy: %s" % (arr.title, error))
 
 
@@ -859,6 +889,18 @@ def seerr(quality_rules):
             # Already set: only its profile changes - to the quality rules' chosen one, from one Sonarr or Radarr started
             # with (or the quality rules' other): one chosen in Seerr is kept
             entry = settings[kind][0]
+            # Requests searched for, or not (SEARCH)
+            if entry.get("preventSearch") != SEARCH_BY_HAND:
+                entry["preventSearch"] = SEARCH_BY_HAND
+                changed = True
+            # Its folder for new requests: the first library folder, if the one it has was the recipe's and is no longer
+            # chosen
+            roots = [in_container(folder) for folder in library_folders(app)]
+            for field in ("activeDirectory", "activeAnimeDirectory"):
+                current = (entry.get(field) or "").rstrip("/")
+                if field in entry and current not in roots and (current.startswith("/data/media/") or current.startswith("/media/")):
+                    entry[field] = roots[0]
+                    changed = True
             ruled = STOCK_PROFILES + tuple(n for _, n in QUALITY_PROFILES[kind])
             if quality_rules and profile["name"] in names:
                 for field in ("activeProfile", "activeAnimeProfile"):
@@ -869,7 +911,7 @@ def seerr(quality_rules):
         entry = {"id": 0, "name": app["title"], "hostname": app["name"], "port": app["port"], "apiKey": ENV.get(app["key"], ""),
                  "useSsl": False, "baseUrl": "", "activeProfileId": profile["id"], "activeProfileName": profile["name"],
                  "activeDirectory": in_container(library_folders(app)[0]), "tags": [], "is4k": False, "isDefault": True,
-                 "externalUrl": "", "syncEnabled": True, "preventSearch": False, "tagRequests": False, "overrideRule": []}
+                 "externalUrl": "", "syncEnabled": True, "preventSearch": SEARCH_BY_HAND, "tagRequests": False, "overrideRule": []}
         if kind == "sonarr":
             entry.update({"seriesType": "standard", "animeSeriesType": "anime", "activeAnimeProfileId": profile["id"],
                           "activeAnimeProfileName": profile["name"], "activeAnimeDirectory": entry["activeDirectory"],

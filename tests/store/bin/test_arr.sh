@@ -16,10 +16,10 @@ python3 /tbin/repotool.py add-recipe /www/repo /tfix/arr-small; post refresh >/d
 D=$P/_arr; M=$V/Media
 get details "&kind=recipes&repo=$REPO&id=arr" >/dev/null
 echo "  problems: $(j '$d["problems"]')"; echo "  wizard: $(j 'implode(", ", array_map(function($f){return $f["key"].(empty($f["advanced"])?"":"(adv)")."=".json_encode($f["value"]);}, $d["wizard"]))' | cut -c1-400)"
-ANS='{"DATA_ROOT":"'$M'","ADMIN_USER":"admin","ADMIN_PASSWORD":"Test-pass-123","LIDARR":true,"BOOKS":true,"SABNZBD":true,"FLARESOLVERR":true,"SUBTITLE_LANGUAGE":"en","TORRENT_PORT":6881,"TZ":"Europe/London","TV_FOLDERS":[],"MOVIES_FOLDERS":[],"MUSIC_FOLDERS":[],"BOOKS_FOLDERS":[],"AFTER_IMPORT":"seed","SEED_RATIO":"2","SEED_DAYS":14,"RENAME":true,"FLAT_FILMS":false,"NTFY_TOPIC":"arr","MEDIA_SERVER":"none","MEDIA_SERVER_KEY":"","MEDIA_SERVER_URL":"","RECYCLARR":true,"QUALITY":"1080p"}'
+ANS='{"DATA_ROOT":"'$M'","ADMIN_USER":"admin","ADMIN_PASSWORD":"Test-pass-123","LIDARR":true,"BOOKS":true,"SABNZBD":true,"FLARESOLVERR":true,"SUBTITLE_LANGUAGE":"en","TORRENT_PORT":6881,"TZ":"Europe/London","TV_FOLDERS":[],"MOVIES_FOLDERS":[],"MUSIC_FOLDERS":[],"BOOKS_FOLDERS":[],"AFTER_IMPORT":"seed","SEED_RATIO":"2","SEED_DAYS":14,"RENAME":true,"FLAT_FILMS":false,"SEARCH":"auto","NTFY_TOPIC":"arr","MEDIA_SERVER":"none","MEDIA_SERVER_KEY":"","MEDIA_SERVER_URL":"","RECYCLARR":true,"QUALITY":"1080p"}'
 post start -d job=recipe_install -d repo=$REPO -d id=arr --data-urlencode "answers=$ANS" >/dev/null; START=$(cat /tmp/body); job_wait
 get job >/dev/null; j '$d["log"]' | tr '\\' '\n' | grep -E "^n?(qBittorrent|SABnzbd|Sonarr|Radarr|Lidarr|Bookshelf|Prowlarr|Recyclarr|Bazarr|Seerr|Problem|Everything|Finished):" | sed 's/^n//' | sed 's/^/  /' | cut -c1-200
-[ "$JOB_STATE" = '"done"' ] && j '$d["log"]' | grep -q "Everything is connected" && pass "installed through the Store, everything connected by its hook: $JOB_MSG" || { fail "install: $JOB_STATE $JOB_MSG (start: $START)"; j '$d["log"]' | tr '\\' '\n' | tail -30; }
+[ "$JOB_STATE" = '"done"' ] && j '$d["log"]' | grep -q "Everything is connected" && pass "installed through the Store, everything connected by its hook: $JOB_MSG" || { fail "install: $JOB_STATE $JOB_MSG (start: $START)"; j '$d["log"]' | tr '\\' '\n' | grep -v "^n *File\|^\"" | tail -60; }
 set -a; . $D/.env; set +a
 RUNNING=$(docker ps --format '{{.Names}}' | grep -cxE 'qbittorrent|prowlarr|sonarr|radarr|bazarr|seerr|lidarr|bookshelf|sabnzbd|flaresolverr|recyclarr')
 [ "$RUNNING" = 11 ] && pass "all 11 containers running" || fail "running: $(docker ps --format '{{.Names}}' | tr '\n' ' ')"
@@ -94,6 +94,11 @@ QS=$(profiles 8989 v3 $SONARR_API_KEY); QR=$(profiles 7878 v3 $RADARR_API_KEY)
 	&& [ "$(stat -c '%u' $D/recyclarr/recyclarr.yml)" = 84 ] && ! grep -q "$SONARR_API_KEY" $D/recyclarr/recyclarr.yml \
 	&& pass "quality rules: the TRaSH Guides' profiles with their scores (Sonarr $QS; Radarr $QR), Seerr requesting with the 1080p ones" \
 	|| fail "quality rules: sonarr '$QS' radarr '$QR' seerr '$(seerr_profiles)'; $(docker logs recyclarr 2>&1 | tail -5)"
+# Searching automatically: Prowlarr's sync profile (RSS and automatic search on), Seerr's requests searched for
+appprofile() { arr 9696 v1 $PROWLARR_API_KEY /appprofile | php -r '$p=json_decode(stream_get_contents(STDIN),true)[0]; echo json_encode([$p["enableRss"], $p["enableAutomaticSearch"], $p["enableInteractiveSearch"]]);'; }
+seerr_get() { docker exec seerr cat /app/config/settings.json | php -r '$s=json_decode(stream_get_contents(STDIN),true); echo json_encode([$s["sonarr"][0]["preventSearch"], $s["radarr"][0]["preventSearch"], $s["sonarr"][0]["activeDirectory"], $s["radarr"][0]["activeDirectory"]], JSON_UNESCAPED_SLASHES);'; }
+[ "$(appprofile)" = "[true,true,true]" ] && [ "$(seerr_get)" = '[false,false,"/data/media/tv","/data/media/movies"]' ] \
+	&& pass "searching automatically: Prowlarr's sync profile with RSS and automatic search, Seerr's requests searched for" || fail "search auto: $(appprofile) $(seerr_get)"
 # ntfy: each app's connection (its server, topic, and events - filed once per release where it can, no grabs), the test
 # notification each sent as it was connected (with ntfy's token), and Seerr's
 notify() { arr $1 $2 $3 /notification | php -r '$n=array_values(array_filter(json_decode(stream_get_contents(STDIN),true), function($x){return $x["name"]==="ntfy (Arr stack)";}));
@@ -118,7 +123,7 @@ done
 echo "== a change of settings: Lidarr and FlareSolverr off, a new password, Plex on the NAS, 4K requests"
 # (Plex on the NAS: its token is read from its Preferences.xml)
 mkdir -p "$P/plexmediaserver/Library/Plex Media Server"; printf '<?xml version="1.0" encoding="utf-8"?>\n<Preferences MachineIdentifier="m1" PlexOnlineToken="plex-tok-123" />\n' > "$P/plexmediaserver/Library/Plex Media Server/Preferences.xml"
-CHG='{"DATA_ROOT":"'$M'","ADMIN_USER":"admin","ADMIN_PASSWORD":"New-pass-456","LIDARR":false,"BOOKS":true,"SABNZBD":true,"FLARESOLVERR":false,"TORRENT_PORT":6881,"TZ":"Europe/London","TV_FOLDERS":[],"MOVIES_FOLDERS":[],"MUSIC_FOLDERS":[],"BOOKS_FOLDERS":[],"AFTER_IMPORT":"seed","SEED_RATIO":"2","SEED_DAYS":14,"RENAME":true,"FLAT_FILMS":false,"NTFY_TOPIC":"arr","MEDIA_SERVER":"plex","MEDIA_SERVER_KEY":"","MEDIA_SERVER_URL":"","RECYCLARR":true,"QUALITY":"2160p"}'
+CHG='{"DATA_ROOT":"'$M'","ADMIN_USER":"admin","ADMIN_PASSWORD":"New-pass-456","LIDARR":false,"BOOKS":true,"SABNZBD":true,"FLARESOLVERR":false,"TORRENT_PORT":6881,"TZ":"Europe/London","TV_FOLDERS":[],"MOVIES_FOLDERS":[],"MUSIC_FOLDERS":[],"BOOKS_FOLDERS":[],"AFTER_IMPORT":"seed","SEED_RATIO":"2","SEED_DAYS":14,"RENAME":true,"FLAT_FILMS":false,"SEARCH":"auto","NTFY_TOPIC":"arr","MEDIA_SERVER":"plex","MEDIA_SERVER_KEY":"","MEDIA_SERVER_URL":"","RECYCLARR":true,"QUALITY":"2160p"}'
 post start -d job=recipe_change -d id=arr --data-urlencode "answers=$CHG" >/dev/null; job_wait
 get job >/dev/null; LOG=$(j '$d["log"]')
 [ "$JOB_STATE" = '"done"' ] && [ -z "$(docker ps -aq --filter name=^lidarr$)" ] && [ -z "$(docker ps -aq --filter name=^flaresolverr$)" ] \
@@ -143,7 +148,7 @@ rm -rf $P/ntfy
 # (folders of a user's own share: the share group may write - and one it may not, which is said)
 mkdir -p "$V/Me/TV" "$V/Me/Anime" "$V/Me/Films" "$V/Locked/Books"; chgrp 1000 "$V/Me/TV" "$V/Me/Anime" "$V/Me/Films"; chmod 2775 "$V/Me/TV" "$V/Me/Anime" "$V/Me/Films"
 chmod 755 "$V/Locked/Books"
-CHG='{"DATA_ROOT":"'$M'","ADMIN_USER":"admin","ADMIN_PASSWORD":"New-pass-456","LIDARR":false,"BOOKS":true,"SABNZBD":true,"FLARESOLVERR":false,"TORRENT_PORT":6881,"TZ":"Europe/London","TV_FOLDERS":["'$V'/Me/TV","'$V'/Me/Anime"],"MOVIES_FOLDERS":["'$V'/Me/Films"],"BOOKS_FOLDERS":["'$V'/Locked/Books"],"AFTER_IMPORT":"limit","SEED_RATIO":"1","SEED_DAYS":7,"RENAME":false,"FLAT_FILMS":false,"NTFY_TOPIC":"arr","MEDIA_SERVER":"jellyfin","MEDIA_SERVER_KEY":"jf-key-1","MEDIA_SERVER_URL":"http://host.docker.internal:18096/","RECYCLARR":true,"QUALITY":"2160p"}'
+CHG='{"DATA_ROOT":"'$M'","ADMIN_USER":"admin","ADMIN_PASSWORD":"New-pass-456","LIDARR":false,"BOOKS":true,"SABNZBD":true,"FLARESOLVERR":false,"TORRENT_PORT":6881,"TZ":"Europe/London","TV_FOLDERS":["'$V'/Me/TV","'$V'/Me/Anime"],"MOVIES_FOLDERS":["'$V'/Me/Films"],"BOOKS_FOLDERS":["'$V'/Locked/Books"],"AFTER_IMPORT":"limit","SEED_RATIO":"1","SEED_DAYS":7,"RENAME":false,"FLAT_FILMS":false,"SEARCH":"manual","NTFY_TOPIC":"arr","MEDIA_SERVER":"jellyfin","MEDIA_SERVER_KEY":"jf-key-1","MEDIA_SERVER_URL":"http://host.docker.internal:18096/","RECYCLARR":true,"QUALITY":"2160p"}'
 post start -d job=recipe_change -d id=arr --data-urlencode "answers=$CHG" >/dev/null; job_wait
 get job >/dev/null; LOG=$(j '$d["log"]')
 mounts() { docker inspect $1 --format '{{range .Mounts}}{{.Destination}} {{end}}'; }
@@ -156,6 +161,12 @@ echo "$R" | grep -q "/media/Me/TV" && echo "$R" | grep -q "/media/Me/Anime" && !
 	&& [ "$(docker exec --user 84:1000 sonarr sh -c 'echo x > /media/Me/TV/w.txt && cat /media/Me/TV/w.txt')" = x ] && [ -f "$V/Me/TV/w.txt" ] \
 	&& pass "Sonarr's and Radarr's library folders, accessible (and writable as the apps' user): $R" || fail "root folders: sonarr $R radarr $(roots 7878 v3 $RADARR_API_KEY)"
 rm -f "$V/Me/TV/w.txt"
+# The folders changed: the old ones (empty) taken off the apps, Seerr's moved to the new first ones; searching by hand
+[ "$(arr 8989 v3 $SONARR_API_KEY /rootfolder | grep -c '"/data/media/tv"')" = 0 ] && [ "$(arr 7878 v3 $RADARR_API_KEY /rootfolder | grep -c '"/data/media/movies"')" = 0 ] \
+	&& echo "$LOG" | grep -q "Sonarr: /data/media/tv taken off its library folders" \
+	&& [ "$(seerr_get)" = '[true,true,"/media/Me/TV","/media/Me/Films"]' ] && [ "$(appprofile)" = "[false,false,true]" ] \
+	&& pass "folders changed: the old (empty) ones taken off Sonarr and Radarr, Seerr's moved; searching by hand: Prowlarr's sync profile (RSS, automatic search off), Seerr's requests not searched for" \
+	|| fail "folders/search: sonarr $(roots 8989 v3 $SONARR_API_KEY) seerr $(seerr_get) profile $(appprofile)"
 echo "$LOG" | grep -q "Bookshelf can't write into $V/Locked/Books" && pass "a folder the apps can't write into: said so (and left as it is - $(stat -c '%U %a' "$V/Locked/Books"))" || fail "locked folder not reported: $(echo "$LOG" | tail -c 400)"
 QP=$(curl -s -c /tmp/qc2 -H "Referer: $Q" --data 'username=admin&password=New-pass-456' -o /dev/null $Q/api/v2/auth/login; curl -s -b /tmp/qc2 $Q/api/v2/app/preferences \
 	| php -r '$d=json_decode(stream_get_contents(STDIN),true); echo json_encode([$d["max_ratio_enabled"], (string)$d["max_ratio"], $d["max_seeding_time_enabled"], $d["max_seeding_time"], $d["max_ratio_act"]]);')
