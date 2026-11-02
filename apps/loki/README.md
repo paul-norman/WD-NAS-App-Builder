@@ -7,11 +7,11 @@ Collects the NAS's logs in one place, searchable in [Grafana](../grafana/README.
 
 What's collected *(each source can be turned off on the management page)*:
 
-| Source | Logs | Labelled |
-|---|---|---|
-| The NAS itself | `/var/log/*.log` *(the system log `user.log`, `kern.log`, `daemon.log`, `sshd.log`, WD's `nasAdmin.log`, `wdlog.log`, `wdhwlib.log`, `event.log`, `otaclient.log`…)* and Samba's logs - not WD's private or analytics logs | `source="system"`, `app="user"`, `"kern"`, `"sshd"`… |
-| The apps | `Nas_Prog/_<app>/*.log` *(e.g. Vaultwarden, Uptime Kuma, Prometheus, Grafana, Docker, PHP)*, the Nginx app's logs, Node Exporter's, and the app scripts' `/tmp/debug_apkg` | `source="app"`, `app="vaultwarden"`, `"nginx"`, `"app-scripts"`… |
-| Docker | every container's output, while Docker runs *(restart this app after starting Docker)* | `source="docker"`, `app=<container name>` |
+| Source         | Logs                                                                                                                                                                                                                       | Labelled                                                         |
+|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| The NAS itself | `/var/log/*.log` *(the system log `user.log`, `kern.log`, `daemon.log`, `sshd.log`, WD's `nasAdmin.log`, `wdlog.log`, `wdhwlib.log`, `event.log`, `otaclient.log`…)* and Samba's logs - not WD's private or analytics logs | `source="system"`, `app="user"`, `"kern"`, `"sshd"`…             |
+| The apps       | `Nas_Prog/_<app>/*.log` *(e.g. Vaultwarden, Uptime Kuma, Prometheus, Grafana, Docker, PHP)*, the Nginx app's logs, Node Exporter's, and the app scripts' `/tmp/debug_apkg`                                                 | `source="app"`, `app="vaultwarden"`, `"nginx"`, `"app-scripts"`… |
+| Docker         | every container's output, while Docker runs *(restart this app after starting Docker)*                                                                                                                                     | `source="docker"`, `app=<container name>`                        |
 
 Every line also has a `host` label *(the NAS's name)*. When it first starts, Vector reads back up to a day of each log.
 

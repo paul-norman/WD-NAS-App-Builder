@@ -1,5 +1,5 @@
 {
-	"name": "jellyfin",
-	"label": "Jellyfin",
-	"target": "http://127.0.0.1:8096"
+    "name":   "jellyfin",
+    "label":  "Jellyfin",
+    "target": "http://127.0.0.1:8096"
 }

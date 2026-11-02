@@ -25,10 +25,11 @@ SHA256=a9dc9565dffe8640f64d863cd29a32bc4a3dbdec0566a7fc44c5d6ee767d5f39
 PRIVSEP_USER=sshpriv
 
 ARCH=$(uname -m)
-if [ ${ARCH} = "x86_64" ]; then
-	ARCH="amd64"
+
+if [ ${ARCH} = 'x86_64' ]; then
+    ARCH='amd64'
 else
-	ARCH="armhf"
+    ARCH='armhf'
 fi
 
 BUILD_PATH=/build
@@ -36,9 +37,9 @@ OUTPUT_PATH=/data/packages/static/openssh/${VERSION}/${ARCH}
 
 # Downloads a file and checks it against its SHA256
 fetch() {
-	cd ${BUILD_PATH}
-	wget -q "$1" -O "$2"
-	echo "$3  $2" | sha256sum -c -
+    cd ${BUILD_PATH}
+    wget -q "$1" -O "$2"
+    echo "$3  $2" | sha256sum -c -
 }
 
 rm -rf ${BUILD_PATH}
@@ -47,14 +48,13 @@ mkdir -p ${BUILD_PATH}
 fetch "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-${OPENSSH_VERSION}.tar.gz" openssh.tar.gz ${SHA256}
 tar -xzf openssh.tar.gz
 cd openssh-${OPENSSH_VERSION}
-# (no PAM, utmp, wtmp or lastlog: WD's sshd uses none - passwords are checked against /etc/shadow - and musl's login
-# records are stubs)
-# (the pre-login program without a sandbox first, then everything with the seccomp sandbox)
+# No PAM, utmp, wtmp or lastlog: WD's sshd uses none - passwords are checked against /etc/shadow - and musl's login
+# records are stubs (the pre-login program without a sandbox first, then everything with the seccomp sandbox)
 configure() {
-	./configure --prefix=/usr/local/openssh --libexecdir=/usr/local/openssh/libexec --sysconfdir=/etc/ssh \
-	--with-privsep-user=${PRIVSEP_USER} --with-privsep-path=/var/empty --with-pid-dir=/var/run \
-	--without-pam --disable-utmp --disable-wtmp --disable-lastlog --disable-utmpx --disable-wtmpx \
-	--with-sandbox=$1 --with-ldflags=-static
+    ./configure --prefix=/usr/local/openssh --libexecdir=/usr/local/openssh/libexec --sysconfdir=/etc/ssh \
+    --with-privsep-user=${PRIVSEP_USER} --with-privsep-path=/var/empty --with-pid-dir=/var/run \
+    --without-pam --disable-utmp --disable-wtmp --disable-lastlog --disable-utmpx --disable-wtmpx \
+    --with-sandbox=$1 --with-ldflags=-static
 }
 configure no
 make -j "$(nproc)" sshd-auth
@@ -65,12 +65,15 @@ configure seccomp_filter
 make -j "$(nproc)" sshd sshd-session sshd-auth sftp-server ssh sftp ssh-keygen
 
 for program in sshd ssh sftp ssh-keygen; do
-	cp ${program} ${BUILD_PATH}/out/bin/
+    cp ${program} ${BUILD_PATH}/out/bin/
 done
+
 for program in sshd-session sshd-auth sftp-server; do
-	cp ${program} ${BUILD_PATH}/out/libexec/
+    cp ${program} ${BUILD_PATH}/out/libexec/
 done
-# seccomp_check: exits 0 when a seccomp filter (allowing everything) can be applied, as OpenSSH's sandbox applies its own
+
+# seccomp_check: exits 0 when a seccomp filter (allowing everything) can be applied, as OpenSSH's sandbox applies its
+# own
 cat > seccomp_check.c <<'EOF2'
 #include <linux/filter.h>
 #include <linux/seccomp.h>
@@ -92,12 +95,15 @@ strip ${BUILD_PATH}/out/bin/* ${BUILD_PATH}/out/libexec/* ${BUILD_PATH}/out/libe
 
 # Every program fully static, and none that looks users up through NSS (musl has none)
 for program in ${BUILD_PATH}/out/bin/* ${BUILD_PATH}/out/libexec/* ${BUILD_PATH}/out/libexec-nosandbox/*; do
-	file "${program}" | grep -q "statically linked\|static-pie linked" || { echo "Not static: ${program}"; exit 1; }
-	if grep -aq "libnss_" "${program}"; then
-		echo "Looks users up through NSS: ${program}"
-		exit 1
-	fi
+    file "${program}" | grep -q "statically linked\|static-pie linked" || { echo "Not static: ${program}"; exit 1; }
+
+    if grep -aq 'libnss_' "${program}"; then
+        echo "Looks users up through NSS: ${program}"
+
+        exit 1
+    fi
 done
+
 ${BUILD_PATH}/out/bin/sshd -V 2>&1 | grep "OpenSSH_${OPENSSH_VERSION}"
 
 rm -rf ${OUTPUT_PATH}

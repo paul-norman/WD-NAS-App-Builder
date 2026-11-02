@@ -1,5 +1,6 @@
 # The page, for looking at in a browser: a Store with a few things installed, kept running for 10 minutes -
-# http://127.0.0.1:8080/wrap.html (stands in for the NAS dashboard; ?view=app|update|wizard|installed|settings|repos|activity opens a view)
+# http://127.0.0.1:8080/wrap.html (stands in for the NAS dashboard;
+# ?view=app|update|wizard|installed|settings|repos|activity opens a view)
 . /tbin/setup.sh
 cp /tbin/wrap.html /var/www/wrap.html
 REPO=https://repo.test:8443/store.json; EVIL2=https://evil.test:8443/two/store.json

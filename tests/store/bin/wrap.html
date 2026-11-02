@@ -20,7 +20,7 @@ fetch('/apps/store/index.php', { credentials: 'same-origin' }).then(r => r.text(
     if (view === 'update') click(card('Python'));
     if (view === 'wizard') click(card('Immich'));
     if (view === 'installed' || view === 'settings') click(card('Hello'));
-    // (then opens one of the page's forms)
+    // Then opens one of the page's forms
     var button = (text) => Array.from(document.querySelectorAll('.st-actions button')).find(b => b.textContent === text);
     setTimeout(() => {
       if (view === 'wizard') click(button('Install'));

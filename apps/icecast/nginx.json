@@ -1,6 +1,6 @@
 {
-	"name": "radio",
-	"label": "Icecast",
-	"target": "http://127.0.0.1:8010",
-	"stream": true
+    "name":   "radio",
+    "label":  "Icecast",
+    "target": "http://127.0.0.1:8010",
+    "stream": true
 }

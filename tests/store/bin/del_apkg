@@ -1,7 +1,7 @@
 #!/bin/sh
 echo "del_apkg $1" >> /tmp/wdtools.log
 P="$(cat /etc/store_test_volume)/Nas_Prog"
-# (as WD's does: the app's own stop.sh and clean.sh first - e.g. the Store's take its page away - then its folder)
+# As WD's does: the app's own stop.sh and clean.sh first - e.g. the Store's take its page away - then its folder
 if [ -n "$1" ] && [ -f "$P/$1/apkg.rc" ]; then
 	for script in stop.sh clean.sh; do [ -f "$P/$1/$script" ] && sh "$P/$1/$script" "$P/$1" >/dev/null 2>&1; done
 	rm -rf "$P/$1"

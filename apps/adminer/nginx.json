@@ -1,7 +1,7 @@
 {
-	"name": "adminer",
-	"label": "Adminer",
-	"target": "http://127.0.0.1:8084",
-	"uploads": true,
-	"auth_file": "_adminer/htpasswd"
+    "name":      "adminer",
+    "label":     "Adminer",
+    "target":    "http://127.0.0.1:8084",
+    "uploads":   true,
+    "auth_file": "_adminer/htpasswd"
 }

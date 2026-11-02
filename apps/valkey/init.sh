@@ -1,21 +1,21 @@
 #!/bin/sh
 
 # Called upon app installation
-	#	 1. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
-	# -> 2. $INSTALL_PATH/init.sh $INSTALL_PATH
-	#	 3. $INSTALL_PATH/start.sh $INSTALL_PATH
+    #    1. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
+    # -> 2. $INSTALL_PATH/init.sh $INSTALL_PATH
+    #    3. $INSTALL_PATH/start.sh $INSTALL_PATH
 
 # Called upon app reinstallation
-	#	 1. $INSTALL_PATH/stop.sh $INSTALL_PATH
-	#	 2. $INSTALL_PATH/clean.sh $INSTALL_PATH
-	#	 3. $INSTALL_PATH/preinst.sh $INSTALL_PATH
-	#	 4. $INSTALL_PATH/remove.sh $INSTALL_PATH
-	#	 5. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
-	# -> 6. $INSTALL_PATH/init.sh $INSTALL_PATH
-	#	 7. $INSTALL_PATH/start.sh $INSTALL_PATH
+    #    1. $INSTALL_PATH/stop.sh $INSTALL_PATH
+    #    2. $INSTALL_PATH/clean.sh $INSTALL_PATH
+    #    3. $INSTALL_PATH/preinst.sh $INSTALL_PATH
+    #    4. $INSTALL_PATH/remove.sh $INSTALL_PATH
+    #    5. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
+    # -> 6. $INSTALL_PATH/init.sh $INSTALL_PATH
+    #    7. $INSTALL_PATH/start.sh $INSTALL_PATH
 
 # Load all the useful variables
-. "$1/helpers.sh" "$0" "$1";
+. "$1/helpers.sh" "$0" "$1"
 
 # ----------------------------------------------------------------------
 # Initialisation script: prepares app icon, index page and paths
@@ -36,30 +36,32 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 
 # Setup a persistent data directory
 if [ -d ${APP_PERSISTENT_DATA_PATH} ]; then
-	log "found existing ${APP_NAME} data directory, reusing it"
+    log "found existing ${APP_NAME} data directory, reusing it"
 else
-	log "creating a new ${APP_NAME} data directory"
-	mkdir -p "${APP_PERSISTENT_DATA_PATH}"
+    log "creating a new ${APP_NAME} data directory"
+    mkdir -p "${APP_PERSISTENT_DATA_PATH}"
 fi
 
 # Create a minimal config file
 CONF_PATH="${APP_PERSISTENT_DATA_PATH}/${APP_NAME}.conf"
+
 if [ ! -f "${CONF_PATH}" ]; then
-	log "creating config file: ${CONF_PATH}"
-	echo "bind 0.0.0.0 -::1" > "${CONF_PATH}"
-	echo "protected-mode yes" >> "${CONF_PATH}"
-	echo "port 6379" >> "${CONF_PATH}"
-	echo "dir ${APP_PERSISTENT_DATA_PATH}" >> "${CONF_PATH}"
+    log "creating config file: ${CONF_PATH}"
+    echo 'bind 0.0.0.0 -::1' > "${CONF_PATH}"
+    echo 'protected-mode yes' >> "${CONF_PATH}"
+    echo 'port 6379' >> "${CONF_PATH}"
+    echo "dir ${APP_PERSISTENT_DATA_PATH}" >> "${CONF_PATH}"
 fi
 
 # Require a password as the server listens on all interfaces (also upgrades older password-less configs)
-if ! grep -q "^requirepass " "${CONF_PATH}"; then
-	log "generating a password in config file: ${CONF_PATH}"
-	VALKEY_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 32)";
-	sed -i "/^protected-mode /d" "${CONF_PATH}"
-	echo "protected-mode yes" >> "${CONF_PATH}"
-	echo "requirepass ${VALKEY_PASSWORD}" >> "${CONF_PATH}"
+if ! grep -q '^requirepass ' "${CONF_PATH}"; then
+    log "generating a password in config file: ${CONF_PATH}"
+    VALKEY_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 32)"
+    sed -i '/^protected-mode /d' "${CONF_PATH}"
+    echo 'protected-mode yes' >> "${CONF_PATH}"
+    echo "requirepass ${VALKEY_PASSWORD}" >> "${CONF_PATH}"
 fi
+
 chmod 600 "${CONF_PATH}"
 
 # Link the config file

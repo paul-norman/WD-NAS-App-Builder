@@ -16,7 +16,7 @@
 APP_PATH="$(dirname "$(readlink -f "$0")")"
 APPS_PATH="$(dirname "${APP_PATH}")"
 DATA_PATH="${APPS_PATH}/_icecast"
-# (PHP finds the Nginx app's address: wherever it is, also when run with a minimal PATH, e.g. from the management page)
+# PHP finds the Nginx app's address: wherever it is, also when run with a minimal PATH, e.g. from the management page
 PATH="${PATH}:/usr/bin:/usr/local/bin:/usr/sbin:/sbin"
 BIN="${APP_PATH}/binaries"
 RUN_PATH="${DATA_PATH}/run"
@@ -24,86 +24,103 @@ SETTINGS_FILE="${DATA_PATH}/settings"
 PLAYLIST="${RUN_PATH}/playlist.m3u"
 ICECAST_PID=/var/run/icecast.pid
 EZSTREAM_PID=/var/run/ezstream.pid
-# (not 8000: the NAS's own web server has 127.0.0.1:8000)
+# Not 8000: the NAS's own web server has 127.0.0.1:8000
 PORT=8010
 # Its own user and group (created if missing): the IDs used when creating them
 ICE_ID=82
 LOG=/tmp/debug_apkg
 # The music formats the station plays (ffmpeg turns each into the stream's MP3)
-EXTENSIONS="mp3 flac ogg oga opus m4a aac wav wma ape wv aif aiff mpc dsf tak"
+EXTENSIONS='mp3 flac ogg oga opus m4a aac wav wma ape wv aif aiff mpc dsf tak'
 
+# Writes a line to the NAS's app log (/tmp/debug_apkg), with the time and the script's name, and prints it.
+#
+# $* The line
+#
+# Prints the line
 log() {
-	echo "$(date '+%Y-%m-%d %H:%M:%S') icecast/ice_ctl.sh $*" >> ${LOG}
-	echo "$*"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') icecast/ice_ctl.sh $*" >> ${LOG}
+    echo "$*"
 }
 
-# A setting from the settings file (written by the management page), or the default given
+# A setting from the app's settings file (KEY=value lines, written by its management page).
+#
+# $1 name    The setting (e.g. LISTEN)
+# $2 default What to print if it isn't set
+#
+# Prints its value, or the default
 setting() {
-	value="$(sed -n "s/^$1=//p" "${SETTINGS_FILE}" 2>/dev/null | head -n 1)"
-	echo "${value:-$2}"
+    value="$(sed -n "s/^$1=//p" "${SETTINGS_FILE}" 2>/dev/null | head -n 1)"
+    echo "${value:-$2}"
 }
 
+# Whether the app's process is running (its PID file's process).
+#
+# Returns 0 if it is
 running() {
-	[ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null
+    [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null
 }
 
 ice_ids() {
-	awk -F: '$1 == "icecast" { print $3 " " $4 }' /etc/passwd
+    awk -F: '$1 == "icecast" { print $3 " " $4 }' /etc/passwd
 }
 
 random_text() {
-	tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
+    tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
 }
 
 # Text for the XML configurations (the settings are checked by the page, but & < > " must still be escaped)
 xml() {
-	printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g'
+    printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g'
 }
 
 setup() {
-	# Its own user (the NAS's user list is in RAM, so this is redone at every boot)
-	grep -q '^icecast:' /etc/group || addgroup -g ${ICE_ID} icecast
-	grep -q '^icecast:' /etc/passwd || adduser -D -H -h /nonexistent -s /bin/false -u ${ICE_ID} -G icecast icecast
-	if [ -z "$(ice_ids)" ]; then
-		log "Could not create the icecast user (are ID ${ICE_ID}'s user or group already taken?)"
-		return 1
-	fi
-	set -- $(ice_ids)
+    # Its own user (the NAS's user list is in RAM, so this is redone at every boot)
+    grep -q '^icecast:' /etc/group || addgroup -g ${ICE_ID} icecast
+    grep -q '^icecast:' /etc/passwd || adduser -D -H -h /nonexistent -s /bin/false -u ${ICE_ID} -G icecast icecast
 
-	# Its configurations, playlist and logs belong to its user; the settings and passwords to root
-	mkdir -p "${RUN_PATH}/logs"
-	chmod 711 "${DATA_PATH}"
-	chown -R "$1:$2" "${RUN_PATH}"
-	chmod 700 "${RUN_PATH}"
-	if [ ! -f "${SETTINGS_FILE}" ]; then
-		# The station's music: WD's own music folder if there is one, otherwise the Public share
-		music="/mnt/HD/HD_a2/Public/Shared Music"
-		[ -d "${music}" ] || music="/mnt/HD/HD_a2/Public"
-		log "creating the default settings: ${SETTINGS_FILE}"
-		printf 'STATION_NAME=NAS Radio\nSTATION_DESCRIPTION=\nLISTEN=all\nMAX_LISTENERS=50\nAUTODJ=0\nMUSIC_FOLDER=%s\nMOUNT=radio\nBITRATE=128\nSHUFFLE=1\n' \
-			"${music}" > "${SETTINGS_FILE}"
-	fi
-	chmod 600 "${SETTINGS_FILE}"
-	for name in admin source; do
-		if [ ! -s "${DATA_PATH}/${name}_password" ]; then
-			( umask 077; random_text 20 > "${DATA_PATH}/${name}_password" )
-		fi
-	done
+    if [ -z "$(ice_ids)" ]; then
+        log "Could not create the icecast user (are ID ${ICE_ID}'s user or group already taken?)"
+
+        return 1
+    fi
+    set -- $(ice_ids)
+
+    # Its configurations, playlist and logs belong to its user; the settings and passwords to root
+    mkdir -p "${RUN_PATH}/logs"
+    chmod 711 "${DATA_PATH}"
+    chown -R "$1:$2" "${RUN_PATH}"
+    chmod 700 "${RUN_PATH}"
+
+    if [ ! -f "${SETTINGS_FILE}" ]; then
+        # The station's music: WD's own music folder if there is one, otherwise the Public share
+        music='/mnt/HD/HD_a2/Public/Shared Music'
+        [ -d "${music}" ] || music='/mnt/HD/HD_a2/Public'
+        log "creating the default settings: ${SETTINGS_FILE}"
+        printf 'STATION_NAME=NAS Radio\nSTATION_DESCRIPTION=\nLISTEN=all\nMAX_LISTENERS=50\nAUTODJ=0\nMUSIC_FOLDER=%s\nMOUNT=radio\nBITRATE=128\nSHUFFLE=1\n' \
+            "${music}" > "${SETTINGS_FILE}"
+    fi
+    chmod 600 "${SETTINGS_FILE}"
+
+    for name in admin source; do
+        if [ ! -s "${DATA_PATH}/${name}_password" ]; then
+            ( umask 077; random_text 20 > "${DATA_PATH}/${name}_password" )
+        fi
+    done
 }
 
 password() {
-	cat "${DATA_PATH}/$1_password"
+    cat "${DATA_PATH}/$1_password"
 }
 
 write_icecast_config() {
-	set -- $(ice_ids)
-	host=0.0.0.0
-	[ "$(setting LISTEN all)" = local ] && host=127.0.0.1
-	# (the address Icecast puts in its playlists and pages: the NAS's own on the home network)
-	hostname="$(ip -4 route 2>/dev/null | sed -n 's/^default via .* dev \([^ ]*\).*/\1/p' | head -n 1)"
-	[ -n "${hostname}" ] && hostname="$(ip -4 route 2>/dev/null | sed -n "s/.* dev ${hostname} .*src \([0-9.]*\).*/\1/p" | head -n 1)"
-	[ -n "${hostname}" ] || hostname=localhost
-	( umask 077; cat > "${RUN_PATH}/icecast.xml.tmp" <<EOF
+    set -- $(ice_ids)
+    host=0.0.0.0
+    [ "$(setting LISTEN all)" = local ] && host=127.0.0.1
+    # The address Icecast puts in its playlists and pages: the NAS's own on the home network
+    hostname="$(ip -4 route 2>/dev/null | sed -n 's/^default via .* dev \([^ ]*\).*/\1/p' | head -n 1)"
+    [ -n "${hostname}" ] && hostname="$(ip -4 route 2>/dev/null | sed -n "s/.* dev ${hostname} .*src \([0-9.]*\).*/\1/p" | head -n 1)"
+    [ -n "${hostname}" ] || hostname=localhost
+    ( umask 077; cat > "${RUN_PATH}/icecast.xml.tmp" <<EOF
 <?xml version="1.0"?>
 <!-- Written by the Icecast app at every start, from the settings on its management page: changes here are overwritten -->
 <icecast>
@@ -149,46 +166,51 @@ write_icecast_config() {
     </security>
 </icecast>
 EOF
-	)
-	chown "$1:$2" "${RUN_PATH}/icecast.xml.tmp" && mv -f "${RUN_PATH}/icecast.xml.tmp" "${RUN_PATH}/icecast.xml"
-	# Its random numbers' seed, which it keeps updated (made here: WD's /dev/urandom is readable by root only)
-	if [ ! -s "${RUN_PATH}/prng-seed" ]; then
-		( umask 077; head -c 1024 /dev/urandom > "${RUN_PATH}/prng-seed" ) && chown "$1:$2" "${RUN_PATH}/prng-seed"
-	fi
+    )
+    chown "$1:$2" "${RUN_PATH}/icecast.xml.tmp" && mv -f "${RUN_PATH}/icecast.xml.tmp" "${RUN_PATH}/icecast.xml"
+
+    # Its random numbers' seed, which it keeps updated (made here: WD's /dev/urandom is readable by root only)
+    if [ ! -s "${RUN_PATH}/prng-seed" ]; then
+        ( umask 077; head -c 1024 /dev/urandom > "${RUN_PATH}/prng-seed" ) && chown "$1:$2" "${RUN_PATH}/prng-seed"
+    fi
 }
 
 # The station's tracks: every music file in the folder (and its subfolders), as Icecast's user can read them
 write_playlist() {
-	set -- $(ice_ids)
-	folder="$(setting MUSIC_FOLDER /mnt/HD/HD_a2/Public)"
-	pattern=""
-	for extension in ${EXTENSIONS}; do
-		pattern="${pattern}${pattern:+ -o }-iname *.${extension}"
-	done
-	# (not following links, and not into hidden folders - e.g. other apps' caches)
-	set -f
-	"${BIN}/ice_runas" "$1" "$2" "$(command -v find)" "${folder}" -name '.*' -prune -o -type f \( ${pattern} \) -print 2>/dev/null \
-		| sort > "${PLAYLIST}.tmp"
-	set +f
-	chown "$1:$2" "${PLAYLIST}.tmp" && mv -f "${PLAYLIST}.tmp" "${PLAYLIST}"
-	log "the station's playlist: $(wc -l < "${PLAYLIST}") tracks from ${folder}"
+    set -- $(ice_ids)
+    folder="$(setting MUSIC_FOLDER /mnt/HD/HD_a2/Public)"
+    pattern=''
+
+    for extension in ${EXTENSIONS}; do
+        pattern="${pattern}${pattern:+ -o }-iname *.${extension}"
+    done
+
+    # Not following links, and not into hidden folders - e.g. other apps' caches
+    set -f
+    "${BIN}/ice_runas" "$1" "$2" "$(command -v find)" "${folder}" -name '.*' -prune -o -type f \( ${pattern} \) -print 2>/dev/null \
+        | sort > "${PLAYLIST}.tmp"
+    set +f
+    chown "$1:$2" "${PLAYLIST}.tmp" && mv -f "${PLAYLIST}.tmp" "${PLAYLIST}"
+    log "the station's playlist: $(wc -l < "${PLAYLIST}") tracks from ${folder}"
 }
 
 write_ezstream_config() {
-	set -- $(ice_ids)
-	bitrate="$(setting BITRATE 128)"
-	shuffle=No
-	[ "$(setting SHUFFLE 1)" = 1 ] && shuffle=Yes
-	# (ezstream refuses an empty description)
-	description=""
-	[ -n "$(setting STATION_DESCRIPTION '')" ] && description="            <stream_description>$(xml "$(setting STATION_DESCRIPTION '')")</stream_description>
+    set -- $(ice_ids)
+    bitrate="$(setting BITRATE 128)"
+    shuffle=No
+    [ "$(setting SHUFFLE 1)" = 1 ] && shuffle=Yes
+    # Ezstream refuses an empty description
+    description=''
+    [ -n "$(setting STATION_DESCRIPTION '')" ] && description="            <stream_description>$(xml "$(setting STATION_DESCRIPTION '')")</stream_description>
 "
-	extensions=""
-	for extension in ${EXTENSIONS}; do
-		extensions="${extensions}            <file_ext>.${extension}</file_ext>
+    extensions=''
+
+    for extension in ${EXTENSIONS}; do
+        extensions="${extensions}            <file_ext>.${extension}</file_ext>
 "
-	done
-	( umask 077; cat > "${RUN_PATH}/ezstream.xml.tmp" <<EOF
+    done
+
+    ( umask 077; cat > "${RUN_PATH}/ezstream.xml.tmp" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Written by the Icecast app at every start, from the settings on its management page: changes here are overwritten -->
 <ezstream>
@@ -239,129 +261,146 @@ ${extensions}        </decoder>
     </encoders>
 </ezstream>
 EOF
-	)
-	chown "$1:$2" "${RUN_PATH}/ezstream.xml.tmp" && mv -f "${RUN_PATH}/ezstream.xml.tmp" "${RUN_PATH}/ezstream.xml"
+    )
+    chown "$1:$2" "${RUN_PATH}/ezstream.xml.tmp" && mv -f "${RUN_PATH}/ezstream.xml.tmp" "${RUN_PATH}/ezstream.xml"
 }
 
 # Waits up to 20 seconds for Icecast to answer
 wait_up() {
-	waited=0
-	while [ ${waited} -lt 20 ]; do
-		# (Icecast itself, by its Server header: not whatever else answers on the port)
-		running "${ICECAST_PID}" || return 1
-		curl -s -o /dev/null -D - "http://127.0.0.1:${PORT}/status-json.xsl" 2>/dev/null | grep -qi '^server: icecast' && return 0
-		sleep 1
-		waited=$((waited + 1))
-	done
-	return 1
+    waited=0
+
+    while [ ${waited} -lt 20 ]; do
+        # Icecast itself, by its Server header: not whatever else answers on the port
+        running "${ICECAST_PID}" || return 1
+        curl -s -o /dev/null -D - "http://127.0.0.1:${PORT}/status-json.xsl" 2>/dev/null | grep -qi '^server: icecast' && return 0
+        sleep 1
+        waited=$((waited + 1))
+    done
+
+    return 1
 }
 
 start_station() {
-	[ "$(setting AUTODJ 0)" = 1 ] || return 0
-	running "${EZSTREAM_PID}" && return 0
-	set -- $(ice_ids)
-	write_playlist
-	if [ ! -s "${PLAYLIST}" ]; then
-		log "The station's folder has no music Icecast can read: $(setting MUSIC_FOLDER '')"
-		return 0
-	fi
-	write_ezstream_config
-	log "starting the station (ezstream) on /$(setting MOUNT radio)"
-	cd "${RUN_PATH}" || return 1
-	( exec "${BIN}/ice_runas" "$1" "$2" "${BIN}/ezstream" -c "${RUN_PATH}/ezstream.xml" ) >> "${RUN_PATH}/logs/ezstream.log" 2>&1 &
-	echo $! > "${EZSTREAM_PID}"
+    [ "$(setting AUTODJ 0)" = 1 ] || return 0
+    running "${EZSTREAM_PID}" && return 0
+    set -- $(ice_ids)
+    write_playlist
+
+    if [ ! -s "${PLAYLIST}" ]; then
+        log "The station's folder has no music Icecast can read: $(setting MUSIC_FOLDER '')"
+
+        return 0
+    fi
+
+    write_ezstream_config
+    log "starting the station (ezstream) on /$(setting MOUNT radio)"
+    cd "${RUN_PATH}" || return 1
+    ( exec "${BIN}/ice_runas" "$1" "$2" "${BIN}/ezstream" -c "${RUN_PATH}/ezstream.xml" ) >> "${RUN_PATH}/logs/ezstream.log" 2>&1 &
+    echo $! > "${EZSTREAM_PID}"
 }
 
 start() {
-	if running "${ICECAST_PID}"; then
-		log "Icecast is already running with PID: $(cat ${ICECAST_PID})"
-		start_station
-		return 0
-	fi
-	setup || return 1
-	write_icecast_config || return 1
-	set -- $(ice_ids)
-	log "starting Icecast on port ${PORT}"
-	cd "${RUN_PATH}" || return 1
-	( exec "${BIN}/ice_runas" "$1" "$2" "${BIN}/icecast" -c "${RUN_PATH}/icecast.xml" ) >> "${RUN_PATH}/logs/console.log" 2>&1 &
-	echo $! > "${ICECAST_PID}"
-	if ! wait_up; then
-		log "Icecast did not start (see ${RUN_PATH}/logs): $(tail -n 2 "${RUN_PATH}/logs/console.log" 2>/dev/null | tr '\n' ' ')"
-		return 1
-	fi
-	log "Icecast started with PID: $(cat ${ICECAST_PID})"
-	start_station
+    if running "${ICECAST_PID}"; then
+        log "Icecast is already running with PID: $(cat ${ICECAST_PID})"
+        start_station
+
+        return 0
+    fi
+
+    setup || return 1
+    write_icecast_config || return 1
+
+    set -- $(ice_ids)
+    log "starting Icecast on port ${PORT}"
+    cd "${RUN_PATH}" || return 1
+    ( exec "${BIN}/ice_runas" "$1" "$2" "${BIN}/icecast" -c "${RUN_PATH}/icecast.xml" ) >> "${RUN_PATH}/logs/console.log" 2>&1 &
+    echo $! > "${ICECAST_PID}"
+
+    if ! wait_up; then
+        log "Icecast did not start (see ${RUN_PATH}/logs): $(tail -n 2 "${RUN_PATH}/logs/console.log" 2>/dev/null | tr '\n' ' ')"
+
+        return 1
+    fi
+
+    log "Icecast started with PID: $(cat ${ICECAST_PID})"
+    start_station
 }
 
 stop_one() {
-	if running "$1"; then
-		pid="$(cat "$1")"
-		kill "${pid}"
-		waited=0
-		while kill -0 "${pid}" 2>/dev/null; do
-			if [ ${waited} -ge 10 ]; then
-				kill -9 "${pid}" 2>/dev/null
-				break
-			fi
-			sleep 1
-			waited=$((waited + 1))
-		done
-	fi
-	rm -f "$1"
+    if running "$1"; then
+        pid="$(cat "$1")"
+        kill "${pid}"
+        waited=0
+
+        while kill -0 "${pid}" 2>/dev/null; do
+            if [ ${waited} -ge 10 ]; then
+                kill -9 "${pid}" 2>/dev/null
+                break
+            fi
+            sleep 1
+            waited=$((waited + 1))
+        done
+    fi
+
+    rm -f "$1"
 }
 
 stop() {
-	log "stopping Icecast"
-	stop_one "${EZSTREAM_PID}"
-	stop_one "${ICECAST_PID}"
+    log 'stopping Icecast'
+    stop_one "${EZSTREAM_PID}"
+    stop_one "${ICECAST_PID}"
 }
 
 new_password() {
-	case "$1" in
-		admin|source) ;;
-		*) echo "Usage: $0 new-password admin|source" >&2; return 1 ;;
-	esac
-	( umask 077; random_text 20 > "${DATA_PATH}/$1_password.tmp" ) && mv -f "${DATA_PATH}/$1_password.tmp" "${DATA_PATH}/$1_password"
-	log "a new $1 password"
+    case "$1" in
+        admin|source) ;;
+        *) echo "Usage: $0 new-password admin|source" >&2; return 1 ;;
+    esac
+    ( umask 077; random_text 20 > "${DATA_PATH}/$1_password.tmp" ) && mv -f "${DATA_PATH}/$1_password.tmp" "${DATA_PATH}/$1_password"
+    log "a new $1 password"
 }
 
 check_folder() {
-	set -- $(ice_ids) "$1"
-	[ -d "$3" ] && "${BIN}/ice_runas" "$1" "$2" /bin/ls "$3" > /dev/null 2>&1
+    set -- $(ice_ids) "$1"
+    [ -d "$3" ] && "${BIN}/ice_runas" "$1" "$2" /bin/ls "$3" > /dev/null 2>&1
 }
 
 # ezstream reads its playlist again when told to (SIGHUP), and skips to the next track on SIGUSR1
 playlist() {
-	running "${ICECAST_PID}" || return 0
-	if running "${EZSTREAM_PID}"; then
-		write_playlist
-		kill -HUP "$(cat "${EZSTREAM_PID}")"
-	else
-		start_station
-	fi
+    running "${ICECAST_PID}" || return 0
+
+    if running "${EZSTREAM_PID}"; then
+        write_playlist
+        kill -HUP "$(cat "${EZSTREAM_PID}")"
+    else
+        start_station
+    fi
 }
 
 # The Nginx app finds Icecast by its folder and serves it at https://radio.<its domain>: rewrite its sites
 nginx_site() {
-	nginx_app="${APPS_PATH}/nginx"
-	if [ -f "${nginx_app}/lib/sites.php" ] && [ -d "${APPS_PATH}/_nginx/sites" ]; then
-		php "${nginx_app}/lib/sites.php" generate "${APPS_PATH}/_nginx" && sh "${nginx_app}/nginx_ctl.sh" reload > /dev/null 2>&1
-	fi
-	return 0
+    nginx_app="${APPS_PATH}/nginx"
+
+    if [ -f "${nginx_app}/lib/sites.php" ] && [ -d "${APPS_PATH}/_nginx/sites" ]; then
+        php "${nginx_app}/lib/sites.php" generate "${APPS_PATH}/_nginx" && sh "${nginx_app}/nginx_ctl.sh" reload > /dev/null 2>&1
+    fi
+
+    return 0
 }
 
 case "$1" in
-	setup) setup ;;
-	start) start ;;
-	stop) stop ;;
-	restart) stop; start ;;
-	new-password) new_password "$2" ;;
-	skip) running "${EZSTREAM_PID}" && kill -USR1 "$(cat "${EZSTREAM_PID}")" ;;
-	playlist|daily) playlist ;;
-	check-folder) setup > /dev/null && check_folder "$2" ;;
-	nginx) nginx_site ;;
-	*)
-		echo "Usage: $0 setup|start|stop|restart|new-password <admin|source>|skip|playlist|check-folder <path>|daily|nginx" >&2
-		exit 1
-		;;
+    setup) setup ;;
+    start) start ;;
+    stop) stop ;;
+    restart) stop; start ;;
+    new-password) new_password "$2" ;;
+    skip) running "${EZSTREAM_PID}" && kill -USR1 "$(cat "${EZSTREAM_PID}")" ;;
+    playlist|daily) playlist ;;
+    check-folder) setup > /dev/null && check_folder "$2" ;;
+    nginx) nginx_site ;;
+    *)
+        echo "Usage: $0 setup|start|stop|restart|new-password <admin|source>|skip|playlist|check-folder <path>|daily|nginx" >&2
+
+        exit 1
+        ;;
 esac

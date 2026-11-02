@@ -12,11 +12,15 @@ apps/*/manage/manage_helpers.php
 apps/*/*.sign
 apps/*/*.xml
 
+/store/tools/__pycache__/
+
 toolchains/*/work*
 local.mk
 
 .claude
 .idea
+.vscode
+.bashrc
 .env
 *.DS_Store
 *~

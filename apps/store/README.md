@@ -51,7 +51,7 @@ umount /usr/local/modules/web/pages/addons/app.php
 - **Changing settings** rewrites `.env` and applies it *(`docker compose up -d`)*. Settings that only make sense at install time *(e.g. Immich's face recognition default)* become the app's own settings afterwards.
 - **Updating** a recipe asks only for its new settings, if any.
 - **Removing** a recipe stops and removes its containers and its Nginx site. You choose which folders are deleted with it *(none by default)*; folders the recipe marks as yours - e.g. Immich's photos - are never offered. If its own folder is kept, installing it again reuses its settings *(e.g. its database password, which the database was created with)*. A recipe set up by hand *(e.g. with its `setup.sh`)* is picked up the same way.
-- If an install fails part-way, it's undone.
+- If an installation fails part-way, it's undone.
 
 ## Several repositories offering the same app *(e.g. a fork)*
 
@@ -75,11 +75,11 @@ The Store's own default repository *(added on a first install)* is `STORE_DEFAUL
 
 ## Where things are
 
-| What | Where |
-|---|---|
-| Repositories, cached catalogues and icons, the last job's log | `Nas_Prog/_store` *(root only)* |
-| Packages while they're installed | `/usr/local/apps_upload` *(the dashboard's own upload folder, on the disk - deleted once installed)* |
-| Each recipe | `Nas_Prog/<its folder>`: `compose.yaml`, `.env`, `compose.override.yaml` *(folders chosen in its settings)*, `.store/` *(the recipe's files and the install record)* |
+| What                                                          | Where                                                                                                                                                                |
+|---------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Repositories, cached catalogues and icons, the last job's log | `Nas_Prog/_store` *(root only)*                                                                                                                                      |
+| Packages while they're installed                              | `/usr/local/apps_upload` *(the dashboard's own upload folder, on the disk - deleted once installed)*                                                                 |
+| Each recipe                                                   | `Nas_Prog/<its folder>`: `compose.yaml`, `.env`, `compose.override.yaml` *(folders chosen in its settings)*, `.store/` *(the recipe's files and the install record)* |
 
 ## Testing a repository
 

@@ -1,6 +1,6 @@
 {
-	"name": "kvweb",
-	"label": "kvweb (Valkey)",
-	"target": "http://127.0.0.1:8082",
-	"auth_file": "_kvweb/htpasswd"
+    "name":      "kvweb",
+    "label":     "kvweb (Valkey)",
+    "target":    "http://127.0.0.1:8082",
+    "auth_file": "_kvweb/htpasswd"
 }

@@ -1,240 +1,261 @@
 #!/bin/bash
 
 if [ -z ${APP_PATH+x} ]; then
-	APP_PATH="$(pwd)"
-	APP_NAME="$(basename ${APP_PATH})"
+    APP_PATH="$(pwd)"
+    APP_NAME="$(basename ${APP_PATH})"
 
-	# Import the APKG file helpers (runs pre-checks)
-	. "../apkg_helpers.sh"
-	check_apkg_variables
+    # Import the APKG file helpers (runs pre-checks)
+    . '../apkg_helpers.sh'
+    check_apkg_variables
 
-	APP_VERSION="${APKG_VERSION}"
-	# The version of what the app packages: its own version without a packaging revision (e.g. 2.10.7-1 is the app's
-	# first revision of 2.10.7 - a fix in the app itself, so that the Store offers it as an update)
-	APP_UPSTREAM_VERSION="$(echo "${APP_VERSION}" | sed 's/-[0-9]*$//')"
-	APPS_PATH="$(dirname ${APP_PATH})"
-	REPO_PATH="$(dirname ${APPS_PATH})"
-	RELEASE_DIR="../../packages/${APP_NAME}/${APP_VERSION}"
+    APP_VERSION="${APKG_VERSION}"
+    # The version of what the app packages: its own version without a packaging revision (e.g. 2.10.7-1 is the app's
+    # first revision of 2.10.7 - a fix in the app itself, so that the Store offers it as an update)
+    APP_UPSTREAM_VERSION="$(echo "${APP_VERSION}" | sed 's/-[0-9]*$//')"
+    APPS_PATH="$(dirname ${APP_PATH})"
+    REPO_PATH="$(dirname ${APPS_PATH})"
+    RELEASE_DIR="../../packages/${APP_NAME}/${APP_VERSION}"
 
-	# DECLARE FUNCTIONS --------------------------------------------------------
+    # DECLARE FUNCTIONS --------------------------------------------------------
 
-	# For build loops: succeeds if any of the given models will be built (so downloads for other architectures can be
-	# skipped when MODEL_OVERRIDE is set)
-	models_wanted() {
-		if [ -z "${MODEL_OVERRIDE}" ]; then
-			return 0
-		fi
-		for model in "$@"; do
-			if [ "${model}" = "${MODEL_OVERRIDE}" ]; then
-				return 0
-			fi
-		done
-		return 1
-	}
+    # For build loops: succeeds if any of the given models will be built (so downloads for other architectures can be
+    # skipped when MODEL_OVERRIDE is set)
+    models_wanted() {
+        if [ -z "${MODEL_OVERRIDE}" ]; then
+            return 0
+        fi
 
-	# Downloads a file once into packages/cache (reused by later builds) and copies it into the current directory
-	download() {
-		local url=$1
-		local file=${2:-$(basename "$1")}
-		local cache="${REPO_PATH}/packages/cache"
+        for model in "$@"; do
+            if [ "${model}" = "${MODEL_OVERRIDE}" ]; then
+                return 0
+            fi
+        done
 
-		mkdir -p "${cache}"
-		if [ ! -s "${cache}/${file}" ]; then
-			echo "Downloading: ${url}"
-			if ! wget -q "${url}" -O "${cache}/${file}.part"; then
-				rm -f "${cache}/${file}.part"
-				return 1
-			fi
-			mv "${cache}/${file}.part" "${cache}/${file}"
-		else
-			echo "Using cached download: ${file}"
-		fi
-		cp "${cache}/${file}" "${file}"
-	}
+        return 1
+    }
 
-	# Build function accepts an array of WD NAS device models and builds for all of them
-	build() {
-		models=("$@")
-		((last_id=${#models[@]} - 1))
-		arch=${models[last_id]}
-		unset models[last_id]
-		
-		# Normalise variations on the arch variable (e.g. x86_64 => amd64 | x64 => amd64 | armv7l => armhf)
-		if [ "$arch" = "x86_64" ]; then
-			arch="amd64"
-		elif [ "$arch" = "x64" ]; then
-			arch="amd64"
-		elif [ "$arch" = "x86" ]; then
-			arch="amd64"
-		elif [ "$arch" = "armv7l" ]; then
-			arch="armhf"
-		elif [ "$arch" = "arm" ]; then
-			arch="armhf"
-		fi
+    # Downloads a file once into packages/cache (reused by later builds) and copies it into the current directory
+    download() {
+        local url=$1
+        local file=${2:-$(basename "$1")}
+        local cache="${REPO_PATH}/packages/cache"
 
-		# MODEL_OVERRIDE builds only that one model (e.g. MODEL_OVERRIDE=MyCloudPR4100 ./build.sh nano)
-		if [ -n "${MODEL_OVERRIDE}" ]; then
-			if ! models_wanted "${models[@]}"; then
-				echo "Skipping ${arch} models (MODEL_OVERRIDE=${MODEL_OVERRIDE})"
-				return 0
-			fi
-			models=("${MODEL_OVERRIDE}")
-		fi
+        mkdir -p "${cache}"
 
-		# Package from a copy on the container's own file system, so that the packaged file permissions are correct
-		# whatever the host file system reports (e.g. Windows drives show every file as rwxrwxrwx)
-		local stage_root="$(mktemp -d)"
-		local stage="${stage_root}/${APP_NAME}"
-		cp -a "${APP_PATH}" "${stage}"
-		normalise_permissions "${stage}"
+        if [ ! -s "${cache}/${file}" ]; then
+            echo "Downloading: ${url}"
 
-		# Files run as root on the NAS, so they must be owned by root (not the build user's ID, which may match a NAS user)
-		chown -R 0:0 "${stage}"
+            if ! wget -q "${url}" -O "${cache}/${file}.part"; then
+                rm -f "${cache}/${file}.part"
 
-		# Build the archive for all models of this architecture
-		for model in "${models[@]}"; do
-			echo -e  "\n-----------------------------------"
-			echo "BUILDING FOR: ${model} ($arch)"
-			echo -e  "-----------------------------------\n"
-			if ! (cd "${stage}" && "${REPO_PATH}/mksapkg-OS5" -E -s -m ${model} > /dev/null); then
-				abort "mksapkg-OS5 failed to build the package for: ${model}"
-			fi
+                return 1
+            fi
 
-			# mksapkg-OS5 names its output: <model>_<app>_<version>.bin(<date>) (in the parent directory)
-			if ! ls "${stage_root}/${model}_${APP_NAME}_"*.bin* > /dev/null 2>&1; then
-				abort "mksapkg-OS5 did not create a package for: ${model}"
-			fi
-		done
-		if ! mv "${stage_root}/"*.bin* "${APPS_PATH}/"; then
-			rm -rf "${stage_root}"
-			abort "The packages could not be moved out of: ${stage_root} (is there enough space there and in ${APPS_PATH}?)"
-		fi
+            mv "${cache}/${file}.part" "${cache}/${file}"
+        else
+            echo "Using cached download: ${file}"
+        fi
 
-		# Create a source bundle for this architecture
-		echo -e "\nBundle sources for ${arch} into release dir"
-		src_tar="${RELEASE_DIR}/${APP_NAME}_${APP_VERSION}_${arch}.tar.gz"
-		tar -czf ${src_tar} -C "${stage}" .
+        cp "${cache}/${file}" "${file}"
+    }
 
-		rm -rf "${stage_root}"
-	}
+    # Build function accepts an array of WD NAS device models and builds for all of them
+    build() {
+        models=("$@")
+        ((last_id=${#models[@]} - 1))
+        arch=${models[last_id]}
+        unset models[last_id]
 
-	# Set sane permissions on every file in a directory: directories, scripts (#!) and programs (ELF) 755, the apkg.rc
-	# file 755 (as before), everything else 644
-	normalise_permissions() {
-		find "$1" -type d -exec chmod 755 {} +
-		find "$1" -type f -exec chmod 644 {} +
-		find "$1" -type f -name "apkg.rc" -exec chmod 755 {} +
-		find "$1" -type f -size +1c -print0 | while IFS= read -r -d '' file; do
-			magic="$(head -c 4 "${file}" | tr -d '\0')"
-			if [ "${magic:0:2}" = "#!" ] || [ "${magic:1:3}" = "ELF" ]; then
-				chmod 755 "${file}"
-			fi
-		done
-	}
+        # Normalise variations on the arch variable (e.g. x86_64 => amd64 | x64 => amd64 | armv7l => armhf)
+        if [ "$arch" = 'x86_64' ]; then
+            arch='amd64'
+        elif [ "$arch" = 'x64' ]; then
+            arch='amd64'
+        elif [ "$arch" = 'x86' ]; then
+            arch='amd64'
+        elif [ "$arch" = 'armv7l' ]; then
+            arch='armhf'
+        elif [ "$arch" = 'arm' ]; then
+            arch='armhf'
+        fi
 
-	# Restore any files temporarily imported or removed
-	restore_files() {
-		# Clean up the helpers file
-		echo -e "\nHelper files removed"
-		rm -f "${APP_PATH}/helpers.sh" "${APP_PATH}/apkg_helpers.sh" "${APP_PATH}/manage/manage_helpers.php"
+        # MODEL_OVERRIDE builds only that one model (e.g. MODEL_OVERRIDE=MyCloudPR4100 ./build.sh nano)
+        if [ -n "${MODEL_OVERRIDE}" ]; then
+            if ! models_wanted "${models[@]}"; then
+                echo "Skipping ${arch} models (MODEL_OVERRIDE=${MODEL_OVERRIDE})"
 
-		# Restore the app build instructions and readme file
-		#  - attempt the move rather than testing for the file first: on some Docker volume mounts (e.g. a Windows
-		#    drive under WSL) the build script, being open while it runs, isn't visible to tests after it was moved
-		if mv "${APPS_PATH}/build_${APP_NAME}.sh" "${APP_PATH}/build.sh" 2>/dev/null; then
-			echo "Build script restored"
-		fi
+                return 0
+            fi
+            models=("${MODEL_OVERRIDE}")
+        fi
 
-		if mv "${APPS_PATH}/README_${APP_NAME}.md" "${APP_PATH}/README.md" 2>/dev/null; then
-			echo "README.md restored"
-		fi
-	}
+        # Package from a copy on the container's own file system, so that the packaged file permissions are correct
+        # whatever the host file system reports (e.g. Windows drives show every file as rwxrwxrwx)
+        local stage_root="$(mktemp -d)"
+        local stage="${stage_root}/${APP_NAME}"
+        cp -a "${APP_PATH}" "${stage}"
+        normalise_permissions "${stage}"
 
-	# Prepare the directory for a clean build
-	prepare_files() {
-		# Bring in the helpers files
-		echo -e "\nHelper files imported"
-		cp "${APPS_PATH}/helpers.sh" .
-		cp "${APPS_PATH}/apkg_helpers.sh" .
+        # Files run as root on the NAS, so they must be owned by root (not the build user's ID, which may match a NAS
+        # user)
+        chown -R 0:0 "${stage}"
 
-		# Apps with management pages get the shared security checks too
-		if [ -d "${APP_PATH}/manage" ]; then
-			cp "${APPS_PATH}/manage_helpers.php" "${APP_PATH}/manage/"
-		fi
+        # Build the archive for all models of this architecture
+        for model in "${models[@]}"; do
+            echo -e  "\n-----------------------------------"
+            echo "BUILDING FOR: ${model} ($arch)"
+            echo -e  "-----------------------------------\n"
 
-		# We don't need to build our build file, let's keep the files packaged to those actually needed
-		echo "Build script removed"
-		mv "${APP_PATH}/build.sh" "${APPS_PATH}/build_${APP_NAME}.sh"
+            if ! (cd "${stage}" && "${REPO_PATH}/mksapkg-OS5" -E -s -m ${model} > /dev/null); then
+                abort "mksapkg-OS5 failed to build the package for: ${model}"
+            fi
 
-		# We don't need to build our readme file, let's keep the files packaged to those actually needed
-		if [ -f "${APP_PATH}/README.md" ]; then
-			echo "README.md removed"
-			mv "${APP_PATH}/README.md" "${APPS_PATH}/README_${APP_NAME}.md"
-		fi
-	}
+            # mksapkg-OS5 names its output: <model>_<app>_<version>.bin(<date>) (in the parent directory)
+            if ! ls "${stage_root}/${model}_${APP_NAME}_"*.bin* > /dev/null 2>&1; then
+                abort "mksapkg-OS5 did not create a package for: ${model}"
+            fi
+        done
 
-	# Ensure that our release directory is empty
-	prepare_release_dir() {	
-		rm -rf "${RELEASE_DIR}"
-		mkdir -p "${RELEASE_DIR}"
-		echo -e "\nRelease dir created: ${RELEASE_DIR}"
-	}
+        if ! mv "${stage_root}/"*.bin* "${APPS_PATH}/"; then
+            rm -rf "${stage_root}"
+            abort "The packages could not be moved out of: ${stage_root} (is there enough space there and in ${APPS_PATH}?)"
+        fi
 
-	# Move the files to the release location with sensible names
-	move_binaries_to_release_dir() {	
-		echo -e "\nMoving binaries to release dir"
-		if ! ls ${APPS_PATH}/*.bin* > /dev/null 2>&1; then
-			echo "CRITICAL ERROR: no packages were built (does MODEL_OVERRIDE=${MODEL_OVERRIDE} match one of the app's models?)"
-			exit 1
-		fi
-		find ${APPS_PATH} -maxdepth 1 -name "*.bin*" | while read file; do
-			file=${file/${APPS_PATH}\//}
-			parts=(${file//_${APP_NAME}_/ })
-			newFile="${APP_NAME}_${APP_VERSION}_${parts[0]#*/}.bin"
-			mv ${APPS_PATH}/${file} ${APPS_PATH}/${newFile}
-		done
-		mv ${APPS_PATH}/${APP_NAME}_*.bin ${RELEASE_DIR}
-	}
+        # Create a source bundle for this architecture
+        echo -e "\nBundle sources for ${arch} into release dir"
+        src_tar="${RELEASE_DIR}/${APP_NAME}_${APP_VERSION}_${arch}.tar.gz"
+        tar -czf ${src_tar} -C "${stage}" .
 
-	# Create a latest release file for ease of deployment testing
-	create_latest_release_file() {	
-		LATEST_PATH="$(dirname ${RELEASE_DIR})/latest"
-		echo -e "\nCreating a latest release file: ${LATEST_PATH}"
-		rm -f ${LATEST_PATH}
-		printf "%s" "${APP_VERSION}" > ${LATEST_PATH}
-	}
+        rm -rf "${stage_root}"
+    }
 
-	# Mistakes will be made and half built files will litter directories, this will remove them
-	clean_failed_files() {
-		echo -e "\nRemoving any failed binaries"
-		find ${APPS_PATH} -maxdepth 1 -name "*.bin*" | while read file; do
-			rm -f ${file}
-		done
-		rm -rf "${APP_PATH}/binaries" "${APP_PATH}/modules" "${APP_PATH}/installer" "${APP_PATH}/apkg.sign" "${APP_PATH}/apkg.xml"
-	}
+    # Set sane permissions on every file in a directory: directories, scripts (#!) and programs (ELF) 755, the apkg.rc
+    # file 755 (as before), everything else 644
+    normalise_permissions() {
+        find "$1" -type d -exec chmod 755 {} +
+        find "$1" -type f -exec chmod 644 {} +
+        find "$1" -type f -name 'apkg.rc' -exec chmod 755 {} +
+        find "$1" -type f -size +1c -print0 | while IFS= read -r -d '' file; do
+            magic="$(head -c 4 "${file}" | tr -d '\0')"
 
-	# Abort the current operation
-	abort() {
-		if [ $# -eq 1 ]; then
-			echo "CRITICAL ERROR: $1"
-		fi
-		clean_failed_files
-		restore_files
-		exit 1
-	}
+            if [ "${magic:0:2}" = "#!" ] || [ "${magic:1:3}" = 'ELF' ]; then
+                chmod 755 "${file}"
+            fi
+        done
+    }
 
-	# BEGIN BUILD --------------------------------------------------------------
+    # Restore any files temporarily imported or removed
+    restore_files() {
+        # Clean up the helpers file
+        echo -e "\nHelper files removed"
+        rm -f "${APP_PATH}/helpers.sh" "${APP_PATH}/apkg_helpers.sh" "${APP_PATH}/manage/manage_helpers.php"
 
-	echo "Building ${APP_NAME} version ${APP_VERSION}"
+        # Restore the app build instructions and readme file
+        #  - attempt the move rather than testing for the file first: on some Docker volume mounts (e.g. a Windows
+        #    drive under WSL) the build script, being open while it runs, isn't visible to tests after it was moved
+        if mv "${APPS_PATH}/build_${APP_NAME}.sh" "${APP_PATH}/build.sh" 2>/dev/null; then
+            echo 'Build script restored'
+        fi
 
-	restore_files
-	prepare_files
-	prepare_release_dir
-	clean_failed_files
+        if mv "${APPS_PATH}/README_${APP_NAME}.md" "${APP_PATH}/README.md" 2>/dev/null; then
+            echo 'README.md restored'
+        fi
+    }
+
+    # Prepare the directory for a clean build
+    prepare_files() {
+        # Bring in the helpers files
+        echo -e "\nHelper files imported"
+        cp "${APPS_PATH}/helpers.sh" .
+        cp "${APPS_PATH}/apkg_helpers.sh" .
+
+        # Apps with management pages get the shared security checks too
+        if [ -d "${APP_PATH}/manage" ]; then
+            cp "${APPS_PATH}/manage_helpers.php" "${APP_PATH}/manage/"
+        fi
+
+        # We don't need to build our build file, let's keep the files packaged to those actually needed
+        echo 'Build script removed'
+        mv "${APP_PATH}/build.sh" "${APPS_PATH}/build_${APP_NAME}.sh"
+
+        # We don't need to build our readme file, let's keep the files packaged to those actually needed
+        if [ -f "${APP_PATH}/README.md" ]; then
+            echo 'README.md removed'
+            mv "${APP_PATH}/README.md" "${APPS_PATH}/README_${APP_NAME}.md"
+        fi
+    }
+
+    # Ensure that our release directory is empty
+    prepare_release_dir() {
+        rm -rf "${RELEASE_DIR}"
+        mkdir -p "${RELEASE_DIR}"
+        echo -e "\nRelease dir created: ${RELEASE_DIR}"
+    }
+
+    # Move the files to the release location with sensible names
+    move_binaries_to_release_dir() {
+        echo -e "\nMoving binaries to release dir"
+
+        if ! ls ${APPS_PATH}/*.bin* > /dev/null 2>&1; then
+            echo "CRITICAL ERROR: no packages were built (does MODEL_OVERRIDE=${MODEL_OVERRIDE} match one of the app's models?)"
+
+            exit 1
+        fi
+
+        find ${APPS_PATH} -maxdepth 1 -name '*.bin*' | while read file; do
+            file=${file/${APPS_PATH}\//}
+            parts=(${file//_${APP_NAME}_/ })
+            newFile="${APP_NAME}_${APP_VERSION}_${parts[0]#*/}.bin"
+            mv ${APPS_PATH}/${file} ${APPS_PATH}/${newFile}
+        done
+
+        mv ${APPS_PATH}/${APP_NAME}_*.bin ${RELEASE_DIR}
+    }
+
+    # Create a latest release file for ease of deployment testing
+    create_latest_release_file() {
+        LATEST_PATH="$(dirname ${RELEASE_DIR})/latest"
+
+        echo -e "\nCreating a latest release file: ${LATEST_PATH}"
+        rm -f ${LATEST_PATH}
+        printf '%s' "${APP_VERSION}" > ${LATEST_PATH}
+    }
+
+    # Mistakes will be made and half built files will litter directories, this will remove them
+    clean_failed_files() {
+        echo -e "\nRemoving any failed binaries"
+
+        find ${APPS_PATH} -maxdepth 1 -name '*.bin*' | while read file; do
+            rm -f ${file}
+        done
+
+        rm -rf "${APP_PATH}/binaries" "${APP_PATH}/modules" "${APP_PATH}/installer" "${APP_PATH}/apkg.sign" "${APP_PATH}/apkg.xml"
+    }
+
+    # Abort the current operation
+    abort() {
+        if [ $# -eq 1 ]; then
+            echo "CRITICAL ERROR: $1"
+        fi
+
+        clean_failed_files
+        restore_files
+
+        exit 1
+    }
+
+    # BEGIN BUILD --------------------------------------------------------------
+
+    echo "Building ${APP_NAME} version ${APP_VERSION}"
+
+    restore_files
+    prepare_files
+    prepare_release_dir
+    clean_failed_files
 else
-	# END BUILD --------------------------------------------------------------
+    # END BUILD --------------------------------------------------------------
 
-	restore_files
-	move_binaries_to_release_dir
-	create_latest_release_file
+    restore_files
+    move_binaries_to_release_dir
+    create_latest_release_file
 fi

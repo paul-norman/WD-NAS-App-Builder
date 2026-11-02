@@ -14,6 +14,7 @@ RUN apt-get update && \
 	build-essential \
 	ca-certificates \
 	flex \
+	libgmp-dev \
 	libicu-dev \
 	libjson-c-dev \
 	libprotobuf-c-dev \

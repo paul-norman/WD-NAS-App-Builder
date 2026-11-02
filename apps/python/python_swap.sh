@@ -18,66 +18,81 @@ BIN="${APP_PATH}/binaries/python/bin"
 CHOICE_FILE="${DATA_PATH}/use"
 WD_PYTHON=/usr/local/modules/python39/bin/python3.9
 # The links made: /usr/bin/<name> -> the app's <name>
-LINKS="python3 python3.14 pip3 pip3.14 pydoc3 uv uvx"
+LINKS='python3 python3.14 pip3 pip3.14 pydoc3 uv uvx'
 LOG=/tmp/debug_apkg
 
+# Writes a line to the NAS's app log (/tmp/debug_apkg), with the time and the script's name, and prints it.
+#
+# $* The line
+#
+# Prints the line
 log() {
-	echo "$(date '+%Y-%m-%d %H:%M:%S') python/python_swap.sh $*" >> ${LOG}
-	echo "$*"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') python/python_swap.sh $*" >> ${LOG}
+    echo "$*"
 }
 
 swap() {
-	if ! "${BIN}/python3" -c 'import ssl, sqlite3, venv' > /dev/null 2>&1; then
-		log "Not switching to Python 3.14: it doesn't run on this NAS"
-		return 1
-	fi
-	for name in ${LINKS}; do
-		# (only where there's nothing else already, apart from WD's python3)
-		target="$(readlink "/usr/bin/${name}" 2>/dev/null)"
-		if [ ! -e "/usr/bin/${name}" ] || [ "${name}" = python3 ] || [ "${target#"${APP_PATH}"/}" != "${target}" ]; then
-			ln -sf "${BIN}/${name}" "/usr/bin/${name}"
-		fi
-	done
-	mkdir -p "${DATA_PATH}"
-	echo app > "${CHOICE_FILE}"
-	log "Switched python3 to Python 3.14"
+    if ! "${BIN}/python3" -c 'import ssl, sqlite3, venv' > /dev/null 2>&1; then
+        log "Not switching to Python 3.14: it doesn't run on this NAS"
+
+        return 1
+    fi
+
+    for name in ${LINKS}; do
+        # Only where there's nothing else already, apart from WD's python3
+        target="$(readlink "/usr/bin/${name}" 2>/dev/null)"
+
+        if [ ! -e "/usr/bin/${name}" ] || [ "${name}" = python3 ] || [ "${target#"${APP_PATH}"/}" != "${target}" ]; then
+            ln -sf "${BIN}/${name}" "/usr/bin/${name}"
+        fi
+    done
+
+    mkdir -p "${DATA_PATH}"
+    echo app > "${CHOICE_FILE}"
+    log 'Switched python3 to Python 3.14'
 }
 
 restore() {
-	if [ -x "${WD_PYTHON}" ]; then
-		ln -sf "${WD_PYTHON}" /usr/bin/python3
-	fi
-	for name in ${LINKS}; do
-		target="$(readlink "/usr/bin/${name}" 2>/dev/null)"
-		if [ "${name}" != python3 ] && [ "${target#"${APP_PATH}"/}" != "${target}" ]; then
-			rm -f "/usr/bin/${name}"
-		fi
-	done
-	# (the app being stopped isn't a choice: it switches to Python 3.14 again when started)
-	if [ "$1" != stop ]; then
-		mkdir -p "${DATA_PATH}"
-		echo wd > "${CHOICE_FILE}"
-	fi
-	log "Switched python3 back to WD's Python 3.9"
+    if [ -x "${WD_PYTHON}" ]; then
+        ln -sf "${WD_PYTHON}" /usr/bin/python3
+    fi
+
+    for name in ${LINKS}; do
+        target="$(readlink "/usr/bin/${name}" 2>/dev/null)"
+
+        if [ "${name}" != python3 ] && [ "${target#"${APP_PATH}"/}" != "${target}" ]; then
+            rm -f "/usr/bin/${name}"
+        fi
+    done
+
+    # The app being stopped isn't a choice: it switches to Python 3.14 again when started
+    if [ "$1" != stop ]; then
+        mkdir -p "${DATA_PATH}"
+        echo wd > "${CHOICE_FILE}"
+    fi
+
+    log "Switched python3 back to WD's Python 3.9"
 }
 
 start() {
-	if [ "$(cat "${CHOICE_FILE}" 2>/dev/null)" = wd ]; then
-		log "python3 stays WD's Python 3.9 (as chosen on the management page)"
-		return 0
-	fi
-	swap
+    if [ "$(cat "${CHOICE_FILE}" 2>/dev/null)" = wd ]; then
+        log "python3 stays WD's Python 3.9 (as chosen on the management page)"
+
+        return 0
+    fi
+
+    swap
 }
 
 status() {
-	echo "python3: $(readlink -f /usr/bin/python3) ($(/usr/bin/python3 --version 2>&1))"
-	echo "Choice: $(cat "${CHOICE_FILE}" 2>/dev/null || echo app)"
+    echo "python3: $(readlink -f /usr/bin/python3) ($(/usr/bin/python3 --version 2>&1))"
+    echo "Choice: $(cat "${CHOICE_FILE}" 2>/dev/null || echo app)"
 }
 
 case "$1" in
-	swap) swap ;;
-	restore) restore "$2" ;;
-	start) start ;;
-	status) status ;;
-	*) echo "Usage: $0 swap | restore [stop] | start | status"; exit 1 ;;
+    swap) swap ;;
+    restore) restore "$2" ;;
+    start) start ;;
+    status) status ;;
+    *) echo "Usage: $0 swap | restore [stop] | start | status"; exit 1 ;;
 esac

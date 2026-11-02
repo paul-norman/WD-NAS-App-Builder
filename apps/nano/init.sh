@@ -1,21 +1,21 @@
 #!/bin/sh
 
 # Called upon app installation
-	#	 1. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
-	# -> 2. $INSTALL_PATH/init.sh $INSTALL_PATH
-	#	 3. $INSTALL_PATH/start.sh $INSTALL_PATH
+    #    1. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
+    # -> 2. $INSTALL_PATH/init.sh $INSTALL_PATH
+    #    3. $INSTALL_PATH/start.sh $INSTALL_PATH
 
 # Called upon app reinstallation
-	#	 1. $INSTALL_PATH/stop.sh $INSTALL_PATH
-	#	 2. $INSTALL_PATH/clean.sh $INSTALL_PATH
-	#	 3. $INSTALL_PATH/preinst.sh $INSTALL_PATH
-	#	 4. $INSTALL_PATH/remove.sh $INSTALL_PATH
-	#	 5. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
-	# -> 6. $INSTALL_PATH/init.sh $INSTALL_PATH
-	#	 7. $INSTALL_PATH/start.sh $INSTALL_PATH
+    #    1. $INSTALL_PATH/stop.sh $INSTALL_PATH
+    #    2. $INSTALL_PATH/clean.sh $INSTALL_PATH
+    #    3. $INSTALL_PATH/preinst.sh $INSTALL_PATH
+    #    4. $INSTALL_PATH/remove.sh $INSTALL_PATH
+    #    5. $UPLOAD_PATH/install.sh $UPLOAD_PATH $INSTALL_PATH
+    # -> 6. $INSTALL_PATH/init.sh $INSTALL_PATH
+    #    7. $INSTALL_PATH/start.sh $INSTALL_PATH
 
 # Load all the useful variables
-. "$1/helpers.sh" "$0" "$1";
+. "$1/helpers.sh" "$0" "$1"
 
 # ----------------------------------------------------------------------
 # Initialisation script: prepares app icon, index page and paths
@@ -32,7 +32,7 @@ ln -sf ${APP_PATH}/web/* ${APP_WEB_PATH} >> ${LOG} 2>&1
 # Fix the global terminal setting (marked so that clean.sh can remove it again)
 # nano has the common terminal types built in, so the TERM=xterm that older versions of the app put in /etc/profile
 # (which took colours away from every other program too) is no longer needed
-if grep -q "# added by the nano app" /etc/profile; then
-	log "removing the TERM setting older versions added to: /etc/profile"
-	sed -i "/# added by the nano app/d" /etc/profile
+if grep -q '# added by the nano app' /etc/profile; then
+    log 'removing the TERM setting older versions added to: /etc/profile'
+    sed -i '/# added by the nano app/d' /etc/profile
 fi

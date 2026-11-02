@@ -1,6 +1,6 @@
 # Vaultwarden publishes no standalone programs, only images: its official Alpine image holds one static program and the
 # web vault, which build.sh copies out. Pinned by digest - keep the tag in step with VERSION in build.sh
-FROM vaultwarden/server:1.37.4-alpine@sha256:19ea2b669945d842dadc3d500f2d6a795866a003330f59a47b9634658bae98bb AS vaultwarden
+FROM vaultwarden/server:1.37.5-alpine@sha256:bbe684a02d6b0db54256ff88eac9754f4519284a7b26314afc241fd7d0918191 AS vaultwarden
 
 FROM alpine:3.22
 

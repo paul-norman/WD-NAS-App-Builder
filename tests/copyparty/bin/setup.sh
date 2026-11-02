@@ -1,7 +1,7 @@
 #!/bin/sh
-# Shared by the tests: a stand-in for the NAS - the app's files where the NAS installs it (when given in /app; its binaries
-# are mounted at binaries/), BusyBox's user tools (the image's own BusyBox has no adduser), and WD's shares: open to all
-# (0777, root's), with the share group every NAS user is in
+# Shared by the tests: a stand-in for the NAS - the app's files where the NAS installs it (when given in /app; its
+# binaries are mounted at binaries/), BusyBox's user tools (the image's own BusyBox has no adduser), and WD's shares:
+# open to all (0777, root's), with the share group every NAS user is in
 pass() { echo "PASS $1"; }
 fail() { echo "FAIL $1"; }
 mkdir -p /tmp/bb && for tool in adduser addgroup ps; do ln -sf /t/bb/busybox /tmp/bb/$tool; done

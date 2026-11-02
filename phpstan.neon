@@ -1,0 +1,87 @@
+# PHPStan (https://phpstan.org/): the folders whose PHP follows .claude/rules/php.md - checked for both PHP versions the
+# NAS may run (WD's 7.4, the PHP app's 8.5). Run from the project's root:
+#     ~/.local/bin/phpstan analyse
+parameters:
+    level: 6
+    phpVersion:
+        min: 70400
+        max: 80599
+    paths:
+        # (the apps' pages include it from their own folder once installed: it's copied there)
+        - apps/manage_helpers.php
+        - apps/nginx/lib
+        - apps/adminer/lib
+        - apps/audiobookshelf/lib
+        - apps/calibre-web/lib
+        - apps/copyparty/lib
+        - apps/forgejo/lib
+        - apps/grafana/lib
+        - apps/icecast/lib
+        - apps/kopia/lib
+        - apps/kvweb/lib
+        - apps/music-assistant/lib
+        - apps/navidrome/lib
+        - apps/ntfy/lib
+        - apps/openssh/lib
+        - apps/pgweb/lib
+        - apps/uptime-kuma/lib
+        - apps/vaultwarden/lib
+        - apps/wireguard/lib
+        - apps/nginx/manage/api.php
+        - apps/adminer/manage/api.php
+        - apps/audiobookshelf/manage/api.php
+        - apps/calibre-web/manage/api.php
+        - apps/copyparty/manage/api.php
+        - apps/docker/manage/api.php
+        - apps/entware/manage/api.php
+        - apps/forgejo/manage/api.php
+        - apps/golang/manage/api.php
+        - apps/grafana/manage/api.php
+        - apps/icecast/manage/api.php
+        - apps/jellyfin/manage/api.php
+        - apps/kopia/manage/api.php
+        - apps/kvweb/manage/api.php
+        - apps/loki/manage/api.php
+        - apps/mailpit/manage/api.php
+        - apps/mariadb/manage/api.php
+        - apps/music-assistant/manage/api.php
+        - apps/navidrome/manage/api.php
+        - apps/node_exporter/manage/api.php
+        - apps/nodejs/manage/api.php
+        - apps/ntfy/manage/api.php
+        - apps/openssh/manage/api.php
+        - apps/pgweb/manage/api.php
+        - apps/php/manage/api.php
+        - apps/phpMyAdmin/manage/api.php
+        - apps/postgresql/manage/api.php
+        - apps/prometheus/manage/api.php
+        - apps/python/manage/api.php
+        - apps/syncthing/manage/api.php
+        - apps/tailscale/manage/api.php
+        - apps/uptime-kuma/manage/api.php
+        - apps/valkey/manage/api.php
+        - apps/vaultwarden/manage/api.php
+        - apps/wireguard/manage/api.php
+        - apps/store/lib
+        - apps/store/manage
+    ignoreErrors:
+        # proc_open()'s ['redirect', 1] (a descriptor sent where another goes) is valid PHP: PHPStan's description of
+        # proc_open() only allows strings in a descriptor's array
+        -
+            message: '#^Parameter \#2 \$descriptorspec of function proc_open expects#'
+            identifier: argument.type
+            paths:
+                - apps/store/lib/store.php
+                - apps/store/lib/job.php
+        # store_markdown()'s $paragraph is changed by its $flush closure (use (&$paragraph)), which PHPStan doesn't follow
+        -
+            message: '#^If condition is always false\.$#'
+            identifier: if.alwaysFalse
+            path: apps/store/lib/store.php
+            count: 1
+        # node_exporter's disks are keyed by substr($name, 8), which PHP 7.4's substr() could make false for a name
+        # shorter than 8 characters: PHPStan can't resolve such a key. The names always start with wd_disk_ (checked)
+        -
+            message: '#(contains|of function array_values contains) unresolvable type\.$#'
+            path: apps/node_exporter/manage/api.php
+            count: 2

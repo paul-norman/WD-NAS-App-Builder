@@ -1,10 +1,19 @@
+# Top-most EditorConfig file
 root = true
 
+# Global rules
 [*]
+charset = utf-8
 end_of_line = lf
-indent_style = tab
-trim_trailing_whitespace = true
 insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
 
-[apkg.rc]
+# WD's apkg.rc files need tabs
+[*.rc]
 indent_style = tab
+
+# Yaml files are fussy
+[*.{yaml,yml}]
+indent_size = 2

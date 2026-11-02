@@ -13,30 +13,31 @@
 
 OUT_DIR="$1"
 INTERVAL="$2"
-SOCKET="/var/run/xmldb_sock_sysinfo"
-WORK="/tmp/node_exporter-wd"
+SOCKET='/var/run/xmldb_sock_sysinfo'
+WORK='/tmp/node_exporter-wd'
 SMARTCTL="$(dirname "$(readlink -f "$0")")/binaries/smartctl"
 [ -x "${SMARTCTL}" ] || SMARTCTL="$(command -v smartctl)"
 
 collect() {
-	mkdir -p "${WORK}"
-	ok=1
-	for tree in disks raids vols; do
-		if [ -n "${WD_METRICS_SOURCE}" ]; then
-			cp "${WD_METRICS_SOURCE}/${tree}.xml" "${WORK}/${tree}.xml" 2>/dev/null || ok=0
-		else
-			rm -f "${WORK}/${tree}.xml"
-			xmldbc -p "/${tree}" "${WORK}/${tree}.xml" -S "${SOCKET}" >/dev/null 2>&1
-			[ -s "${WORK}/${tree}.xml" ] || ok=0
-		fi
-	done
+    mkdir -p "${WORK}"
+    ok=1
 
-	# The NAS model and firmware version, for wd_info
-	model="$(cat /usr/local/modules/files/model 2>/dev/null)"
-	firmware="$(xmldbc -g /sw_ver_2 2>/dev/null)"
-	[ -n "${firmware}" ] || firmware="$(cat /etc/version 2>/dev/null)"
+    for tree in disks raids vols; do
+        if [ -n "${WD_METRICS_SOURCE}" ]; then
+            cp "${WD_METRICS_SOURCE}/${tree}.xml" "${WORK}/${tree}.xml" 2>/dev/null || ok=0
+        else
+            rm -f "${WORK}/${tree}.xml"
+            xmldbc -p "/${tree}" "${WORK}/${tree}.xml" -S "${SOCKET}" >/dev/null 2>&1
+            [ -s "${WORK}/${tree}.xml" ] || ok=0
+        fi
+    done
 
-	cat "${WORK}/disks.xml" "${WORK}/raids.xml" "${WORK}/vols.xml" 2>/dev/null | awk -v ok="${ok}" -v model="${model}" -v firmware="${firmware}" '
+    # The NAS model and firmware version, for wd_info
+    model="$(cat /usr/local/modules/files/model 2>/dev/null)"
+    firmware="$(xmldbc -g /sw_ver_2 2>/dev/null)"
+    [ -n "${firmware}" ] || firmware="$(cat /etc/version 2>/dev/null)"
+
+    cat "${WORK}/disks.xml" "${WORK}/raids.xml" "${WORK}/vols.xml" 2>/dev/null | awk -v ok="${ok}" -v model="${model}" -v firmware="${firmware}" '
 	function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); gsub(/\n/, " ", s); return s }
 	function unxml(s) { gsub(/&lt;/, "<", s); gsub(/&gt;/, ">", s); gsub(/&quot;/, "\"", s); gsub(/&apos;/, "\047", s); gsub(/&amp;/, "\\&", s); return s }
 	function words(s,  a) { return s == "" ? 0 : split(s, a, " ") }
@@ -144,33 +145,37 @@ collect() {
 		}
 	}' > "${OUT_DIR}/wd.prom.$$"
 
-	# Replaced in one step, so Node Exporter never reads a half-written file
-	mv -f "${OUT_DIR}/wd.prom.$$" "${OUT_DIR}/wd.prom"
+    # Replaced in one step, so Node Exporter never reads a half-written file
+    mv -f "${OUT_DIR}/wd.prom.$$" "${OUT_DIR}/wd.prom"
 }
 
 # SMART: each disk in WD's records, read with smartctl (each reading is kept in ${WORK}/smart-<disk>.txt, so that a
 # sleeping disk's last one is still exported)
 collect_smart() {
-	[ -n "${SMARTCTL}" ] || [ -n "${WD_METRICS_SOURCE}" ] || return 0
-	awk -F'[<>"]' '/<disk id="/ { bay = $3 } /<name>/ { print $3 " " bay }' "${WORK}/disks.xml" 2>/dev/null | while read -r disk bay; do
-		cache="${WORK}/smart-${disk}.txt"
-		if [ -n "${WD_METRICS_SOURCE}" ]; then
-			out="$(cat "${WD_METRICS_SOURCE}/smart-${disk}.txt" 2>/dev/null)"
-		else
-			out="$("${SMARTCTL}" -n standby -H -A "/dev/${disk}" 2>&1)"
-		fi
-		asleep=0
-		if echo "${out}" | grep -q 'ID# ATTRIBUTE_NAME\|SMART overall-health'; then
-			printf '%s\n' "${out}" > "${cache}"
-		elif echo "${out}" | grep -qi 'standby'; then
-			asleep=1
-		fi
-		# A header (disk, bay, when it was read, whether it's asleep now), then the reading
-		if [ -f "${cache}" ]; then
-			echo "### ${disk} ${bay} $(stat -c %Y "${cache}") ${asleep}"
-			cat "${cache}"
-		fi
-	done | awk '
+    [ -n "${SMARTCTL}" ] || [ -n "${WD_METRICS_SOURCE}" ] || return 0
+    awk -F'[<>"]' '/<disk id="/ { bay = $3 } /<name>/ { print $3 " " bay }' "${WORK}/disks.xml" 2>/dev/null | while read -r disk bay; do
+        cache="${WORK}/smart-${disk}.txt"
+
+        if [ -n "${WD_METRICS_SOURCE}" ]; then
+            out="$(cat "${WD_METRICS_SOURCE}/smart-${disk}.txt" 2>/dev/null)"
+        else
+            out="$("${SMARTCTL}" -n standby -H -A "/dev/${disk}" 2>&1)"
+        fi
+
+        asleep=0
+
+        if echo "${out}" | grep -q 'ID# ATTRIBUTE_NAME\|SMART overall-health'; then
+            printf '%s\n' "${out}" > "${cache}"
+        elif echo "${out}" | grep -qi 'standby'; then
+            asleep=1
+        fi
+
+        # A header (disk, bay, when it was read, whether it's asleep now), then the reading
+        if [ -f "${cache}" ]; then
+            echo "### ${disk} ${bay} $(stat -c %Y "${cache}") ${asleep}"
+            cat "${cache}"
+        fi
+    done | awk '
 	function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); return s }
 	# Samples are kept per metric, so each metric is written as one block with its HELP and TYPE lines (braces in a
 	# variable: BusyBox awk before 1.34 takes a name followed by a bracket for a function call)
@@ -210,29 +215,34 @@ collect_smart() {
 			printf "%s", samples[name]
 		}
 	}' > "${OUT_DIR}/smart.prom.$$"
-	mv -f "${OUT_DIR}/smart.prom.$$" "${OUT_DIR}/smart.prom"
+    mv -f "${OUT_DIR}/smart.prom.$$" "${OUT_DIR}/smart.prom"
 }
 
 mkdir -p "${OUT_DIR}"
+
 if [ -z "${INTERVAL}" ]; then
-	collect
-	collect_smart
-	exit 0
+    collect
+    collect_smart
+
+    exit 0
 fi
 
 # Runs until stopped, removing its files on the way out
 trap 'rm -f "${OUT_DIR}/wd.prom" "${OUT_DIR}"/wd.prom.* "${OUT_DIR}/smart.prom" "${OUT_DIR}"/smart.prom.*; rm -rf "${WORK}"; exit 0' TERM INT
 runs=0
+
 while :; do
-	collect
-	if [ $((runs % 10)) = 0 ]; then
-		collect_smart
-	fi
-	runs=$((runs + 1))
-	# Keeps Node Exporter's log (CAP_LOG, in RAM) under 1MB
-	if [ -n "${CAP_LOG}" ] && [ "$(wc -c < "${CAP_LOG}" 2>/dev/null || echo 0)" -gt 1048576 ]; then
-		: > "${CAP_LOG}"
-	fi
-	sleep "${INTERVAL}" &
-	wait $!
+    collect
+
+    if [ $((runs % 10)) = 0 ]; then
+        collect_smart
+    fi
+    runs=$((runs + 1))
+
+    # Keeps Node Exporter's log (CAP_LOG, in RAM) under 1MB
+    if [ -n "${CAP_LOG}" ] && [ "$(wc -c < "${CAP_LOG}" 2>/dev/null || echo 0)" -gt 1048576 ]; then
+        : > "${CAP_LOG}"
+    fi
+    sleep "${INTERVAL}" &
+    wait $!
 done

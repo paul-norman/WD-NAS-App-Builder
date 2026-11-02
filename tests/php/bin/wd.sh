@@ -7,7 +7,7 @@
 #    (stop, 3 seconds, start); reload (SIGUSR2)
 #  - WD's web pages: the three lines the app patches, which PHP 8 refuses to run, in files that print what they did
 mkdir -p /usr/local/modules/usr/bin /usr/local/modules/usr/sbin /etc/php /usr/local/modules/web/pages/restSDK
-# (not the image's own PHP settings: its extension list - e.g. sodium - is for its PHP, not the app's, and the NAS has none)
+# Not the image's own PHP settings: its extension list - e.g. sodium - is for its PHP, not the app's, and the NAS has none
 rm -rf /usr/local/etc/php/conf.d
 cp /usr/local/bin/php /usr/local/modules/usr/bin/php
 cp /usr/local/sbin/php-fpm /usr/local/modules/usr/sbin/php-fpm
@@ -54,14 +54,14 @@ SH
 chmod +x /usr/sbin/php-fpm.sh
 cat > /usr/local/modules/web/pages/cgi_api.php <<'PHP'
 <?php
-// (stand-in for WD's cgi_api.php: the two lines the PHP app patches, as WD wrote them)
+// Stand-in for WD's cgi_api.php: the two lines the PHP app patches, as WD wrote them
 $query = $_SERVER[QUERY_STRING];
 $r->ip_address = gethostbyname('localhost');
 echo 'PHP ' . PHP_VERSION . ' cgi_api ok query=' . $query . ' ip=' . $r->ip_address;
 PHP
 cat > /usr/local/modules/web/pages/restSDK/cloudAccess.php <<'PHP'
 <?php
-// (stand-in for WD's restSDK/cloudAccess.php: the line the PHP app patches, as WD wrote it - the token is a string)
+// Stand-in for WD's restSDK/cloudAccess.php: the line the PHP app patches, as WD wrote it - the token is a string
 $id_token = 'a-token';
 if(array_key_exists('statusCode', $id_token)) {
 	echo 'error';

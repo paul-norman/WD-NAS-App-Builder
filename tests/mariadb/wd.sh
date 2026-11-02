@@ -1,14 +1,14 @@
 #!/bin/sh
 # Sets the stand-in out as the NAS has its MariaDB 10.5 (none of WD's own files - stand-ins for them): its server at
-# /usr/local/modules/mysql/libexec/mariadbd behind /usr/libexec/mariadbd, WD's startup-mysql (mysqld_safe as root, on the
-# data folder on the small HD_a4 partition), an /etc/my.cnf with only WD's bind-address, the socket where WD's build has
-# it, root without a password - and some data of the user's own
+# /usr/local/modules/mysql/libexec/mariadbd behind /usr/libexec/mariadbd, WD's startup-mysql (mysqld_safe as root, on
+# the data folder on the small HD_a4 partition), an /etc/my.cnf with only WD's bind-address, the socket where WD's build
+# has it, root without a password - and some data of the user's own
 DATADIR=/mnt/HD_a4/.@database@
 mkdir -p /usr/local/modules/mysql/libexec /usr/local/modules/etc /usr/libexec /var/lib/mysql /run/lock $DATADIR
 cp /usr/sbin/mariadbd /usr/local/modules/mysql/libexec/mariadbd
 ln -sf /usr/local/modules/mysql/libexec/mariadbd /usr/libexec/mariadbd
 rm -rf /etc/mysql
-# (the [mariadb-10.5] socket only for the stand-in: WD's 10.5 has it built in)
+# The [mariadb-10.5] socket only for the stand-in: WD's 10.5 has it built in
 printf '[mysqld]\nbind-address=127.0.0.1\n[mariadb-10.5]\nsocket=/var/lib/mysql/mysql.sock\n' > /etc/my.cnf
 cp /etc/my.cnf /usr/local/modules/etc/my.cnf
 cat > /usr/bin/startup-mysql <<EOF2

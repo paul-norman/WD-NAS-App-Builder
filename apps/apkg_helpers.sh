@@ -2,7 +2,7 @@
 #  - only the first colon separates the name from the value (e.g. URLs are kept whole)
 #  - surrounding whitespace and Windows line endings are removed
 apkg_value() {
-	sed -n "s/^$1:[[:space:]]*//p" "${APP_PATH}/apkg.rc" | tr -d '\r' | sed 's/[[:space:]]*$//' | head -n 1
+    sed -n "s/^$1:[[:space:]]*//p" "${APP_PATH}/apkg.rc" | tr -d '\r' | sed 's/[[:space:]]*$//' | head -n 1
 }
 
 # All `apkg.rc` variables
@@ -31,11 +31,12 @@ APKG_INDIVIDUAL_FLAG="$(apkg_value IndividualFlag)"
 APKG_HIDDEN="$(apkg_value Hidden)"
 
 check_apkg_variables() {
-	# Check that the name is valid
-	if [ "${APKG_PACKAGE}" != "${APP_NAME}" ]; then
-		echo "CRITICAL ERROR: the app folder and the package name in the apkg.rc file must match"
-		exit 1
-	fi
+    # Check that the name is valid
+    if [ "${APKG_PACKAGE}" != "${APP_NAME}" ]; then
+        echo 'CRITICAL ERROR: the app folder and the package name in the apkg.rc file must match'
 
-	# TODO: Add all checks outlined by the WD Guide
+        exit 1
+    fi
+
+    # TODO: Add all checks outlined by the WD Guide
 }

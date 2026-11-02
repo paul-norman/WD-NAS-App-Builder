@@ -13,9 +13,11 @@
 set -euo pipefail
 
 if [ $# -lt 2 ]; then
-	sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
-	exit 1
+    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+
+    exit 1
 fi
+
 OUT="$1"
 BASE="${2%/}/"
 shift 2
@@ -23,39 +25,72 @@ SIGN=()
 PACKAGE_URL="${BASE}packages/{id}/{version}/{file}"
 LINK=0
 EXTERNAL=()
+
 while [ $# -gt 0 ]; do
-	case "$1" in
-		--sign-key) SIGN=(--sign-key "$2"); shift 2 ;;
-		--package-url) PACKAGE_URL="$2"; shift 2 ;;
-		--link) LINK=1; shift ;;
-		--external) EXTERNAL=(--external); shift ;;
-		*) echo "Unknown option: $1"; exit 1 ;;
-	esac
+    case "$1" in
+        --sign-key)
+            SIGN=(--sign-key "$2")
+            shift 2
+            ;;
+        --package-url)
+            PACKAGE_URL="$2"
+            shift 2
+            ;;
+        --link)
+            LINK=1
+            shift
+            ;;
+        --external)
+            EXTERNAL=(--external)
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+
+            exit 1
+            ;;
+    esac
 done
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+
+# Puts a file or folder in the repository: a link to it (with --link), else a copy.
+#
+# $1 source The file or folder to put there
+# $2 target Where it goes in the repository (its folder is created)
 place() {
-	mkdir -p "$(dirname "$2")"
-	if [ "${LINK}" = 1 ]; then ln -sfn "$1" "$2"; else cp -a "$1" "$2"; fi
+    mkdir -p "$(dirname "$2")"
+
+    if [ "${LINK}" = 1 ]; then
+        ln -sfn "$1" "$2"
+    else
+        cp -a "$1" "$2"
+    fi
 }
 
 mkdir -p "${OUT}"
 OUT="$(cd "${OUT}" && pwd)"
 rm -rf "${OUT}/packages" "${OUT}/recipes" "${OUT}/apps"
+
 for rc in "${REPO}"/apps/*/apkg.rc; do
-	app="$(basename "$(dirname "${rc}")")"
-	[ "${app}" = template ] && continue
-	id="$(sed -n 's/^Package:[[:space:]]*//p' "${rc}" | tr -d '\r')"
-	version="$(sed -n 's/^Version:[[:space:]]*//p' "${rc}" | tr -d '\r')"
-	icon="$(sed -n 's/^Icon:[[:space:]]*//p' "${rc}" | tr -d '\r')"
-	for bin in "${REPO}/packages/${id}/${version}/${id}_${version}_"*.bin; do
-		[ -f "${bin}" ] && place "${bin}" "${OUT}/packages/${id}/${version}/$(basename "${bin}")"
-	done
-	[ -n "${icon}" ] && [ -f "${REPO}/apps/${app}/web/${icon}" ] && place "${REPO}/apps/${app}/web/${icon}" "${OUT}/apps/${app}/web/${icon}"
-done
-for recipe in "${REPO}"/recipes/*/recipe.json; do
-	place "$(dirname "${recipe}")" "${OUT}/recipes/$(basename "$(dirname "${recipe}")")"
+    app="$(basename "$(dirname "${rc}")")"
+    [ "${app}" = template ] && continue
+    id="$(sed -n 's/^Package:[[:space:]]*//p' "${rc}" | tr -d '\r')"
+    version="$(sed -n 's/^Version:[[:space:]]*//p' "${rc}" | tr -d '\r')"
+    icon="$(sed -n 's/^Icon:[[:space:]]*//p' "${rc}" | tr -d '\r')"
+
+    for bin in "${REPO}/packages/${id}/${version}/${id}_${version}_"*.bin; do
+        [ -f "${bin}" ] && place "${bin}" "${OUT}/packages/${id}/${version}/$(basename "${bin}")"
+    done
+
+    [ -n "${icon}" ] && [ -f "${REPO}/apps/${app}/web/${icon}" ] \
+        && place "${REPO}/apps/${app}/web/${icon}" "${OUT}/apps/${app}/web/${icon}"
 done
 
-python3 "${REPO}/store/tools/build_store.py" --output "${OUT}/store.json" --base-url "${BASE}" --package-url "${PACKAGE_URL}" "${SIGN[@]}" "${EXTERNAL[@]}"
+for recipe in "${REPO}"/recipes/*/recipe.json; do
+    place "$(dirname "${recipe}")" "${OUT}/recipes/$(basename "$(dirname "${recipe}")")"
+done
+
+python3 "${REPO}/store/tools/build_store.py" --output "${OUT}/store.json" --base-url "${BASE}" \
+    --package-url "${PACKAGE_URL}" "${SIGN[@]}" "${EXTERNAL[@]}"
 echo "Test repository ready in ${OUT} - add ${BASE}store.json in the Store"

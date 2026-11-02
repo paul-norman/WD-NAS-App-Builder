@@ -25,7 +25,7 @@ TCPKeepAlive yes
 MaxAuthTries 5
 Subsystem sftp /usr/bin/sftp-server
 EOF2
-# (Debian's own sshd user goes: WD's is the login user, with root's ID - and root's password, here Wd-Passw0rd)
+# Debian's own sshd user goes: WD's is the login user, with root's ID - and root's password, here Wd-Passw0rd
 HASH=$(openssl passwd -1 -salt '' 'Wd-Passw0rd')
 sed -i '/^sshd:/d' /etc/passwd /etc/shadow /etc/group
 echo 'sshd:x:0:0:Linux User,,,:/home/root:/bin/sh' >> /etc/passwd

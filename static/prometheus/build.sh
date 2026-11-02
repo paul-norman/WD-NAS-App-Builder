@@ -8,30 +8,31 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=3.15.0
-PROMETHEUS_SHA256=2a542df32eac02ee17b9d844fb2aa1de00dafa5476579ba8a3ba862e9d572ea0
+VERSION=3.15.1
+PROMETHEUS_SHA256=6a726885328ad9efebbf36e876ce2fb6225468a71fd1e7ce3ba666d5f4d97a84
 
 ARCH=$(uname -m)
-if [ ${ARCH} = "x86_64" ]; then
-    ARCH="amd64"
+
+if [ ${ARCH} = 'x86_64' ]; then
+    ARCH='amd64'
 else
-	ARCH="armhf"
+    ARCH='armhf'
 fi
 
 BUILD_PATH=/build
 OUTPUT_PATH=/data/packages/static/prometheus/${VERSION}/${ARCH}
 
 function build_prometheus() {
-	cd ${BUILD_PATH}
-	wget -q "https://github.com/prometheus/prometheus/releases/download/v${VERSION}/prometheus-${VERSION}.linux-amd64.tar.gz" -O prometheus.tar.gz
-	echo "${PROMETHEUS_SHA256}  prometheus.tar.gz" | sha256sum -c -
-	tar -xzf prometheus.tar.gz
-	strip prometheus-${VERSION}.linux-amd64/prometheus
+    cd ${BUILD_PATH}
+    wget -q "https://github.com/prometheus/prometheus/releases/download/v${VERSION}/prometheus-${VERSION}.linux-amd64.tar.gz" -O prometheus.tar.gz
+    echo "${PROMETHEUS_SHA256}  prometheus.tar.gz" | sha256sum -c -
+    tar -xzf prometheus.tar.gz
+    strip prometheus-${VERSION}.linux-amd64/prometheus
 }
 
 function build_runas() {
-	cd ${BUILD_PATH}
-	cat > prom_runas.c <<'C'
+    cd ${BUILD_PATH}
+    cat > prom_runas.c <<'C'
 #include <grp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,34 +55,34 @@ int main(int argc, char **argv) {
 	return 127;
 }
 C
-	gcc -O2 -static -o prom_runas prom_runas.c
-	strip prom_runas
+    gcc -O2 -static -o prom_runas prom_runas.c
+    strip prom_runas
 }
 
 function run() {
-	# Clean start
-	if [ -d ${BUILD_PATH} ]; then
-		rm -rf ${BUILD_PATH}
-	fi
-	mkdir -p ${BUILD_PATH}
+    # Clean start
+    if [ -d ${BUILD_PATH} ]; then
+        rm -rf ${BUILD_PATH}
+    fi
+    mkdir -p ${BUILD_PATH}
 
-	build_prometheus
-	build_runas
+    build_prometheus
+    build_runas
 
-	rm -rf ${OUTPUT_PATH}
-	mkdir -p ${OUTPUT_PATH}
-	cp ${BUILD_PATH}/prometheus-${VERSION}.linux-amd64/prometheus ${BUILD_PATH}/prom_runas ${OUTPUT_PATH}/
-	${OUTPUT_PATH}/prometheus --version
-	du -sh ${OUTPUT_PATH}
+    rm -rf ${OUTPUT_PATH}
+    mkdir -p ${OUTPUT_PATH}
+    cp ${BUILD_PATH}/prometheus-${VERSION}.linux-amd64/prometheus ${BUILD_PATH}/prom_runas ${OUTPUT_PATH}/
+    ${OUTPUT_PATH}/prometheus --version
+    du -sh ${OUTPUT_PATH}
 
-	# Create a latest release file for ease of use in packages
-	LATEST_PATH="$(dirname ${OUTPUT_PATH})"
-	LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
-	echo -e "\nCreating a latest release file: ${LATEST_PATH}"
-	rm -f ${LATEST_PATH}
-	printf "%s" "${VERSION}" > ${LATEST_PATH}
+    # Create a latest release file for ease of use in packages
+    LATEST_PATH="$(dirname ${OUTPUT_PATH})"
+    LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
+    echo -e "\nCreating a latest release file: ${LATEST_PATH}"
+    rm -f ${LATEST_PATH}
+    printf '%s' "${VERSION}" > ${LATEST_PATH}
 
-	chown -R 1000:1000 /data/packages;
+    chown -R 1000:1000 /data/packages
 }
 
 run

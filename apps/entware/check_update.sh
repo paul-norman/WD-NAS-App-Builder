@@ -13,9 +13,10 @@ COUNT="$("${OPKG}" list-upgradable 2>/dev/null | wc -l)"
 LAST="$(cat "${LAST_FILE}" 2>/dev/null)"
 
 if [ "${COUNT}" -gt 0 ] && [ "${COUNT}" != "${LAST}" ] && [ -x /usr/sbin/alert_test ]; then
-	/usr/sbin/alert_test -a 1501 -p "<br><br><b>Entware: ${COUNT} package update(s)</b> - run: opkg upgrade" -f
-	echo "Alert shown: ${COUNT} Entware package update(s)"
+    /usr/sbin/alert_test -a 1501 -p "<br><br><b>Entware: ${COUNT} package update(s)</b> - run: opkg upgrade" -f
+    echo "Alert shown: ${COUNT} Entware package update(s)"
 else
-	echo "No alert: ${COUNT} update(s), last alert was for: ${LAST:-none}"
+    echo "No alert: ${COUNT} update(s), last alert was for: ${LAST:-none}"
 fi
+
 echo "${COUNT}" > "${LAST_FILE}"

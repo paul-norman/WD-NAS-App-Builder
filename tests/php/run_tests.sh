@@ -17,10 +17,10 @@ PACKAGE="${PROJ}/packages/php/${VERSION}/php_${VERSION}_amd64.tar.gz"
 docker build -q -t nas-test-php74-fpm -f "${HERE}/image.Dockerfile" "${HERE}" > /dev/null || exit 1
 
 log="${WORK}/app.log"
-echo "== php"
+echo '== php'
 docker run --rm --init --privileged -v "${HERE}/bin:/t/bin:ro" -v "${PACKAGE}:/pkg/php.tar.gz:ro" nas-test-php74-fpm \
-	sh /t/bin/test_app.sh > "${log}" 2>&1
-grep -E "^(PASS|FAIL)" "${log}" | cut -c1-170
+    sh /t/bin/test_app.sh > "${log}" 2>&1
+grep -E '^(PASS|FAIL)' "${log}" | cut -c1-170
 passes=$(grep -c "^PASS" "${log}"); fails=$(grep -c "^FAIL" "${log}")
 echo "   ${passes} passed, ${fails} failed (log: ${log})"
 [ "${fails}" = 0 ] && [ "${passes}" != 0 ]

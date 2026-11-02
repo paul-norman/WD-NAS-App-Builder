@@ -17,10 +17,11 @@ QRENCODE_VERSION=4.1.1
 QRENCODE_SHA256=5385bc1b8c2f20f3b91d258bf8ccc8cf62023935df2d2676b5b67049f31a049c
 
 ARCH=$(uname -m)
-if [ ${ARCH} = "x86_64" ]; then
-	ARCH="amd64"
+
+if [ ${ARCH} = 'x86_64' ]; then
+    ARCH='amd64'
 else
-	ARCH="armhf"
+    ARCH='armhf'
 fi
 
 BUILD_PATH=/build
@@ -28,9 +29,9 @@ OUTPUT_PATH=/data/packages/static/wireguard/${VERSION}/${ARCH}
 
 # Downloads a file and checks it against its SHA256
 fetch() {
-	cd ${BUILD_PATH}
-	wget -q "$1" -O "$2"
-	echo "$3  $2" | sha256sum -c -
+    cd ${BUILD_PATH}
+    wget -q "$1" -O "$2"
+    echo "$3  $2" | sha256sum -c -
 }
 
 rm -rf ${BUILD_PATH}
@@ -40,7 +41,7 @@ mkdir -p ${BUILD_PATH}
 fetch "https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-${VERSION}.tar.xz" wireguard-go.tar.xz ${WG_GO_SHA256}
 tar -xJf wireguard-go.tar.xz
 cd wireguard-go-${VERSION}
-CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o ${BUILD_PATH}/wireguard-go
+CGO_ENABLED=0 go build -trimpath -ldflags '-s -w' -o ${BUILD_PATH}/wireguard-go
 
 # wg
 fetch "https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-${WG_TOOLS_VERSION}.tar.xz" wireguard-tools.tar.xz ${WG_TOOLS_SHA256}
@@ -53,7 +54,7 @@ cp wireguard-tools-${WG_TOOLS_VERSION}/src/wg ${BUILD_PATH}/wg
 fetch "https://github.com/fukuchi/libqrencode/archive/refs/tags/v${QRENCODE_VERSION}.tar.gz" qrencode.tar.gz ${QRENCODE_SHA256}
 tar -xzf qrencode.tar.gz
 cmake -S libqrencode-${QRENCODE_VERSION} -B qrencode-build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWITH_TOOLS=ON \
-	-DWITHOUT_PNG=ON -DCMAKE_EXE_LINKER_FLAGS=-static -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    -DWITHOUT_PNG=ON -DCMAKE_EXE_LINKER_FLAGS=-static -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build qrencode-build -j "$(nproc)" --target qrenc
 strip qrencode-build/qrencode
 cp qrencode-build/qrencode ${BUILD_PATH}/qrencode
@@ -61,12 +62,15 @@ cp qrencode-build/qrencode ${BUILD_PATH}/qrencode
 rm -rf ${OUTPUT_PATH}
 mkdir -p ${OUTPUT_PATH}
 cp ${BUILD_PATH}/wireguard-go ${BUILD_PATH}/wg ${BUILD_PATH}/qrencode ${OUTPUT_PATH}/
+
 for program in wireguard-go wg qrencode; do
-	if file ${OUTPUT_PATH}/${program} 2>/dev/null | grep -q dynamic; then
-		echo "${program} isn't static"
-		exit 1
-	fi
+    if file ${OUTPUT_PATH}/${program} 2>/dev/null | grep -q dynamic; then
+        echo "${program} isn't static"
+
+        exit 1
+    fi
 done
+
 ${OUTPUT_PATH}/wireguard-go --version
 ${OUTPUT_PATH}/wg --version
 echo test | ${OUTPUT_PATH}/qrencode -t SVG -o - | head -c 60; echo
@@ -77,6 +81,6 @@ LATEST_PATH="$(dirname ${OUTPUT_PATH})"
 LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
 echo "Creating a latest release file: ${LATEST_PATH}"
 rm -f ${LATEST_PATH}
-printf "%s" "${VERSION}" > ${LATEST_PATH}
+printf '%s' "${VERSION}" > ${LATEST_PATH}
 
 chown -R 1000:1000 /data/packages

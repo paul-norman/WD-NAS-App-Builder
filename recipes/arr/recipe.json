@@ -1,279 +1,279 @@
 {
-	"recipe_version": 1,
-	"id": "arr",
-	"name": "Arr stack",
-	"version": "2026.10.30-3",
-	"summary": "Request films and TV, and have them found, downloaded and filed into your Jellyfin or Plex library - all connected for you",
-	"description": "description.md",
-	"compose": "compose.yaml",
-	"project": "arr",
-	"data_folder": "_arr",
-	"requires": {
-		"arch": "amd64",
-		"apps": ["docker"],
-		"docker_memory_mb": 1024,
-		"disk_mb": 6144
-	},
-	"web": {
-		"port": 5055,
-		"ready_timeout": 300,
-		"nginx": { "name": "seerr" },
-		"sites": [
-			{ "name": "radarr", "label": "Radarr (films)", "port": 7878 },
-			{ "name": "sonarr", "label": "Sonarr (TV)", "port": 8989 },
-			{ "name": "prowlarr", "label": "Prowlarr (indexers)", "port": 9696 },
-			{ "name": "bazarr", "label": "Bazarr (subtitles)", "port": 6767 },
-			{ "name": "qbittorrent", "label": "qBittorrent (downloads)", "port": 8090 },
-			{ "name": "lidarr", "label": "Lidarr (music)", "port": 8686, "if": "LIDARR" },
-			{ "name": "bookshelf", "label": "Bookshelf (books)", "port": 8787, "if": "BOOKS" },
-			{ "name": "sabnzbd", "label": "SABnzbd (usenet)", "port": 8085, "if": "SABNZBD" }
-		]
-	},
-	"options": [
-		{
-			"key": "DATA_ROOT",
-			"type": "folder",
-			"label": "Downloads and library folder",
-			"help": "On a share. It gets torrents/ and usenet/ (downloads) and, unless you choose library folders below, media/ (the library: tv, movies, music, books) - point Jellyfin or Plex at media/. Library folders inside it get finished downloads linked into them (no copying, no double disk space): the recommended setup.",
-			"default": "{share:Media}",
-			"on_share": true,
-			"create": true
-		},
-		{
-			"key": "TV_FOLDERS",
-			"type": "folder",
-			"label": "TV folders",
-			"help": "Your own TV folders, anywhere on the NAS's shares (e.g. /mnt/HD/HD_a2/Me/TV) - the first is where new series go, and each is offered when adding one. Empty: media/tv in the folder above. Folders outside it get finished downloads copied into them, rather than linked; they must be writable by the share users' group.",
-			"required": false,
-			"multiple": true,
-			"on_share": true,
-			"mount": { "service": ["sonarr", "bazarr"], "target": "/media" }
-		},
-		{
-			"key": "MOVIES_FOLDERS",
-			"type": "folder",
-			"label": "Film folders",
-			"help": "Your own film folders, anywhere on the NAS's shares (e.g. /mnt/HD/HD_a2/Me/Films) - the first is where new films go, and each is offered when adding one. Empty: media/movies in the folder above. Folders outside it get finished downloads copied into them, rather than linked; they must be writable by the share users' group.",
-			"required": false,
-			"multiple": true,
-			"on_share": true,
-			"mount": { "service": ["radarr", "bazarr"], "target": "/media" }
-		},
-		{
-			"key": "MUSIC_FOLDERS",
-			"type": "folder",
-			"label": "Music folders",
-			"help": "With Lidarr: your own music folders, anywhere on the NAS's shares (e.g. /mnt/HD/HD_a2/Me/Music) - the first is where new artists go. Empty: media/music in the folder above. Folders outside it get finished downloads copied into them, rather than linked; they must be writable by the share users' group.",
-			"required": false,
-			"multiple": true,
-			"on_share": true,
-			"mount": { "service": "lidarr", "target": "/media" }
-		},
-		{
-			"key": "BOOKS_FOLDERS",
-			"type": "folder",
-			"label": "Book folders",
-			"help": "With Bookshelf: your own book folders, anywhere on the NAS's shares (e.g. /mnt/HD/HD_a2/Me/Books) - the first is where new authors go. Empty: media/books in the folder above. Folders outside it get finished downloads copied into them, rather than linked; they must be writable by the share users' group.",
-			"required": false,
-			"multiple": true,
-			"on_share": true,
-			"mount": { "service": "bookshelf", "target": "/media" }
-		},
-		{
-			"key": "AFTER_IMPORT",
-			"type": "choice",
-			"label": "After a download is filed",
-			"help": "Keep seeding: torrents stay in qBittorrent (the library's copy is a link to the same data - or a copy, in folders outside the downloads folder). Seed for a while: qBittorrent stops each at the ratio or number of days below, then it's removed with its files - only the library's copy is left. Don't seed: removed as soon as it's filed (some trackers expect seeding). Usenet downloads are always removed once filed.",
-			"default": "seed",
-			"choices": [{ "value": "seed", "label": "Keep seeding" }, { "value": "limit", "label": "Seed for a while, then remove" }, { "value": "remove", "label": "Don't seed: remove once filed" }]
-		},
-		{
-			"key": "SEED_RATIO",
-			"type": "choice",
-			"label": "Seed until the ratio",
-			"help": "With \"Seed for a while\": uploaded / downloaded. Whichever comes first, this or the days below.",
-			"default": "2",
-			"choices": [{ "value": "none", "label": "No ratio limit" }, { "value": "0.5", "label": "0.5" }, { "value": "1", "label": "1" }, { "value": "1.5", "label": "1.5" }, { "value": "2", "label": "2" }, { "value": "3", "label": "3" }, { "value": "5", "label": "5" }],
-			"advanced": true
-		},
-		{
-			"key": "SEED_DAYS",
-			"type": "number",
-			"label": "Seed for up to (days)",
-			"help": "With \"Seed for a while\": 0 for no time limit.",
-			"default": 14,
-			"min": 0,
-			"max": 3650,
-			"advanced": true
-		},
-		{
-			"key": "RENAME",
-			"type": "boolean",
-			"label": "Rename what's filed",
-			"help": "Tidy names (e.g. Show - S01E02 - Title), as Jellyfin and Plex like them, using each app's naming settings. Off: names kept as downloaded.",
-			"default": true,
-			"values": ["on", "off"]
-		},
-		{
-			"key": "SEARCH",
-			"type": "choice",
-			"label": "Searching",
-			"help": "Automatic: what's added or requested is searched for straight away, the best download chosen by the quality profile, and new releases are picked up as they appear (RSS). By hand: nothing is downloaded until you choose a release yourself (Interactive Search, the person icon in Sonarr or Radarr) - Seerr's requests are added without a search. Set in Prowlarr's sync profiles, for the indexers it gives the apps.",
-			"default": "auto",
-			"choices": [{ "value": "auto", "label": "Automatic" }, { "value": "manual", "label": "By hand (Interactive Search)" }]
-		},
-		{
-			"key": "FLAT_FILMS",
-			"type": "boolean",
-			"label": "Films without their own folder",
-			"help": "Radarr keeps each film in a folder of its own (Films/Name (2024)/Name (2024).mkv). On: once filed, each film's files are moved up into the film folder (Films/Name (2024).mkv) and the film is taken off Radarr's list - so Radarr won't upgrade or rename it, but won't fetch it again either. Seerr then sees it through Jellyfin or Plex. A film whose name is already there keeps its folder.",
-			"default": false,
-			"values": ["on", "off"]
-		},
-		{
-			"key": "MEDIA_SERVER",
-			"type": "choice",
-			"label": "Media server",
-			"help": "The one on this NAS (or your network) showing the library: Sonarr, Radarr and Lidarr tell it about each new file, so it appears straight away rather than at its next scan. Seerr asks for it once, on its own setup page.",
-			"default": "none",
-			"choices": [{ "value": "none", "label": "None (or not on this list)" }, { "value": "plex", "label": "Plex" }, { "value": "jellyfin", "label": "Jellyfin" }, { "value": "emby", "label": "Emby" }]
-		},
-		{
-			"key": "MEDIA_SERVER_KEY",
-			"type": "password",
-			"label": "Media server's key",
-			"help": "Jellyfin or Emby: an API key - made on its dashboard (Dashboard -> API Keys -> +). Plex: its token - left empty, it's read from Plex on this NAS (its Preferences.xml); for another Plex, see Plex's support article \"Finding an authentication token\".",
-			"required": false
-		},
-		{
-			"key": "MEDIA_SERVER_URL",
-			"type": "string",
-			"label": "Media server's address",
-			"help": "Empty: on this NAS, at its usual port (Plex http://host.docker.internal:32400, Jellyfin and Emby http://host.docker.internal:8096 - host.docker.internal being the NAS, as the apps see it). Elsewhere: e.g. http://192.168.1.20:8096.",
-			"required": false,
-			"pattern": "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$",
-			"advanced": true
-		},
-		{
-			"key": "NTFY_TOPIC",
-			"type": "string",
-			"label": "ntfy topic",
-			"help": "With the ntfy app on this NAS: notifications to this topic - subscribe to it in the ntfy app on your phone. Sonarr, Radarr, Lidarr and Bookshelf: something filed, upgraded or failed, or needing you; Prowlarr: health problems; Seerr: new requests, available, failed, issues. Connected with the ntfy app's own token. Empty: no notifications.",
-			"default": "arr",
-			"required": false,
-			"pattern": "^[A-Za-z0-9_-]{1,64}$"
-		},
-		{
-			"key": "RECYCLARR",
-			"type": "boolean",
-			"label": "Quality rules (Recyclarr)",
-			"help": "Which download is \"best\": the TRaSH Guides' tested profiles for Sonarr and Radarr - preferring good release groups and sources, avoiding poor encodes, fakes and re-encodes - kept up to date daily by Recyclarr. Seerr uses them for requests; series and films already added keep their profile (change it in Sonarr or Radarr). About 50MB of memory.",
-			"default": true,
-			"values": ["on", "off"]
-		},
-		{
-			"key": "QUALITY",
-			"type": "choice",
-			"label": "Quality for requests",
-			"help": "With the quality rules, both are made in Sonarr and Radarr: 1080p (WEB-1080p, HD Bluray + WEB) and 4K (WEB-2160p, UHD Bluray + WEB: 4K only, several times the disk space). This is the one Seerr's requests use - either can be picked for each series or film in Sonarr or Radarr.",
-			"default": "1080p",
-			"choices": [{ "value": "1080p", "label": "1080p (HD)" }, { "value": "2160p", "label": "4K (2160p)" }]
-		},
-		{
-			"key": "ADMIN_USER",
-			"type": "string",
-			"label": "User name",
-			"help": "For every app's web interface (qBittorrent, Prowlarr, Sonarr, Radarr, Bazarr...). Seerr has its own users: those of your Jellyfin or Plex.",
-			"default": "admin",
-			"pattern": "^[A-Za-z0-9._-]{1,32}$"
-		},
-		{
-			"key": "ADMIN_PASSWORD",
-			"type": "password",
-			"label": "Password",
-			"help": "For every app's web interface, with the user name above. Changing it here changes it in every app.",
-			"min_length": 8
-		},
-		{
-			"key": "LIDARR",
-			"type": "boolean",
-			"label": "Music (Lidarr)",
-			"help": "Albums by the artists you follow, filed into media/music (for Navidrome, Jellyfin or Plex). About 250MB of memory.",
-			"default": false,
-			"values": ["on", "off"]
-		},
-		{
-			"key": "BOOKS",
-			"type": "boolean",
-			"label": "Books (Bookshelf)",
-			"help": "E-books and audiobooks by the authors you follow, filed into media/books (for Calibre-Web or Audiobookshelf). Bookshelf continues Readarr, with Hardcover's book data. About 250MB of memory.",
-			"default": false,
-			"values": ["on", "off"]
-		},
-		{
-			"key": "SABNZBD",
-			"type": "boolean",
-			"label": "Usenet downloads (SABnzbd)",
-			"help": "Downloads from Usenet as well as torrents - it needs a Usenet provider's account (added in SABnzbd afterwards). About 150MB of memory.",
-			"default": false,
-			"values": ["on", "off"]
-		},
-		{
-			"key": "FLARESOLVERR",
-			"type": "boolean",
-			"label": "FlareSolverr",
-			"help": "Gets Prowlarr past Cloudflare's \"checking your browser\" page, which some indexers have: tag those indexers flaresolverr in Prowlarr. It runs a browser: about 500MB of memory.",
-			"default": false,
-			"values": ["on", "off"]
-		},
-		{
-			"key": "SUBTITLE_LANGUAGE",
-			"type": "choice",
-			"label": "Subtitle language",
-			"help": "What Bazarr looks for. More languages, and subtitle sources with accounts, can be added in Bazarr.",
-			"default": "en",
-			"choices": [
-				{ "value": "en", "label": "English" }, { "value": "fr", "label": "French" }, { "value": "de", "label": "German" },
-				{ "value": "es", "label": "Spanish" }, { "value": "it", "label": "Italian" }, { "value": "nl", "label": "Dutch" },
-				{ "value": "pt", "label": "Portuguese" }, { "value": "sv", "label": "Swedish" }, { "value": "da", "label": "Danish" },
-				{ "value": "fi", "label": "Finnish" }, { "value": "pl", "label": "Polish" }
-			],
-			"install_only": true
-		},
-		{
-			"key": "TORRENT_PORT",
-			"type": "port",
-			"label": "Torrent port",
-			"help": "qBittorrent's incoming connections. Forwarding it on your router (TCP and UDP) helps downloads, but isn't needed.",
-			"default": 6881,
-			"min": 1024,
-			"max": 65535,
-			"advanced": true
-		},
-		{
-			"key": "TZ",
-			"type": "timezone",
-			"label": "Time zone",
-			"default": "{nas:timezone}",
-			"advanced": true
-		},
-		{ "key": "PROWLARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
-		{ "key": "SONARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
-		{ "key": "RADARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
-		{ "key": "LIDARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
-		{ "key": "BOOKSHELF_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
-		{ "key": "CONFIG_ROOT", "type": "hidden", "default": "{data}" },
-		{ "key": "COMPOSE_PROFILES", "type": "hidden", "default": "on" },
-		{ "key": "VOLUME", "type": "hidden", "default": "{volume}" },
-		{ "key": "PUID", "type": "hidden", "default": "84" },
-		{ "key": "PGID", "type": "hidden", "default": "1000" }
-	],
-	"hooks": {
-		"pre_install": "hooks/pre_install.sh",
-		"post_install": "hooks/wire.sh",
-		"post_update": "hooks/wire.sh",
-		"post_change": "hooks/wire.sh",
-		"pre_uninstall": "hooks/pre_uninstall.sh"
-	},
-	"uninstall": { "keep": ["DATA_ROOT"] }
+    "recipe_version": 1,
+    "id":             "arr",
+    "name":           "Arr stack",
+    "version":        "2026.10.30-3",
+    "summary":        "Request films and TV, and have them found, downloaded and filed into your Jellyfin or Plex library - all connected for you",
+    "description":    "description.md",
+    "compose":        "compose.yaml",
+    "project":        "arr",
+    "data_folder":    "_arr",
+    "requires":       {
+        "arch":             "amd64",
+        "apps":             ["docker"],
+        "docker_memory_mb": 1024,
+        "disk_mb":          6144
+    },
+    "web": {
+        "port":          5055,
+        "ready_timeout": 300,
+        "nginx":         { "name": "seerr" },
+        "sites":         [
+            { "name": "radarr", "label": "Radarr (films)", "port": 7878 },
+            { "name": "sonarr", "label": "Sonarr (TV)", "port": 8989 },
+            { "name": "prowlarr", "label": "Prowlarr (indexers)", "port": 9696 },
+            { "name": "bazarr", "label": "Bazarr (subtitles)", "port": 6767 },
+            { "name": "qbittorrent", "label": "qBittorrent (downloads)", "port": 8090 },
+            { "name": "lidarr", "label": "Lidarr (music)", "port": 8686, "if": "LIDARR" },
+            { "name": "bookshelf", "label": "Bookshelf (books)", "port": 8787, "if": "BOOKS" },
+            { "name": "sabnzbd", "label": "SABnzbd (usenet)", "port": 8085, "if": "SABNZBD" }
+        ]
+    },
+    "options": [
+        {
+            "key":      "DATA_ROOT",
+            "type":     "folder",
+            "label":    "Downloads and library folder",
+            "help":     "On a share. It gets torrents/ and usenet/ (downloads) and, unless you choose library folders below, media/ (the library: tv, movies, music, books) - point Jellyfin or Plex at media/. Library folders inside it get finished downloads linked into them (no copying, no double disk space): the recommended setup.",
+            "default":  "{share:Media}",
+            "on_share": true,
+            "create":   true
+        },
+        {
+            "key":      "TV_FOLDERS",
+            "type":     "folder",
+            "label":    "TV folders",
+            "help":     "Your own TV folders, anywhere on the NAS's shares (e.g. /mnt/HD/HD_a2/Me/TV) - the first is where new series go, and each is offered when adding one. Empty: media/tv in the folder above. Folders outside it get finished downloads copied into them, rather than linked; they must be writable by the share users' group.",
+            "required": false,
+            "multiple": true,
+            "on_share": true,
+            "mount":    { "service": ["sonarr", "bazarr"], "target": "/media" }
+        },
+        {
+            "key":      "MOVIES_FOLDERS",
+            "type":     "folder",
+            "label":    "Film folders",
+            "help":     "Your own film folders, anywhere on the NAS's shares (e.g. /mnt/HD/HD_a2/Me/Films) - the first is where new films go, and each is offered when adding one. Empty: media/movies in the folder above. Folders outside it get finished downloads copied into them, rather than linked; they must be writable by the share users' group.",
+            "required": false,
+            "multiple": true,
+            "on_share": true,
+            "mount":    { "service": ["radarr", "bazarr"], "target": "/media" }
+        },
+        {
+            "key":      "MUSIC_FOLDERS",
+            "type":     "folder",
+            "label":    "Music folders",
+            "help":     "With Lidarr: your own music folders, anywhere on the NAS's shares (e.g. /mnt/HD/HD_a2/Me/Music) - the first is where new artists go. Empty: media/music in the folder above. Folders outside it get finished downloads copied into them, rather than linked; they must be writable by the share users' group.",
+            "required": false,
+            "multiple": true,
+            "on_share": true,
+            "mount":    { "service": "lidarr", "target": "/media" }
+        },
+        {
+            "key":      "BOOKS_FOLDERS",
+            "type":     "folder",
+            "label":    "Book folders",
+            "help":     "With Bookshelf: your own book folders, anywhere on the NAS's shares (e.g. /mnt/HD/HD_a2/Me/Books) - the first is where new authors go. Empty: media/books in the folder above. Folders outside it get finished downloads copied into them, rather than linked; they must be writable by the share users' group.",
+            "required": false,
+            "multiple": true,
+            "on_share": true,
+            "mount":    { "service": "bookshelf", "target": "/media" }
+        },
+        {
+            "key":     "AFTER_IMPORT",
+            "type":    "choice",
+            "label":   "After a download is filed",
+            "help":    "Keep seeding: torrents stay in qBittorrent (the library's copy is a link to the same data - or a copy, in folders outside the downloads folder). Seed for a while: qBittorrent stops each at the ratio or number of days below, then it's removed with its files - only the library's copy is left. Don't seed: removed as soon as it's filed (some trackers expect seeding). Usenet downloads are always removed once filed.",
+            "default": "seed",
+            "choices": [{ "value": "seed", "label": "Keep seeding" }, { "value": "limit", "label": "Seed for a while, then remove" }, { "value": "remove", "label": "Don't seed: remove once filed" }]
+        },
+        {
+            "key":      "SEED_RATIO",
+            "type":     "choice",
+            "label":    "Seed until the ratio",
+            "help":     "With \"Seed for a while\": uploaded / downloaded. Whichever comes first, this or the days below.",
+            "default":  "2",
+            "choices":  [{ "value": "none", "label": "No ratio limit" }, { "value": "0.5", "label": "0.5" }, { "value": "1", "label": "1" }, { "value": "1.5", "label": "1.5" }, { "value": "2", "label": "2" }, { "value": "3", "label": "3" }, { "value": "5", "label": "5" }],
+            "advanced": true
+        },
+        {
+            "key":      "SEED_DAYS",
+            "type":     "number",
+            "label":    "Seed for up to (days)",
+            "help":     "With \"Seed for a while\": 0 for no time limit.",
+            "default":  14,
+            "min":      0,
+            "max":      3650,
+            "advanced": true
+        },
+        {
+            "key":     "RENAME",
+            "type":    "boolean",
+            "label":   "Rename what's filed",
+            "help":    "Tidy names (e.g. Show - S01E02 - Title), as Jellyfin and Plex like them, using each app's naming settings. Off: names kept as downloaded.",
+            "default": true,
+            "values":  ["on", "off"]
+        },
+        {
+            "key":     "SEARCH",
+            "type":    "choice",
+            "label":   "Searching",
+            "help":    "Automatic: what's added or requested is searched for straight away, the best download chosen by the quality profile, and new releases are picked up as they appear (RSS). By hand: nothing is downloaded until you choose a release yourself (Interactive Search, the person icon in Sonarr or Radarr) - Seerr's requests are added without a search. Set in Prowlarr's sync profiles, for the indexers it gives the apps.",
+            "default": "auto",
+            "choices": [{ "value": "auto", "label": "Automatic" }, { "value": "manual", "label": "By hand (Interactive Search)" }]
+        },
+        {
+            "key":     "FLAT_FILMS",
+            "type":    "boolean",
+            "label":   "Films without their own folder",
+            "help":    "Radarr keeps each film in a folder of its own (Films/Name (2024)/Name (2024).mkv). On: once filed, each film's files are moved up into the film folder (Films/Name (2024).mkv) and the film is taken off Radarr's list - so Radarr won't upgrade or rename it, but won't fetch it again either. Seerr then sees it through Jellyfin or Plex. A film whose name is already there keeps its folder.",
+            "default": false,
+            "values":  ["on", "off"]
+        },
+        {
+            "key":     "MEDIA_SERVER",
+            "type":    "choice",
+            "label":   "Media server",
+            "help":    "The one on this NAS (or your network) showing the library: Sonarr, Radarr and Lidarr tell it about each new file, so it appears straight away rather than at its next scan. Seerr asks for it once, on its own setup page.",
+            "default": "none",
+            "choices": [{ "value": "none", "label": "None (or not on this list)" }, { "value": "plex", "label": "Plex" }, { "value": "jellyfin", "label": "Jellyfin" }, { "value": "emby", "label": "Emby" }]
+        },
+        {
+            "key":      "MEDIA_SERVER_KEY",
+            "type":     "password",
+            "label":    "Media server's key",
+            "help":     "Jellyfin or Emby: an API key - made on its dashboard (Dashboard -> API Keys -> +). Plex: its token - left empty, it's read from Plex on this NAS (its Preferences.xml); for another Plex, see Plex's support article \"Finding an authentication token\".",
+            "required": false
+        },
+        {
+            "key":      "MEDIA_SERVER_URL",
+            "type":     "string",
+            "label":    "Media server's address",
+            "help":     "Empty: on this NAS, at its usual port (Plex http://host.docker.internal:32400, Jellyfin and Emby http://host.docker.internal:8096 - host.docker.internal being the NAS, as the apps see it). Elsewhere: e.g. http://192.168.1.20:8096.",
+            "required": false,
+            "pattern":  "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$",
+            "advanced": true
+        },
+        {
+            "key":      "NTFY_TOPIC",
+            "type":     "string",
+            "label":    "ntfy topic",
+            "help":     "With the ntfy app on this NAS: notifications to this topic - subscribe to it in the ntfy app on your phone. Sonarr, Radarr, Lidarr and Bookshelf: something filed, upgraded or failed, or needing you; Prowlarr: health problems; Seerr: new requests, available, failed, issues. Connected with the ntfy app's own token. Empty: no notifications.",
+            "default":  "arr",
+            "required": false,
+            "pattern":  "^[A-Za-z0-9_-]{1,64}$"
+        },
+        {
+            "key":     "RECYCLARR",
+            "type":    "boolean",
+            "label":   "Quality rules (Recyclarr)",
+            "help":    "Which download is \"best\": the TRaSH Guides' tested profiles for Sonarr and Radarr - preferring good release groups and sources, avoiding poor encodes, fakes and re-encodes - kept up to date daily by Recyclarr. Seerr uses them for requests; series and films already added keep their profile (change it in Sonarr or Radarr). About 50MB of memory.",
+            "default": true,
+            "values":  ["on", "off"]
+        },
+        {
+            "key":     "QUALITY",
+            "type":    "choice",
+            "label":   "Quality for requests",
+            "help":    "With the quality rules, both are made in Sonarr and Radarr: 1080p (WEB-1080p, HD Bluray + WEB) and 4K (WEB-2160p, UHD Bluray + WEB: 4K only, several times the disk space). This is the one Seerr's requests use - either can be picked for each series or film in Sonarr or Radarr.",
+            "default": "1080p",
+            "choices": [{ "value": "1080p", "label": "1080p (HD)" }, { "value": "2160p", "label": "4K (2160p)" }]
+        },
+        {
+            "key":     "ADMIN_USER",
+            "type":    "string",
+            "label":   "User name",
+            "help":    "For every app's web interface (qBittorrent, Prowlarr, Sonarr, Radarr, Bazarr...). Seerr has its own users: those of your Jellyfin or Plex.",
+            "default": "admin",
+            "pattern": "^[A-Za-z0-9._-]{1,32}$"
+        },
+        {
+            "key":        "ADMIN_PASSWORD",
+            "type":       "password",
+            "label":      "Password",
+            "help":       "For every app's web interface, with the user name above. Changing it here changes it in every app.",
+            "min_length": 8
+        },
+        {
+            "key":     "LIDARR",
+            "type":    "boolean",
+            "label":   "Music (Lidarr)",
+            "help":    "Albums by the artists you follow, filed into media/music (for Navidrome, Jellyfin or Plex). About 250MB of memory.",
+            "default": false,
+            "values":  ["on", "off"]
+        },
+        {
+            "key":     "BOOKS",
+            "type":    "boolean",
+            "label":   "Books (Bookshelf)",
+            "help":    "E-books and audiobooks by the authors you follow, filed into media/books (for Calibre-Web or Audiobookshelf). Bookshelf continues Readarr, with Hardcover's book data. About 250MB of memory.",
+            "default": false,
+            "values":  ["on", "off"]
+        },
+        {
+            "key":     "SABNZBD",
+            "type":    "boolean",
+            "label":   "Usenet downloads (SABnzbd)",
+            "help":    "Downloads from Usenet as well as torrents - it needs a Usenet provider's account (added in SABnzbd afterwards). About 150MB of memory.",
+            "default": false,
+            "values":  ["on", "off"]
+        },
+        {
+            "key":     "FLARESOLVERR",
+            "type":    "boolean",
+            "label":   "FlareSolverr",
+            "help":    "Gets Prowlarr past Cloudflare's \"checking your browser\" page, which some indexers have: tag those indexers flaresolverr in Prowlarr. It runs a browser: about 500MB of memory.",
+            "default": false,
+            "values":  ["on", "off"]
+        },
+        {
+            "key":     "SUBTITLE_LANGUAGE",
+            "type":    "choice",
+            "label":   "Subtitle language",
+            "help":    "What Bazarr looks for. More languages, and subtitle sources with accounts, can be added in Bazarr.",
+            "default": "en",
+            "choices": [
+                { "value": "en", "label": "English" }, { "value": "fr", "label": "French" }, { "value": "de", "label": "German" },
+                { "value": "es", "label": "Spanish" }, { "value": "it", "label": "Italian" }, { "value": "nl", "label": "Dutch" },
+                { "value": "pt", "label": "Portuguese" }, { "value": "sv", "label": "Swedish" }, { "value": "da", "label": "Danish" },
+                { "value": "fi", "label": "Finnish" }, { "value": "pl", "label": "Polish" }
+            ],
+            "install_only": true
+        },
+        {
+            "key":      "TORRENT_PORT",
+            "type":     "port",
+            "label":    "Torrent port",
+            "help":     "qBittorrent's incoming connections. Forwarding it on your router (TCP and UDP) helps downloads, but isn't needed.",
+            "default":  6881,
+            "min":      1024,
+            "max":      65535,
+            "advanced": true
+        },
+        {
+            "key":      "TZ",
+            "type":     "timezone",
+            "label":    "Time zone",
+            "default":  "{nas:timezone}",
+            "advanced": true
+        },
+        { "key": "PROWLARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+        { "key": "SONARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+        { "key": "RADARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+        { "key": "LIDARR_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+        { "key": "BOOKSHELF_API_KEY", "type": "secret", "generate": { "length": 32, "charset": "hex" } },
+        { "key": "CONFIG_ROOT", "type": "hidden", "default": "{data}" },
+        { "key": "COMPOSE_PROFILES", "type": "hidden", "default": "on" },
+        { "key": "VOLUME", "type": "hidden", "default": "{volume}" },
+        { "key": "PUID", "type": "hidden", "default": "84" },
+        { "key": "PGID", "type": "hidden", "default": "1000" }
+    ],
+    "hooks": {
+        "pre_install":   "hooks/pre_install.sh",
+        "post_install":  "hooks/wire.sh",
+        "post_update":   "hooks/wire.sh",
+        "post_change":   "hooks/wire.sh",
+        "pre_uninstall": "hooks/pre_uninstall.sh"
+    },
+    "uninstall": { "keep": ["DATA_ROOT"] }
 }

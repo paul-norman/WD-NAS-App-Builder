@@ -6,8 +6,8 @@ FROM alpine:3.22 AS ffmpeg
 RUN apk add --no-cache build-base libogg-static libvorbis-dev libvorbis-static libwebp-dev libwebp-static libxml2-dev libxml2-static linux-headers nasm \
 	openssl-dev openssl-libs-static pkgconf soxr-dev soxr-static wget xz xz-static zlib-dev zlib-static
 WORKDIR /build
-# (ffmpeg's GPG signature was checked against its release key FCF986EA15E6E293A5644F10B4322F04D67658D8; Opus's checksum
-# is Xiph's, LAME's matches SourceForge's SHA1 e3630adf399d8917d4da19b96937b7f9b12774ea)
+# Ffmpeg's GPG signature was checked against its release key FCF986EA15E6E293A5644F10B4322F04D67658D8; Opus's checksum
+# is Xiph's, LAME's matches SourceForge's SHA1 e3630adf399d8917d4da19b96937b7f9b12774ea
 RUN wget -q https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz && \
 	echo "6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1  opus-1.6.1.tar.gz" | sha256sum -c - && \
 	tar -xzf opus-1.6.1.tar.gz && cd opus-1.6.1 && \

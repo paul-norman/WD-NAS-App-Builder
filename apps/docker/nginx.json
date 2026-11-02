@@ -1,5 +1,5 @@
 {
-	"name": "portainer",
-	"label": "Portainer (Docker)",
-	"target": "http://127.0.0.1:9000"
+    "name":   "portainer",
+    "label":  "Portainer (Docker)",
+    "target": "http://127.0.0.1:9000"
 }

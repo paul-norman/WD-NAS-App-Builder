@@ -7,29 +7,30 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=2.32.0
-NTFY_SHA256=681819773a69079c0efdd64c096cc2149d9290243feb3e31dd3ef04a2c85f1ed
+VERSION=2.37.0
+NTFY_SHA256=0021a911f71ac20a757675b7160cd1fad3b615b0dce1ac8d8c70c8711277051f
 
 ARCH=$(uname -m)
-if [ ${ARCH} = "x86_64" ]; then
-    ARCH="amd64"
+
+if [ ${ARCH} = 'x86_64' ]; then
+    ARCH='amd64'
 else
-	ARCH="armhf"
+    ARCH='armhf'
 fi
 
 BUILD_PATH=/build
 OUTPUT_PATH=/data/packages/static/ntfy/${VERSION}/${ARCH}
 
 function build_ntfy() {
-	cd ${BUILD_PATH}
-	wget -q "https://github.com/binwiederhier/ntfy/releases/download/v${VERSION}/ntfy_${VERSION}_linux_amd64.tar.gz" -O ntfy.tar.gz
-	echo "${NTFY_SHA256}  ntfy.tar.gz" | sha256sum -c -
-	tar -xzf ntfy.tar.gz
+    cd ${BUILD_PATH}
+    wget -q "https://github.com/binwiederhier/ntfy/releases/download/v${VERSION}/ntfy_${VERSION}_linux_amd64.tar.gz" -O ntfy.tar.gz
+    echo "${NTFY_SHA256}  ntfy.tar.gz" | sha256sum -c -
+    tar -xzf ntfy.tar.gz
 }
 
 function build_runas() {
-	cd ${BUILD_PATH}
-	cat > ntfy_runas.c <<'C'
+    cd ${BUILD_PATH}
+    cat > ntfy_runas.c <<'C'
 #include <grp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,34 +53,34 @@ int main(int argc, char **argv) {
 	return 127;
 }
 C
-	gcc -O2 -static -o ntfy_runas ntfy_runas.c
-	strip ntfy_runas
+    gcc -O2 -static -o ntfy_runas ntfy_runas.c
+    strip ntfy_runas
 }
 
 function run() {
-	# Clean start
-	if [ -d ${BUILD_PATH} ]; then
-		rm -rf ${BUILD_PATH}
-	fi
-	mkdir -p ${BUILD_PATH}
+    # Clean start
+    if [ -d ${BUILD_PATH} ]; then
+        rm -rf ${BUILD_PATH}
+    fi
+    mkdir -p ${BUILD_PATH}
 
-	build_ntfy
-	build_runas
+    build_ntfy
+    build_runas
 
-	rm -rf ${OUTPUT_PATH}
-	mkdir -p ${OUTPUT_PATH}
-	cp ${BUILD_PATH}/ntfy_${VERSION}_linux_amd64/ntfy ${BUILD_PATH}/ntfy_runas ${OUTPUT_PATH}/
-	${OUTPUT_PATH}/ntfy --help > /dev/null
-	du -sh ${OUTPUT_PATH}
+    rm -rf ${OUTPUT_PATH}
+    mkdir -p ${OUTPUT_PATH}
+    cp ${BUILD_PATH}/ntfy_${VERSION}_linux_amd64/ntfy ${BUILD_PATH}/ntfy_runas ${OUTPUT_PATH}/
+    ${OUTPUT_PATH}/ntfy --help > /dev/null
+    du -sh ${OUTPUT_PATH}
 
-	# Create a latest release file for ease of use in packages
-	LATEST_PATH="$(dirname ${OUTPUT_PATH})"
-	LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
-	echo -e "\nCreating a latest release file: ${LATEST_PATH}"
-	rm -f ${LATEST_PATH}
-	printf "%s" "${VERSION}" > ${LATEST_PATH}
+    # Create a latest release file for ease of use in packages
+    LATEST_PATH="$(dirname ${OUTPUT_PATH})"
+    LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
+    echo -e "\nCreating a latest release file: ${LATEST_PATH}"
+    rm -f ${LATEST_PATH}
+    printf '%s' "${VERSION}" > ${LATEST_PATH}
 
-	chown -R 1000:1000 /data/packages;
+    chown -R 1000:1000 /data/packages
 }
 
 run

@@ -9,7 +9,7 @@ const done = (text) => { console.log(text); socket.close(); process.exit(0); };
 setTimeout(() => done("timed out"), 60000);
 
 socket.on("connect_error", (error) => done("no connection: " + error.message));
-// (once it has said what it needs - "setup" or "loginRequired": its handlers aren't all there as soon as it connects)
+// Once it has said what it needs - "setup" or "loginRequired": its handlers aren't all there as soon as it connects
 let started = false;
 const start = () => {
 	if (started) {

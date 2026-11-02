@@ -1,244 +1,244 @@
 {
-	"title": "NAS logs",
-	"uid": "nas-logs",
-	"tags": [
-		"nas",
-		"logs"
-	],
-	"editable": false,
-	"schemaVersion": 39,
-	"version": 1,
-	"time": {
-		"from": "now-6h",
-		"to": "now"
-	},
-	"refresh": "1m",
-	"timezone": "browser",
-	"description": "The NAS's own logs, the apps' logs and Docker containers' output, collected by the logs app (Loki + Vector)",
-	"templating": {
-		"list": [
-			{
-				"name": "datasource",
-				"label": "Data source",
-				"type": "datasource",
-				"query": "loki",
-				"current": {},
-				"hide": 0
-			},
-			{
-				"name": "host",
-				"label": "NAS",
-				"type": "query",
-				"datasource": {
-					"type": "loki",
-					"uid": "${datasource}"
-				},
-				"query": "label_values(host)",
-				"definition": "label_values(host)",
-				"refresh": 2,
-				"current": {},
-				"hide": 0,
-				"sort": 1
-			},
-			{
-				"name": "source",
-				"label": "Source",
-				"type": "query",
-				"datasource": {
-					"type": "loki",
-					"uid": "${datasource}"
-				},
-				"query": "label_values({host=\"$host\"}, source)",
-				"definition": "label_values({host=\"$host\"}, source)",
-				"refresh": 2,
-				"multi": true,
-				"includeAll": true,
-				"allValue": ".+",
-				"current": {
-					"text": "All",
-					"value": "$__all"
-				},
-				"hide": 0,
-				"sort": 1
-			},
-			{
-				"name": "app",
-				"label": "App / log",
-				"type": "query",
-				"datasource": {
-					"type": "loki",
-					"uid": "${datasource}"
-				},
-				"query": "label_values({host=\"$host\", source=~\"$source\"}, app)",
-				"definition": "label_values({host=\"$host\", source=~\"$source\"}, app)",
-				"refresh": 2,
-				"multi": true,
-				"includeAll": true,
-				"allValue": ".+",
-				"current": {
-					"text": "All",
-					"value": "$__all"
-				},
-				"hide": 0,
-				"sort": 1
-			},
-			{
-				"name": "search",
-				"label": "Search",
-				"type": "textbox",
-				"query": "",
-				"current": {
-					"text": "",
-					"value": ""
-				},
-				"hide": 0
-			}
-		]
-	},
-	"panels": [
-		{
-			"type": "timeseries",
-			"title": "Log lines",
-			"id": 1,
-			"datasource": {
-				"type": "loki",
-				"uid": "${datasource}"
-			},
-			"description": "Lines logged, by app (matching the search)",
-			"gridPos": {
-				"x": 0,
-				"y": 0,
-				"w": 12,
-				"h": 7
-			},
-			"targets": [
-				{
-					"refId": "A",
-					"datasource": {
-						"type": "loki",
-						"uid": "${datasource}"
-					},
-					"expr": "sum by (app) (count_over_time({host=\"$host\", source=~\"$source\", app=~\"$app\"} |~ \"(?i)$search\" [$__auto]))",
-					"legendFormat": "{{app}}",
-					"queryType": "range"
-				}
-			],
-			"options": {
-				"legend": {
-					"displayMode": "list",
-					"placement": "bottom",
-					"showLegend": true
-				},
-				"tooltip": {
-					"mode": "multi",
-					"sort": "desc"
-				}
-			},
-			"fieldConfig": {
-				"defaults": {
-					"custom": {
-						"drawStyle": "bars",
-						"fillOpacity": 70,
-						"lineWidth": 1,
-						"stacking": {
-							"mode": "normal"
-						}
-					},
-					"unit": "short",
-					"min": 0
-				},
-				"overrides": []
-			}
-		},
-		{
-			"type": "timeseries",
-			"title": "Errors and warnings",
-			"id": 2,
-			"datasource": {
-				"type": "loki",
-				"uid": "${datasource}"
-			},
-			"description": "Lines mentioning an error, failure, warning, denial or panic",
-			"gridPos": {
-				"x": 12,
-				"y": 0,
-				"w": 12,
-				"h": 7
-			},
-			"targets": [
-				{
-					"refId": "A",
-					"datasource": {
-						"type": "loki",
-						"uid": "${datasource}"
-					},
-					"expr": "sum by (app) (count_over_time({host=\"$host\", source=~\"$source\", app=~\"$app\"} |~ \"(?i)(error|fail|warn|denied|critical|panic)\" [$__auto]))",
-					"legendFormat": "{{app}}",
-					"queryType": "range"
-				}
-			],
-			"options": {
-				"legend": {
-					"displayMode": "list",
-					"placement": "bottom",
-					"showLegend": true
-				},
-				"tooltip": {
-					"mode": "multi",
-					"sort": "desc"
-				}
-			},
-			"fieldConfig": {
-				"defaults": {
-					"custom": {
-						"drawStyle": "bars",
-						"fillOpacity": 70,
-						"lineWidth": 1,
-						"stacking": {
-							"mode": "normal"
-						}
-					},
-					"unit": "short",
-					"min": 0
-				},
-				"overrides": []
-			}
-		},
-		{
-			"type": "logs",
-			"title": "Logs",
-			"id": 3,
-			"datasource": {
-				"type": "loki",
-				"uid": "${datasource}"
-			},
-			"gridPos": {
-				"x": 0,
-				"y": 7,
-				"w": 24,
-				"h": 18
-			},
-			"targets": [
-				{
-					"refId": "A",
-					"datasource": {
-						"type": "loki",
-						"uid": "${datasource}"
-					},
-					"expr": "{host=\"$host\", source=~\"$source\", app=~\"$app\"} |~ \"(?i)$search\"",
-					"queryType": "range"
-				}
-			],
-			"options": {
-				"showTime": true,
-				"showLabels": false,
-				"showCommonLabels": false,
-				"wrapLogMessage": true,
-				"prettifyLogMessage": false,
-				"enableLogDetails": true,
-				"dedupStrategy": "none",
-				"sortOrder": "Descending"
-			}
-		}
-	]
+    "title": "NAS logs",
+    "uid": "nas-logs",
+    "tags": [
+        "nas",
+        "logs"
+    ],
+    "editable": false,
+    "schemaVersion": 39,
+    "version": 1,
+    "time": {
+        "from": "now-6h",
+        "to": "now"
+    },
+    "refresh": "1m",
+    "timezone": "browser",
+    "description": "The NAS's own logs, the apps' logs and Docker containers' output, collected by the logs app (Loki + Vector)",
+    "templating": {
+        "list": [
+            {
+                "name": "datasource",
+                "label": "Data source",
+                "type": "datasource",
+                "query": "loki",
+                "current": {},
+                "hide": 0
+            },
+            {
+                "name": "host",
+                "label": "NAS",
+                "type": "query",
+                "datasource": {
+                    "type": "loki",
+                    "uid": "${datasource}"
+                },
+                "query": "label_values(host)",
+                "definition": "label_values(host)",
+                "refresh": 2,
+                "current": {},
+                "hide": 0,
+                "sort": 1
+            },
+            {
+                "name": "source",
+                "label": "Source",
+                "type": "query",
+                "datasource": {
+                    "type": "loki",
+                    "uid": "${datasource}"
+                },
+                "query": "label_values({host=\"$host\"}, source)",
+                "definition": "label_values({host=\"$host\"}, source)",
+                "refresh": 2,
+                "multi": true,
+                "includeAll": true,
+                "allValue": ".+",
+                "current": {
+                    "text": "All",
+                    "value": "$__all"
+                },
+                "hide": 0,
+                "sort": 1
+            },
+            {
+                "name": "app",
+                "label": "App / log",
+                "type": "query",
+                "datasource": {
+                    "type": "loki",
+                    "uid": "${datasource}"
+                },
+                "query": "label_values({host=\"$host\", source=~\"$source\"}, app)",
+                "definition": "label_values({host=\"$host\", source=~\"$source\"}, app)",
+                "refresh": 2,
+                "multi": true,
+                "includeAll": true,
+                "allValue": ".+",
+                "current": {
+                    "text": "All",
+                    "value": "$__all"
+                },
+                "hide": 0,
+                "sort": 1
+            },
+            {
+                "name": "search",
+                "label": "Search",
+                "type": "textbox",
+                "query": "",
+                "current": {
+                    "text": "",
+                    "value": ""
+                },
+                "hide": 0
+            }
+        ]
+    },
+    "panels": [
+        {
+            "type": "timeseries",
+            "title": "Log lines",
+            "id": 1,
+            "datasource": {
+                "type": "loki",
+                "uid": "${datasource}"
+            },
+            "description": "Lines logged, by app (matching the search)",
+            "gridPos": {
+                "x": 0,
+                "y": 0,
+                "w": 12,
+                "h": 7
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": {
+                        "type": "loki",
+                        "uid": "${datasource}"
+                    },
+                    "expr": "sum by (app) (count_over_time({host=\"$host\", source=~\"$source\", app=~\"$app\"} |~ \"(?i)$search\" [$__auto]))",
+                    "legendFormat": "{{app}}",
+                    "queryType": "range"
+                }
+            ],
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "bars",
+                        "fillOpacity": 70,
+                        "lineWidth": 1,
+                        "stacking": {
+                            "mode": "normal"
+                        }
+                    },
+                    "unit": "short",
+                    "min": 0
+                },
+                "overrides": []
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Errors and warnings",
+            "id": 2,
+            "datasource": {
+                "type": "loki",
+                "uid": "${datasource}"
+            },
+            "description": "Lines mentioning an error, failure, warning, denial or panic",
+            "gridPos": {
+                "x": 12,
+                "y": 0,
+                "w": 12,
+                "h": 7
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": {
+                        "type": "loki",
+                        "uid": "${datasource}"
+                    },
+                    "expr": "sum by (app) (count_over_time({host=\"$host\", source=~\"$source\", app=~\"$app\"} |~ \"(?i)(error|fail|warn|denied|critical|panic)\" [$__auto]))",
+                    "legendFormat": "{{app}}",
+                    "queryType": "range"
+                }
+            ],
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "bars",
+                        "fillOpacity": 70,
+                        "lineWidth": 1,
+                        "stacking": {
+                            "mode": "normal"
+                        }
+                    },
+                    "unit": "short",
+                    "min": 0
+                },
+                "overrides": []
+            }
+        },
+        {
+            "type": "logs",
+            "title": "Logs",
+            "id": 3,
+            "datasource": {
+                "type": "loki",
+                "uid": "${datasource}"
+            },
+            "gridPos": {
+                "x": 0,
+                "y": 7,
+                "w": 24,
+                "h": 18
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": {
+                        "type": "loki",
+                        "uid": "${datasource}"
+                    },
+                    "expr": "{host=\"$host\", source=~\"$source\", app=~\"$app\"} |~ \"(?i)$search\"",
+                    "queryType": "range"
+                }
+            ],
+            "options": {
+                "showTime": true,
+                "showLabels": false,
+                "showCommonLabels": false,
+                "wrapLogMessage": true,
+                "prettifyLogMessage": false,
+                "enableLogDetails": true,
+                "dedupStrategy": "none",
+                "sortOrder": "Descending"
+            }
+        }
+    ]
 }

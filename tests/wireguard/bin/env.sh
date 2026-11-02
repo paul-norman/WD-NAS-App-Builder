@@ -1,6 +1,6 @@
 #!/bin/sh
-# Shared by the tests on the stand-in NAS: its paths, and the management page's API as the dashboard calls it (an admin's
-# WD session and the page's CSRF token)
+# Shared by the tests on the stand-in NAS: its paths, and the management page's API as the dashboard calls it (an
+# admin's WD session and the page's CSRF token)
 A=/mnt/HD/HD_a2/Nas_Prog/wireguard; D=/mnt/HD/HD_a2/Nas_Prog/_wireguard
 export PATH=/tmp/bb:$PATH
 B=http://127.0.0.1:8080/apps/wireguard; CK='Cookie: PHPSESSID=adminsession123'

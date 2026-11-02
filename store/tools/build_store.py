@@ -1,20 +1,29 @@
-"""Builds store.json (see ../SPEC.md) from the repository: each app's apkg.rc and built packages, each recipe's
-recipe.json and files, and store/metadata.json for what apkg.rc doesn't hold. Validates the result (and every
-recipe.json) against the schemas when the jsonschema package is available.
+"""
+Builds store.json (see ../SPEC.md) from the repository: each app's apkg.rc
+and built packages, each recipe's recipe.json and files, and
+store/metadata.json for what apkg.rc doesn't hold. Validates the result (and
+every recipe.json) against the schemas when the jsonschema package is
+available.
 
-    python3 store/tools/build_store.py --output store.json \
-        --base-url https://raw.githubusercontent.com/<owner>/<repo>/<commit>/ \
-        --package-url 'https://github.com/<owner>/<repo>/releases/download/{id}-v{version}/{file}'
+    python3 store/tools/build_store.py --output store.json \\
+        --base-url "$RAW/<commit>/" \\
+        --package-url "$RELEASES/{id}-v{version}/{file}"
 
-Apps are listed with the packages found in packages/<id>/<version>/ (one .bin per model); apps without any built
-package are skipped, with a warning.
+with RAW=https://raw.githubusercontent.com/<owner>/<repo> and
+RELEASES=https://github.com/<owner>/<repo>/releases/download.
 
-With --external, apps published by others (metadata.json's "external": e.g. Plex Media Server, which Plex builds for WD's
-NAS models) are listed too: their packages stay where their publisher hosts them, and are downloaded once (into
-packages/_external/, checked against the publisher's checksum) for their sizes and SHA256.
+Apps are listed with the packages found in packages/<id>/<version>/ (one .bin
+per model); apps without any built package are skipped, with a warning.
 
-With --sign-key (an Ed25519 private key in PEM, e.g. from `openssl genpkey -algorithm ed25519 -out key.pem`), its public
-key goes in store.json and store.json.sig is written next to it (needs OpenSSL 3 and --output).
+With --external, apps published by others (metadata.json's "external": e.g.
+Plex Media Server, which Plex builds for WD's NAS models) are listed too:
+their packages stay where their publisher hosts them, and are downloaded once
+(into packages/_external/, checked against the publisher's checksum) for
+their sizes and SHA256.
+
+With --sign-key (an Ed25519 private key in PEM, e.g. from `openssl genpkey
+-algorithm ed25519 -out key.pem`), its public key goes in store.json and
+store.json.sig is written next to it (needs OpenSSL 3 and --output).
 """
 
 import argparse
@@ -31,171 +40,364 @@ import urllib.request
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 STORE = REPO / "store"
-# The files of a recipe the Store downloads: recipe.json, and the files it refers to (README.md, setup.sh and
-# example.env are for using a recipe by hand)
+# The files of a recipe the Store downloads: recipe.json, and the files it
+# refers to (README.md, setup.sh and example.env are for using a recipe by
+# hand)
 RECIPE_FILES = ("recipe.json", "icon.svg", "icon.png")
 
 
 def sha256(path):
+    """
+    The SHA256 of a file, read a megabyte at a time.
+
+    :param pathlib.Path path: The file
+
+    :return: Its SHA256, in hex
+    """
     digest = hashlib.sha256()
+
     with open(path, "rb") as file:
         for block in iter(lambda: file.read(1 << 20), b""):
             digest.update(block)
+
     return digest.hexdigest()
 
 
 def read_apkg_rc(path):
-    """apkg.rc's fields (Key: value lines)."""
+    """
+    An apkg.rc file's fields (its "Key: value" lines).
+
+    :param pathlib.Path path: The apkg.rc file
+
+    :return: Its fields, by key
+    """
     fields = {}
+
     for line in path.read_text(encoding="utf-8").splitlines():
         match = re.match(r"^([A-Za-z]+):\s*(.*?)\s*$", line)
+
         if match:
             fields[match.group(1)] = match.group(2)
+
     return fields
 
 
 def app_entry(app_dir, metadata, args):
+    """
+    An app's entry in store.json: from its apkg.rc, its metadata.json details
+    and the packages built for its current version.
+
+    :param pathlib.Path       app_dir:  The app's folder (apps/<app>)
+    :param dict               metadata: Its details in metadata.json
+    :param argparse.Namespace args:     The command line's options
+
+    :return: Its entry, or None if no package is built for its version
+    """
     rc = read_apkg_rc(app_dir / "apkg.rc")
     app_id, version = rc["Package"], rc["Version"]
+    name_start = f"{app_id}_{version}_"
     packages = []
-    for package in sorted((REPO / "packages" / app_id / version).glob(f"{app_id}_{version}_*.bin")):
-        model = package.name[len(f"{app_id}_{version}_"):-len(".bin")]
+
+    for package in sorted(
+        (REPO / "packages" / app_id / version).glob(f"{name_start}*.bin")
+    ):
+        model = package.name[len(name_start):-len(".bin")]
         packages.append({
             "model": model,
-            "url": args.package_url.format(id=app_id, version=version, file=package.name),
+            "url": args.package_url.format(
+                id=app_id, version=version, file=package.name
+            ),
             "size": package.stat().st_size,
             "sha256": sha256(package),
         })
+
     if not packages:
-        print(f"warning: no packages built for {app_id} {version} - skipped", file=sys.stderr)
+        print(
+            f"warning: no packages built for {app_id} {version} - skipped",
+            file=sys.stderr,
+        )
+
         return None
+
     entry = {
         "id": app_id,
         "name": rc.get("AddonShowName") or app_id,
         "version": version,
         "summary": rc.get("Description", "").rstrip("."),
     }
-    # (WD's descriptions start with the app's name, e.g. "Navidrome: stream your music..." - redundant in the Store)
+    # WD's descriptions start with the app's name, e.g. "Navidrome: stream your music..." - redundant in the Store
     prefix = re.match(r"^([^:]{1,40}):\s+(.)", entry["summary"])
-    if prefix and prefix.group(1).lower() in (entry["name"].lower() + " " + app_id.lower()):
-        entry["summary"] = prefix.group(2).upper() + entry["summary"][prefix.end():]
+
+    if prefix and prefix.group(1).lower() in (
+        entry["name"].lower() + " " + app_id.lower()
+    ):
+        entry["summary"] = (
+            prefix.group(2).upper() + entry["summary"][prefix.end():]
+        )
+
     if rc.get("Icon") and (app_dir / "web" / rc["Icon"]).is_file():
         entry["icon"] = f"apps/{app_dir.name}/web/{rc['Icon']}"
+
     if rc.get("Homepage", "").startswith("https://"):
         entry["homepage"] = rc["Homepage"]
+
     if args.sources_url:
-        entry["sources"] = args.sources_url.format(path=f"apps/{app_dir.name}")
+        entry["sources"] = args.sources_url.format(
+            path=f"apps/{app_dir.name}"
+        )
+
     if args.release_url:
-        entry["release_notes"] = args.release_url.format(id=app_id, version=version)
+        entry["release_notes"] = args.release_url.format(
+            id=app_id, version=version
+        )
+
     if rc.get("MinFWVer") or rc.get("MaxFWVer"):
-        entry["firmware"] = {key: rc[field] for key, field in (("min", "MinFWVer"), ("max", "MaxFWVer")) if rc.get(field)}
+        entry["firmware"] = {
+            key: rc[field]
+            for key, field in (("min", "MinFWVer"), ("max", "MaxFWVer"))
+            if rc.get(field)
+        }
+
     entry.update(metadata)
     entry["packages"] = packages
+
     return entry
 
 
-# Publishers' lists of their packages for WD's NAS models: feed name -> function(metadata) -> (version, [(model, url,
-# sha1)])
 def plex_feed(metadata):
-    """Plex's list of its downloads: the "Western Digital (OS 5)" entry has one package per model (its file name ends
-    in -<model>_OS5.bin). Its version has the build's hash after a "-", which the installed app's version hasn't"""
-    with urllib.request.urlopen("https://plex.tv/api/downloads/5.json", timeout=60) as response:
+    """
+    Plex's list of its downloads: the "Western Digital (OS 5)" entry has one
+    package per model (its file name ends in -<model>_OS5.bin). Its version
+    has the build's hash after a "-", which the installed app's version
+    hasn't.
+
+    :param dict metadata: The app's details in metadata.json's "external"
+
+    :return: The version, and a (model, URL, SHA1) tuple for each package
+    """
+    with urllib.request.urlopen(
+        "https://plex.tv/api/downloads/5.json", timeout=60
+    ) as response:
         feed = json.load(response)
+
     os5 = feed["nas"]["Western Digital (OS 5)"]
     packages = []
+
     for release in os5["releases"]:
         model = re.search(r"-([A-Za-z0-9]+)_OS5\.bin$", release["url"])
+
         if model and release["url"].startswith("https://"):
-            packages.append((model.group(1), release["url"], release["checksum"]))
+            packages.append(
+                (model.group(1), release["url"], release["checksum"])
+            )
+
     return os5["version"].split("-")[0], packages
 
 
+# Publishers' lists of their packages for WD's NAS models, by feed name
 FEEDS = {"plex": plex_feed}
 
 
 def external_entry(app_id, metadata):
-    """An app published by someone else, from its publisher's list: its packages are downloaded once (cached in
-    packages/_external/<id>/<version>/), checked against the publisher's SHA1, for their sizes and SHA256"""
+    """
+    An app published by someone else, from its publisher's list: its packages
+    are downloaded once (cached in packages/_external/<id>/<version>/) and
+    checked against the publisher's SHA1, for their sizes and SHA256.
+
+    :param str  app_id:   The app's id
+    :param dict metadata: Its details in metadata.json's "external"
+
+    :return: Its entry in store.json
+    """
     version, found = FEEDS[metadata["feed"]](metadata)
     cache = REPO / "packages" / "_external" / app_id / version
     cache.mkdir(parents=True, exist_ok=True)
     packages = []
+
     for model, url, sha1 in found:
         file = cache / url.rsplit("/", 1)[1]
+
         if not file.is_file():
             print(f"downloading {url}", file=sys.stderr)
-            with urllib.request.urlopen(url, timeout=600) as response, open(str(file) + ".part", "wb") as out:
+
+            with urllib.request.urlopen(url, timeout=600) as response, open(
+                str(file) + ".part", "wb"
+            ) as out:
                 while True:
                     block = response.read(1 << 20)
+
                     if not block:
                         break
+
                     out.write(block)
+
             pathlib.Path(str(file) + ".part").rename(file)
+
         if hashlib.sha1(file.read_bytes()).hexdigest() != sha1:
             file.unlink()
             sys.exit(f"{url} doesn't match its publisher's checksum")
-        packages.append({"model": model, "url": url, "size": file.stat().st_size, "sha256": sha256(file)})
+
+        packages.append({
+            "model": model,
+            "url": url,
+            "size": file.stat().st_size,
+            "sha256": sha256(file),
+        })
+
     entry = {"id": app_id, "version": version}
-    entry.update({key: value for key, value in metadata.items() if key != "feed" and not key.startswith("_")})
+    entry.update({
+        key: value
+        for key, value in metadata.items()
+        if key != "feed" and not key.startswith("_")
+    })
     entry["packages"] = packages
+
     return entry
 
 
 def recipe_file_names(recipe_dir, recipe):
-    """The files the Store downloads for a recipe: recipe.json, its icon, compose file and description, and everything in
-    hooks/ - the hooks, and the files they use (e.g. a script a hook runs). Not its README, setup.sh or example.env (for
-    installing by hand)"""
-    names = set(RECIPE_FILES) | {recipe["compose"]} | set(recipe.get("hooks", {}).values())
+    """
+    The files the Store downloads for a recipe: recipe.json, its icon,
+    compose file and description, and everything in hooks/ - the hooks, and
+    the files they use (e.g. a script a hook runs). Not its README, setup.sh
+    or example.env (for installing by hand).
+
+    :param pathlib.Path recipe_dir: The recipe's folder
+    :param dict         recipe:     Its recipe.json
+
+    :return: The files' names, relative to its folder
+    """
+    names = (
+        set(RECIPE_FILES)
+        | {recipe["compose"]}
+        | set(recipe.get("hooks", {}).values())
+    )
+
     if recipe.get("description"):
         names.add(recipe["description"])
+
     hooks = recipe_dir / "hooks"
+
     if hooks.is_dir():
-        names |= {f"hooks/{p.name}" for p in hooks.iterdir() if p.is_file() and not p.name.startswith(".") and p.suffix != ".pyc"}
+        names |= {
+            f"hooks/{p.name}"
+            for p in hooks.iterdir()
+            if p.is_file()
+            and not p.name.startswith(".")
+            and p.suffix != ".pyc"
+        }
+
     return names
 
 
 def recipe_entry(recipe_dir, metadata, validate):
-    recipe = json.loads((recipe_dir / "recipe.json").read_text(encoding="utf-8"))
+    """
+    A recipe's entry in store.json: from its recipe.json, its metadata.json
+    details and the checksums of its files.
+
+    :param pathlib.Path recipe_dir: The recipe's folder
+    :param dict         metadata:   Its details in metadata.json
+    :param callable     validate:   Validates its recipe.json (or None)
+
+    :return: Its entry
+    """
+    recipe = json.loads(
+        (recipe_dir / "recipe.json").read_text(encoding="utf-8")
+    )
+
     if validate:
         validate(recipe, "recipe.schema.json", recipe_dir / "recipe.json")
+
     names = recipe_file_names(recipe_dir, recipe)
-    files = {name: sha256(recipe_dir / name) for name in sorted(names) if (recipe_dir / name).is_file()}
+    files = {
+        name: sha256(recipe_dir / name)
+        for name in sorted(names)
+        if (recipe_dir / name).is_file()
+    }
     missing = [name for name in names - set(RECIPE_FILES) if name not in files]
+
     if missing:
-        raise SystemExit(f"{recipe_dir.name}: files missing: {', '.join(missing)}")
-    entry = {key: recipe[key] for key in ("id", "name", "version", "summary") if key in recipe}
+        raise SystemExit(
+            f"{recipe_dir.name}: files missing: {', '.join(missing)}"
+        )
+
+    entry = {
+        key: recipe[key]
+        for key in ("id", "name", "version", "summary")
+        if key in recipe
+    }
+
     for icon in ("icon.svg", "icon.png"):
         if icon in files:
             entry["icon"] = f"recipes/{recipe_dir.name}/{icon}"
             break
+
     entry.update(metadata)
+
     if recipe.get("requires"):
         entry["requires"] = recipe["requires"]
+
     entry["path"] = f"recipes/{recipe_dir.name}/"
     entry["files"] = files
+
     return entry
 
 
 def make_validator():
-    """A function validating a document against one of the schemas, or None without the jsonschema package."""
+    """
+    A function validating a document against one of the schemas.
+
+    :return: The function, or None without the jsonschema package
+    """
     try:
         import jsonschema
         import referencing
     except ImportError:
-        print("warning: jsonschema isn't installed - nothing validated", file=sys.stderr)
+        print(
+            "warning: jsonschema isn't installed - nothing validated",
+            file=sys.stderr,
+        )
+
         return None
-    schemas = {name: json.loads((STORE / "schema" / name).read_text(encoding="utf-8"))
-               for name in ("store.schema.json", "recipe.schema.json")}
+
+    schemas = {
+        name: json.loads((STORE / "schema" / name).read_text(encoding="utf-8"))
+        for name in ("store.schema.json", "recipe.schema.json")
+    }
     registry = referencing.Registry().with_resources(
-        [(name, referencing.Resource.from_contents(schema)) for name, schema in schemas.items()]
-        + [(schema["$id"], referencing.Resource.from_contents(schema)) for schema in schemas.values()])
+        [
+            (name, referencing.Resource.from_contents(schema))
+            for name, schema in schemas.items()
+        ]
+        + [
+            (schema["$id"], referencing.Resource.from_contents(schema))
+            for schema in schemas.values()
+        ]
+    )
 
     def validate(document, schema_name, label):
-        validator = jsonschema.Draft202012Validator(schemas[schema_name], registry=registry,
-                                                    format_checker=jsonschema.FormatChecker())
-        errors = sorted(validator.iter_errors(document), key=lambda error: list(error.path))
+        """
+        Validates a document, printing each problem: stops if there are any.
+
+        :param dict document:    The document
+        :param str  schema_name: The schema's file name
+        :param str  label:       What the document is, for the messages
+
+        :raises SystemExit: When the document isn't valid
+        """
+        validator = jsonschema.Draft202012Validator(
+            schemas[schema_name],
+            registry=registry,
+            format_checker=jsonschema.FormatChecker(),
+        )
+        errors = sorted(
+            validator.iter_errors(document), key=lambda error: list(error.path)
+        )
+
         for error in errors:
-            print(f"{label}: {'/'.join(map(str, error.path)) or '(top)'}: {error.message}", file=sys.stderr)
+            path = "/".join(map(str, error.path)) or "(top)"
+            print(f"{label}: {path}: {error.message}", file=sys.stderr)
+
         if errors:
             raise SystemExit(f"{label} isn't valid")
 
@@ -203,58 +405,138 @@ def make_validator():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Builds store.json from the repository")
-    parser.add_argument("--output", default="-", help="where to write it (default: standard output)")
-    parser.add_argument("--base-url", help="base for relative URLs (an immutable raw URL, ending in /)")
-    parser.add_argument("--package-url", required=True, help="URL of a package: {id}, {version} and {file} are replaced")
-    parser.add_argument("--sources-url", help="URL of an app's sources: {path} is replaced (e.g. .../tree/main/{path})")
-    parser.add_argument("--release-url", help="URL of an app's release notes: {id} and {version} are replaced")
-    parser.add_argument("--sign-key", help="Ed25519 private key (PEM) to sign store.json with (writes store.json.sig)")
-    parser.add_argument("--external", action="store_true", help="also list the apps published by others (downloads them once)")
+    """
+    Builds store.json from the command line's options (see the module's
+    description), and signs it with --sign-key.
+    """
+    parser = argparse.ArgumentParser(
+        description="Builds store.json from the repository"
+    )
+    parser.add_argument(
+        "--output",
+        default="-",
+        help="where to write it (default: standard output)",
+    )
+    parser.add_argument(
+        "--base-url",
+        help="base for relative URLs (an immutable raw URL, ending in /)",
+    )
+    parser.add_argument(
+        "--package-url",
+        required=True,
+        help="URL of a package: {id}, {version} and {file} are replaced",
+    )
+    parser.add_argument(
+        "--sources-url",
+        help="URL of an app's sources: {path} is replaced"
+        " (e.g. .../tree/main/{path})",
+    )
+    parser.add_argument(
+        "--release-url",
+        help="URL of an app's release notes: {id} and {version} are replaced",
+    )
+    parser.add_argument(
+        "--sign-key",
+        help="Ed25519 private key (PEM) to sign store.json with"
+        " (writes store.json.sig)",
+    )
+    parser.add_argument(
+        "--external",
+        action="store_true",
+        help="also list the apps published by others (downloads them once)",
+    )
     args = parser.parse_args()
+
     if args.sign_key and args.output == "-":
         parser.error("--sign-key needs --output")
 
     validate = make_validator()
-    metadata = json.loads((STORE / "metadata.json").read_text(encoding="utf-8"))
-    # (the repository's own details - what a fork changes - are in metadata.json's "repository")
+    metadata = json.loads(
+        (STORE / "metadata.json").read_text(encoding="utf-8")
+    )
+    # The repository's own details - what a fork changes - are in metadata.json's "repository"
     store = {"store_version": 1}
-    store.update({key: value for key, value in metadata["repository"].items() if key in ("name", "summary", "homepage", "maintainer")})
-    store["updated"] = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    store.update({
+        key: value
+        for key, value in metadata["repository"].items()
+        if key in ("name", "summary", "homepage", "maintainer")
+    })
+    now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+    store["updated"] = now.isoformat().replace("+00:00", "Z")
+
     if args.base_url:
         store["base_url"] = args.base_url
+
     if args.sign_key:
-        der = subprocess.run(["openssl", "pkey", "-in", args.sign_key, "-pubout", "-outform", "DER"],
-                             check=True, capture_output=True).stdout
+        der = subprocess.run(
+            [
+                "openssl", "pkey", "-in", args.sign_key, "-pubout",
+                "-outform", "DER",
+            ],
+            check=True,
+            capture_output=True,
+        ).stdout
         store["public_key"] = "ed25519:" + base64.b64encode(der).decode()
+
     store["apps"] = []
-    for app_dir in sorted((REPO / "apps").iterdir(), key=lambda path: path.name.lower()):
+
+    for app_dir in sorted(
+        (REPO / "apps").iterdir(), key=lambda path: path.name.lower()
+    ):
         if (app_dir / "apkg.rc").is_file() and app_dir.name != "template":
-            entry = app_entry(app_dir, metadata["apps"].get(app_dir.name, {}), args)
+            entry = app_entry(
+                app_dir, metadata["apps"].get(app_dir.name, {}), args
+            )
+
             if entry:
                 store["apps"].append(entry)
+
     if args.external:
         for app_id, app_metadata in metadata.get("external", {}).items():
             store["apps"].append(external_entry(app_id, app_metadata))
+
         store["apps"].sort(key=lambda app: app["id"].lower())
-    store["recipes"] = [recipe_entry(path.parent, metadata["recipes"].get(path.parent.name, {}), validate)
-                        for path in sorted((REPO / "recipes").glob("*/recipe.json"))]
+
+    store["recipes"] = [
+        recipe_entry(
+            path.parent,
+            metadata["recipes"].get(path.parent.name, {}),
+            validate,
+        )
+        for path in sorted((REPO / "recipes").glob("*/recipe.json"))
+    ]
+
     if validate:
         validate(store, "store.schema.json", "store.json")
 
-    text = json.dumps(store, indent="\t", ensure_ascii=False) + "\n"
+    text = json.dumps(store, indent=4, ensure_ascii=False) + "\n"
+
     if args.output == "-":
         sys.stdout.write(text)
     else:
         pathlib.Path(args.output).write_text(text, encoding="utf-8")
-        print(f"wrote {args.output}: {len(store['apps'])} apps, {len(store['recipes'])} recipes", file=sys.stderr)
+        apps, recipes = len(store["apps"]), len(store["recipes"])
+        print(
+            f"wrote {args.output}: {apps} apps, {recipes} recipes",
+            file=sys.stderr,
+        )
+
         if args.sign_key:
             # The signature of store.json's exact bytes (SPEC.md section 6)
             with tempfile.TemporaryDirectory() as temp:
                 signature = pathlib.Path(temp) / "sig"
-                subprocess.run(["openssl", "pkeyutl", "-sign", "-inkey", args.sign_key, "-rawin", "-in", args.output,
-                                "-out", str(signature)], check=True)
-                pathlib.Path(args.output + ".sig").write_text(base64.b64encode(signature.read_bytes()).decode() + "\n")
+                subprocess.run(
+                    [
+                        "openssl", "pkeyutl", "-sign", "-inkey",
+                        args.sign_key, "-rawin", "-in", args.output,
+                        "-out", str(signature),
+                    ],
+                    check=True,
+                )
+                pathlib.Path(args.output + ".sig").write_text(
+                    base64.b64encode(signature.read_bytes()).decode() + "\n"
+                )
+
             print(f"wrote {args.output}.sig", file=sys.stderr)
 
 

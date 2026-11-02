@@ -24,7 +24,7 @@ It can also be done over SSH:
    tr -dc A-Za-z0-9 </dev/urandom | head -c 32; echo
    ```
 
-2. Edit the `requirepass` line in the **real** config file, which lives in persistent storage on the install volume, e.g.:
+2. Edit the `requirepass` line in the **real** config file, which lives in persistent storage on the installation volume, e.g.:
 
    ```sh
    vi /mnt/HD/HD_a2/Nas_Prog/_valkey/valkey.conf
@@ -51,7 +51,7 @@ It can also be done over SSH:
 
 4. Update any apps or clients that connect to ValKey with the new password.
 
-If the `requirepass` line is ever deleted, a new random password is added the next time the app initialises *(on reboot or reinstall)*. The config file survives reinstalls, so the password is kept.
+If the `requirepass` line is ever deleted, a new random password is added the next time the app initialises *(on reboot or reinstall)*. The config file survives reinstallations, so the password is kept.
 
 ## Building the ValKey app
 

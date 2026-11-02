@@ -1,6 +1,6 @@
 {
-	"name": "navidrome",
-	"label": "Navidrome",
-	"target": "http://127.0.0.1:4533",
-	"stream": true
+    "name":   "navidrome",
+    "label":  "Navidrome",
+    "target": "http://127.0.0.1:4533",
+    "stream": true
 }

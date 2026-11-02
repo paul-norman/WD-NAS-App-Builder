@@ -14,42 +14,52 @@ RECIPE_PATH="$(dirname "$(readlink -f "$0")")"
 PROJECT=/mnt/HD/HD_a2/Nas_Prog/_arr
 APPS_PATH=/mnt/HD/HD_a2/Nas_Prog
 
-# A setting from .env (without quotes around it)
+# A setting from .env (without quotes around it).
+#
+# $1 name The setting
+#
+# Prints its value
 setting() {
-	sed -n "s/^$1=//p" "${PROJECT}/.env" | tail -n 1 | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\\(.*\\)'$/\\1/"
+    sed -n "s/^$1=//p" "${PROJECT}/.env" | tail -n 1 | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\\(.*\\)'$/\\1/"
 }
 
 random() {
-	tr -dc "$1" < /dev/urandom | head -c "$2"
+    tr -dc "$1" < /dev/urandom | head -c "$2"
 }
 
 if ! docker compose version > /dev/null 2>&1; then
-	echo "Docker (with docker compose) isn't available: install or start the Docker app first"
-	exit 1
+    echo "Docker (with docker compose) isn't available: install or start the Docker app first"
+
+    exit 1
 fi
 
 mkdir -p "${PROJECT}"
 chmod 700 "${PROJECT}"
 cp "${RECIPE_PATH}/compose.yaml" "${PROJECT}/compose.yaml"
 
-new=""
+new=''
+
 if [ ! -f "${PROJECT}/.env" ]; then
-	password="$(random 'A-Za-z0-9' 16)"
-	( umask 077; sed -e "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=${password}/" "${RECIPE_PATH}/example.env" > "${PROJECT}/.env" )
-	for app in PROWLARR SONARR RADARR LIDARR BOOKSHELF; do
-		sed -i "s/^${app}_API_KEY=$/${app}_API_KEY=$(random 'a-f0-9' 32)/" "${PROJECT}/.env"
-	done
-	echo "Created ${PROJECT}/.env - the password for every app is: ${password} (user admin)"
-	new=1
+    password="$(random 'A-Za-z0-9' 16)"
+    ( umask 077; sed -e "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=${password}/" "${RECIPE_PATH}/example.env" > "${PROJECT}/.env" )
+
+    for app in PROWLARR SONARR RADARR LIDARR BOOKSHELF; do
+        sed -i "s/^${app}_API_KEY=$/${app}_API_KEY=$(random 'a-f0-9' 32)/" "${PROJECT}/.env"
+    done
+
+    echo "Created ${PROJECT}/.env - the password for every app is: ${password} (user admin)"
+    new=1
 fi
 
 chmod 600 "${PROJECT}/.env"
 
 data="$(setting DATA_ROOT)"
 share="$(echo "${data}" | cut -d/ -f1-5)"
+
 if [ ! -d "${share}" ]; then
-	echo "The share ${share} doesn't exist: create it in the NAS dashboard (Shares), or set DATA_ROOT in ${PROJECT}/.env to a folder on another share, then run this again"
-	exit 1
+    echo "The share ${share} doesn't exist: create it in the NAS dashboard (Shares), or set DATA_ROOT in ${PROJECT}/.env to a folder on another share, then run this again"
+
+    exit 1
 fi
 mkdir -p "${data}"
 
@@ -57,48 +67,50 @@ cd "${PROJECT}"
 
 # The hooks run with .env's variables in their environment (read as values, never run as shell code)
 with_env() {
-	(
-		while IFS= read -r line; do
-			case "${line}" in
-				[A-Z]*=*) key="${line%%=*}"; export "${key}=$(setting "${key}")" ;;
-			esac
-		done < "${PROJECT}/.env"
-		export STORE_DATA="${PROJECT}"
-		"$@"
-	)
+    (
+        while IFS= read -r line; do
+            case "${line}" in
+                [A-Z]*=*) key="${line%%=*}"; export "${key}=$(setting "${key}")" ;;
+            esac
+        done < "${PROJECT}/.env"
+        export STORE_DATA="${PROJECT}"
+        "$@"
+    )
 }
 
 # Ports free (unless it's this stack that has them - running it again) and Seerr's folder
 if [ -z "$(docker compose ps -q 2>/dev/null)" ]; then
-	with_env sh "${RECIPE_PATH}/hooks/pre_install.sh"
+    with_env sh "${RECIPE_PATH}/hooks/pre_install.sh"
 else
-	with_env sh -c 'mkdir -p "${CONFIG_ROOT}/seerr" "${CONFIG_ROOT}/recyclarr" && chown "${PUID}:${PGID}" "${CONFIG_ROOT}/seerr" "${CONFIG_ROOT}/recyclarr"'
+    with_env sh -c 'mkdir -p "${CONFIG_ROOT}/seerr" "${CONFIG_ROOT}/recyclarr" && chown "${PUID}:${PGID}" "${CONFIG_ROOT}/seerr" "${CONFIG_ROOT}/recyclarr"'
 fi
 
-echo "Starting the Arr stack (the first time, Docker downloads about 3GB of images - this takes a while)"
+echo 'Starting the Arr stack (the first time, Docker downloads about 3GB of images - this takes a while)'
 docker compose pull
 docker compose up -d
-echo "Connecting the apps to each other"
+echo 'Connecting the apps to each other'
 with_env sh "${RECIPE_PATH}/hooks/wire.sh" || true
 
 # Each app's site in the Nginx app, if installed - as the Store has it read from recipe.json's web block (the optional
 # apps' only while they're on)
 if [ -f "${APPS_PATH}/nginx/lib/sites.php" ] && [ -d "${APPS_PATH}/_nginx/sites" ]; then
-	for site in "seerr 5055 Seerr" "radarr 7878 Radarr" "sonarr 8989 Sonarr" "prowlarr 9696 Prowlarr" "bazarr 6767 Bazarr" \
-		"qbittorrent 8090 qBittorrent" "lidarr 8686 Lidarr LIDARR" "bookshelf 8787 Bookshelf BOOKS" "sabnzbd 8085 SABnzbd SABNZBD"; do
-		set -- ${site}
-		if [ -n "$4" ] && [ "$(setting "$4")" != on ]; then
-			php "${APPS_PATH}/nginx/lib/sites.php" remove-app "${APPS_PATH}/_nginx" "$1" > /dev/null 2>&1
-			continue
-		fi
-		php "${APPS_PATH}/nginx/lib/sites.php" add-app "${APPS_PATH}/_nginx" "$1" "http://127.0.0.1:$2" "$3" > /dev/null
-	done
-	sh "${APPS_PATH}/nginx/nginx_ctl.sh" reload > /dev/null 2>&1
-	url="$(php "${APPS_PATH}/nginx/lib/sites.php" url "${APPS_PATH}/_nginx" seerr)" \
-		&& echo "Added the apps' sites to the Nginx app: ${url} (and radarr., sonarr. ...)" \
-		|| echo "Added the apps' sites to the Nginx app (seerr.<domain> and the others, once a domain is set on its page)"
+    for site in 'seerr 5055 Seerr' 'radarr 7878 Radarr' 'sonarr 8989 Sonarr' 'prowlarr 9696 Prowlarr' 'bazarr 6767 Bazarr' \
+        'qbittorrent 8090 qBittorrent' 'lidarr 8686 Lidarr LIDARR' 'bookshelf 8787 Bookshelf BOOKS' 'sabnzbd 8085 SABnzbd SABNZBD'; do
+        set -- ${site}
+
+        if [ -n "$4" ] && [ "$(setting "$4")" != on ]; then
+            php "${APPS_PATH}/nginx/lib/sites.php" remove-app "${APPS_PATH}/_nginx" "$1" > /dev/null 2>&1
+            continue
+        fi
+        php "${APPS_PATH}/nginx/lib/sites.php" add-app "${APPS_PATH}/_nginx" "$1" "http://127.0.0.1:$2" "$3" > /dev/null
+    done
+
+    sh "${APPS_PATH}/nginx/nginx_ctl.sh" reload > /dev/null 2>&1
+    url="$(php "${APPS_PATH}/nginx/lib/sites.php" url "${APPS_PATH}/_nginx" seerr)" \
+        && echo "Added the apps' sites to the Nginx app: ${url} (and radarr., sonarr. ...)" \
+        || echo "Added the apps' sites to the Nginx app (seerr.<domain> and the others, once a domain is set on its page)"
 fi
 
-echo "Done. Next: add indexers in Prowlarr (http://<nas-ip>:9696), then open Seerr (http://<nas-ip>:5055) to choose your media server"
+echo 'Done. Next: add indexers in Prowlarr (http://<nas-ip>:9696), then open Seerr (http://<nas-ip>:5055) to choose your media server'
 [ -n "${new}" ] && echo "Point Jellyfin or Plex at ${data}/media"
 true

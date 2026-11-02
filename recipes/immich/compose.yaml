@@ -45,7 +45,7 @@ services:
 
   immich-machine-learning:
     container_name: immich_machine_learning
-    # (CPU only: WD's NAS has no supported accelerator)
+    # CPU only: WD's NAS has no supported accelerator
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
     volumes:
       - ${MODEL_CACHE_LOCATION}:/cache
@@ -75,7 +75,7 @@ services:
       # The NAS's disks are hard disks
       DB_STORAGE_TYPE: 'HDD'
     volumes:
-      # (on the NAS's own volume - Immich doesn't support its database on a network share)
+      # On the NAS's own volume - Immich doesn't support its database on a network share
       - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
     shm_size: 128mb
     restart: always

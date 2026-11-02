@@ -4,7 +4,7 @@
 
 - It's at `http://<nas-ip>:3001` on the local network, and also served over HTTPS by the [Nginx app](../nginx/README.md), if installed, at `https://uptime-kuma.<its domain>` *(added automatically; the site can be renamed or switched off there)*. The management page can limit it to the Nginx app only.
 - It runs as its own `uptimekuma` user *(created by the app, ID 72)*, not as root.
-- It has its own Node.js *(24.22.0)*: its SQLite module is compiled for one Node.js version, so it doesn't use the Node.js app's, which can be updated separately.
+- It has its own Node.js *(24.22.2)*: its SQLite module is compiled for one Node.js version, so it doesn't use the Node.js app's, which can be updated separately.
 - Its data is kept next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_uptime-kuma`, and survives reinstalls and removal:
   - `data/` - Uptime Kuma's own data: the SQLite database `kuma.db` *(monitors, history, settings)* and uploaded images, readable only by its user
   - `settings` - the management page's settings
