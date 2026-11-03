@@ -54,6 +54,10 @@ if ! docker build --platform linux/amd64 -f docker/build.Dockerfile -t wd_builde
     exit 1
 fi
 
+# Scripts without a .sh (e.g. Jellyfin's bin/ffmpeg wrapper) made executable too: git on a Windows drive doesn't keep the
+# execute bit, so a fresh checkout (CI's) has them as plain files
+find "apps/${APP_NAME}" -type f ! -name '*.*' -exec sh -c 'for f; do [ "$(head -c 2 "$f")" = "#!" ] && chmod +x "$f"; done; true' sh {} +
+
 # Create packages for app (output ownership is handed back even if the build fails)
 docker run --rm ${DOCKER_TTY} --platform linux/amd64 -e MODEL_OVERRIDE -v "$(pwd)":/data wd_builder:latest /bin/bash -c "\
 	cd /data;\

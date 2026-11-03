@@ -10,7 +10,8 @@ cat /tcerts/ca.pem >> /etc/ssl/certs/ca-certificates.crt
 mkdir -p "$P" "$V/Public" /usr/local/modules/files /var/www/xml /usr/local/apps_upload /etc/php /tmp/sess /var/www/apps/store /usr/libexec/docker/cli-plugins
 echo 'MyCloudPR4100' > /usr/local/modules/files/model
 echo 'date.timezone = Europe/London' > /etc/php/php.ini
-cp /tbin/upload_apkg /tbin/del_apkg /usr/sbin/; sh /tbin/apkg_xml.sh
+# (Made executable here: git on a Windows drive doesn't keep the execute bit)
+cp /tbin/upload_apkg /tbin/del_apkg /usr/sbin/; chmod 755 /usr/sbin/upload_apkg /usr/sbin/del_apkg; sh /tbin/apkg_xml.sh
 # Docker's CLI and compose (from the Docker app's package), talking to the test machine's Docker
 mkdir -p /tmp/dk && tar -xzf $PROJ/packages/docker/$(latest docker)/docker_$(latest docker)_amd64.tar.gz -C /tmp/dk ./binaries/docker ./binaries/docker-compose
 cp /tmp/dk/binaries/docker /usr/local/bin/; cp /tmp/dk/binaries/docker-compose /usr/libexec/docker/cli-plugins/

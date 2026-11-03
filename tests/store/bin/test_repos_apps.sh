@@ -15,9 +15,10 @@ get catalogue >/dev/null; echo "  catalogue: $(j 'count($d["apps"])') apps, $(j 
 [ "$(post add_repo -d url=$EVIL -d confirm=1)" = 400 ] && pass "catalogue with a path escaping its recipe refused: $(j '$d["error"]' | cut -c1-120)" || fail 'evil accepted'
 [ "$(post add_repo -d url=$EVIL2 -d confirm=1)" = 200 ] && pass 'second third-party repo (unsigned) added' || fail "evil2: $(cat /tmp/body)"
 echo '== signatures'
+get catalogue >/dev/null; APPS=$(j 'count($d["apps"])')
 python3 /tbin/repotool.py tamper /www/repo
 post refresh >/dev/null; j '$d["errors"]' | grep -q 'signature is not valid' && pass "changed store.json refused (signature): $(j '$d["errors"][0]' | cut -c1-110)" || fail "tamper: $(cat /tmp/body)"
-get catalogue >/dev/null; [ "$(j 'count($d["apps"])')" -ge 28 ] && ! grep -q 'Changed:' /tmp/body && pass 'the previous catalogue is kept meanwhile' || fail 'catalogue lost'
+get catalogue >/dev/null; [ "$(j 'count($d["apps"])')" = "$APPS" ] && ! grep -q 'Changed:' /tmp/body && pass "the previous catalogue is kept meanwhile ($APPS apps)" || fail "catalogue lost: $(j 'count($d["apps"])') of $APPS apps"
 python3 /tbin/repotool.py sign /www/repo /tcerts/keyB.pem
 post refresh >/dev/null; j '$d["errors"]' | grep -q 'signing key has changed' && pass 'new signing key refused until accepted' || fail "key change: $(cat /tmp/body)"
 get catalogue >/dev/null; NEWFP=$(j '$d["repos"][0]["new_fingerprint"]' | tr -d '"'); [ "$(j '$d["repos"][0]["key_changed"]')" = true ] && pass "page shows the new key: $NEWFP" || fail 'no key_changed'
