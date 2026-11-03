@@ -18,6 +18,8 @@ if openssl version | grep -q '^OpenSSL [3-9]'; then
 else
     check -n 'NULL NULL NULL' "no sodium, no PHP app, OpenSSL 1.1 (can't check: refused)"
 fi
-mkdir -p $V/Nas_Prog/php/binaries; cp $STORE_TEST_PROJECT/packages/static/php/$(cat $STORE_TEST_PROJECT/packages/static/php/latest)/amd64/php $V/Nas_Prog/php/binaries/php
+# The PHP app's own php, from its package
+PHP_VERSION=$(cat $STORE_TEST_PROJECT/packages/php/latest)
+mkdir -p $V/Nas_Prog/php; tar -xzf $STORE_TEST_PROJECT/packages/php/$PHP_VERSION/php_${PHP_VERSION}_amd64.tar.gz -C $V/Nas_Prog/php ./binaries/php
 check -n 'true false false' "no sodium, with the PHP app's PHP"
 check '-d display_errors=0' 'true false false' 'sodium in PHP'

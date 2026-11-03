@@ -62,6 +62,7 @@ Each `static/<static_app_name>/build.sh` must declare the version it builds on i
 
 - `/`
   - `/apps`     - files that build the WD apps
+  - `/ci`       - [CI](ci/README.md): GitHub Actions builds and tests each change, releases new app versions and publishes `store.json`
   - `/docker`   - Dockerfiles used to run builds
   - `/guides`   - information that I have found / written
   - `/recipes`  - [Docker recipes](recipes/README.md): compose files for apps best run in Docker, tested on the NAS

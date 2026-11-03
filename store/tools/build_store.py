@@ -13,7 +13,12 @@ with RAW=https://raw.githubusercontent.com/<owner>/<repo> and
 RELEASES=https://github.com/<owner>/<repo>/releases/download.
 
 Apps are listed with the packages found in packages/<id>/<version>/ (one .bin
-per model); apps without any built package are skipped, with a warning.
+per model). In CI, where only the apps changed are built, an app without its
+packages here takes them from --previous (the store.json published before,
+if it lists that version) or --released (an index of the released packages:
+{"<id>": {"version": ..., "packages": [{"model", "file", "size", "sha256"}]}}
+- see ci/release.py); failing both, --previous's entry stays as it was (an
+older version, still offered), else the app is skipped, with a warning.
 
 With --external, apps published by others (metadata.json's "external": e.g.
 Plex Media Server, which Plex builds for WD's NAS models) are listed too:
@@ -82,16 +87,19 @@ def read_apkg_rc(path):
     return fields
 
 
-def app_entry(app_dir, metadata, args):
+def app_entry(app_dir, metadata, args, previous, released):
     """
     An app's entry in store.json: from its apkg.rc, its metadata.json details
-    and the packages built for its current version.
+    and the packages built for its current version (or, without them, those
+    already published - see the module's description).
 
     :param pathlib.Path       app_dir:  The app's folder (apps/<app>)
     :param dict               metadata: Its details in metadata.json
     :param argparse.Namespace args:     The command line's options
+    :param dict               previous: The published entries, by app id
+    :param dict               released: The released packages, by app id
 
-    :return: Its entry, or None if no package is built for its version
+    :return: Its entry, or None if it has no packages anywhere
     """
     rc = read_apkg_rc(app_dir / "apkg.rc")
     app_id, version = rc["Package"], rc["Version"]
@@ -110,6 +118,33 @@ def app_entry(app_dir, metadata, args):
             "size": package.stat().st_size,
             "sha256": sha256(package),
         })
+
+    published = previous.get(app_id)
+    index = released.get(app_id, {})
+
+    if not packages and published and published["version"] == version:
+        packages = published["packages"]
+    elif not packages and index.get("version") == version:
+        packages = [
+            {
+                "model": package["model"],
+                "url": args.package_url.format(
+                    id=app_id, version=version, file=package["file"]
+                ),
+                "size": package["size"],
+                "sha256": package["sha256"],
+            }
+            for package in index["packages"]
+        ]
+
+    if not packages and published:
+        print(
+            f"warning: no packages for {app_id} {version} - still offering"
+            f" {published['version']}",
+            file=sys.stderr,
+        )
+
+        return published
 
     if not packages:
         print(
@@ -198,18 +233,37 @@ def plex_feed(metadata):
 FEEDS = {"plex": plex_feed}
 
 
-def external_entry(app_id, metadata):
+def external_entry(app_id, metadata, published):
     """
     An app published by someone else, from its publisher's list: its packages
     are downloaded once (cached in packages/_external/<id>/<version>/) and
-    checked against the publisher's SHA1, for their sizes and SHA256.
+    checked against the publisher's SHA1, for their sizes and SHA256 - unless
+    the published store.json already lists that version.
 
-    :param str  app_id:   The app's id
-    :param dict metadata: Its details in metadata.json's "external"
+    :param str  app_id:    The app's id
+    :param dict metadata:  Its details in metadata.json's "external"
+    :param dict published: Its entry in the published store.json (or None)
 
     :return: Its entry in store.json
     """
     version, found = FEEDS[metadata["feed"]](metadata)
+    entry = {"id": app_id, "version": version}
+    entry.update({
+        key: value
+        for key, value in metadata.items()
+        if key != "feed" and not key.startswith("_")
+    })
+    published_urls = {
+        package["url"] for package in (published or {}).get("packages", [])
+    }
+
+    if published and published["version"] == version and published_urls == {
+        url for _, url, _ in found
+    }:
+        entry["packages"] = published["packages"]
+
+        return entry
+
     cache = REPO / "packages" / "_external" / app_id / version
     cache.mkdir(parents=True, exist_ok=True)
     packages = []
@@ -244,12 +298,6 @@ def external_entry(app_id, metadata):
             "sha256": sha256(file),
         })
 
-    entry = {"id": app_id, "version": version}
-    entry.update({
-        key: value
-        for key, value in metadata.items()
-        if key != "feed" and not key.startswith("_")
-    })
     entry["packages"] = packages
 
     return entry
@@ -445,12 +493,36 @@ def main():
         action="store_true",
         help="also list the apps published by others (downloads them once)",
     )
+    parser.add_argument(
+        "--previous",
+        help="the store.json published before: apps not built here keep"
+        " their packages",
+    )
+    parser.add_argument(
+        "--released",
+        help="an index of the released packages (JSON, see above)",
+    )
     args = parser.parse_args()
 
     if args.sign_key and args.output == "-":
         parser.error("--sign-key needs --output")
 
     validate = make_validator()
+    previous, released = {}, {}
+
+    if args.previous and pathlib.Path(args.previous).is_file():
+        previous = {
+            app["id"]: app
+            for app in json.loads(
+                pathlib.Path(args.previous).read_text(encoding="utf-8")
+            ).get("apps", [])
+        }
+
+    if args.released:
+        released = json.loads(
+            pathlib.Path(args.released).read_text(encoding="utf-8")
+        )
+
     metadata = json.loads(
         (STORE / "metadata.json").read_text(encoding="utf-8")
     )
@@ -485,7 +557,11 @@ def main():
     ):
         if (app_dir / "apkg.rc").is_file() and app_dir.name != "template":
             entry = app_entry(
-                app_dir, metadata["apps"].get(app_dir.name, {}), args
+                app_dir,
+                metadata["apps"].get(app_dir.name, {}),
+                args,
+                previous,
+                released,
             )
 
             if entry:
@@ -493,7 +569,9 @@ def main():
 
     if args.external:
         for app_id, app_metadata in metadata.get("external", {}).items():
-            store["apps"].append(external_entry(app_id, app_metadata))
+            store["apps"].append(
+                external_entry(app_id, app_metadata, previous.get(app_id))
+            )
 
         store["apps"].sort(key=lambda app: app["id"].lower())
 

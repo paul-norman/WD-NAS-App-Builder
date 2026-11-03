@@ -1,0 +1,247 @@
+# Builds and tests the apps and recipes a change affects, and on main releases each new app version and publishes
+# store.json (see ci/README.md). Runs for pull requests, pushes to main (not store.json's own commits) and by hand
+# (Actions -> build-test-release -> Run workflow: apps to build, or all).
+#
+# Nothing is published (releases, store.json, the build cache, the packages kept with a run) until the repository
+# variable RELEASES is on: until then it only builds and tests.
+name: build-test-release
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths-ignore: [store.json, store.json.sig]
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: 'Apps to build and test, space separated, or "all" (empty: only unreleased versions, on main)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# A newer push to a pull request replaces its run; runs on main all finish
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      recipes: ${{ steps.plan.outputs.recipes }}
+      build_set: ${{ steps.plan.outputs.build_set }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Python with jsonschema
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/venv"
+          "${RUNNER_TEMP}/venv/bin/pip" install -q jsonschema
+          echo "${RUNNER_TEMP}/venv/bin" >> "${GITHUB_PATH}"
+
+      - name: Plan
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          APPS: ${{ inputs.apps }}
+          RELEASES: ${{ vars.RELEASES }}
+        run: |
+          options=(--event "${EVENT}" --github)
+
+          # Unreleased versions are only built (to release them) when releases are on
+          if [ "${GITHUB_REF}" = 'refs/heads/main' ] && [ "${EVENT}" != 'pull_request' ] && [ "${RELEASES}" = 'on' ]; then
+              options+=(--main)
+          fi
+
+          case "${EVENT}" in
+              pull_request) options+=(--base "${PR_BASE}") ;;
+              push) options+=(--base "${PUSH_BEFORE}") ;;
+              *) [ -n "${APPS}" ] && options+=(--apps "${APPS}") ;;
+          esac
+
+          python3 ci/plan.py "${options[@]}"
+
+      - name: Check the catalogue (store.json and the recipes against their schemas)
+        run: python3 store/tools/build_store.py --package-url 'https://example.invalid/{file}' --output "${RUNNER_TEMP}/store.json"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.matrix != '[]'
+    name: ${{ matrix.app }} (${{ matrix.mode }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 345
+    permissions:
+      # The build cache is a release
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      BUILD_SET: ${{ needs.plan.outputs.build_set }}
+      # Pull requests from forks can't add to the build cache, and nothing is published until releases are on
+      CACHE_UPLOAD: ${{ vars.RELEASES == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'yes' || 'no' }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Free disk space
+        run: bash ci/free_disk.sh
+
+      - name: Build and test
+        env:
+          APP: ${{ matrix.app }}
+          MODE: ${{ matrix.mode }}
+          SUITE: ${{ matrix.suite && 'yes' || 'no' }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/tmp"
+          export TMPDIR="${RUNNER_TEMP}/tmp"
+          bash ci/job.sh app "${APP}" "${MODE}" "${SUITE}"
+
+      - name: Keep the packages (released on main; for testing on a NAS otherwise)
+        if: success() && matrix.mode == 'build' && vars.RELEASES == 'on'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-${{ matrix.app }}
+          path: dist/${{ matrix.app }}/
+          retention-days: 7
+          compression-level: 0
+
+      - name: Keep the test logs
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: logs-${{ matrix.app }}
+          path: ${{ runner.temp }}/tmp/**/*.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+  recipes:
+    needs: plan
+    if: needs.plan.outputs.recipes != '[]'
+    name: recipe ${{ matrix.recipe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe: ${{ fromJSON(needs.plan.outputs.recipes) }}
+    env:
+      BUILD_SET: ${{ needs.plan.outputs.build_set }}
+      CACHE_UPLOAD: ${{ vars.RELEASES == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'yes' || 'no' }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Free disk space
+        run: bash ci/free_disk.sh
+
+      - name: Test
+        env:
+          RECIPE: ${{ matrix.recipe }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/tmp"
+          export TMPDIR="${RUNNER_TEMP}/tmp"
+          bash ci/job.sh recipe "${RECIPE}"
+
+      - name: Keep the test logs
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: logs-recipe-${{ matrix.recipe }}
+          path: ${{ runner.temp }}/tmp/**/*.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The one check branch rules need: passes only if everything that ran passed
+  result:
+    needs: [plan, build, recipes]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: All passed
+        env:
+          RESULTS: ${{ needs.plan.result }} ${{ needs.build.result }} ${{ needs.recipes.result }}
+        run: |
+          echo "plan, build, recipes: ${RESULTS}"
+
+          for result in ${RESULTS}; do
+              case "${result}" in
+                  success|skipped) ;;
+                  *) exit 1 ;;
+              esac
+          done
+
+  # On main: a release for each app version that passed its tests, then store.json. Each app is released on its own,
+  # even if another failed; one release job runs at a time, so store.json is always built on the last one's
+  release:
+    needs: [plan, build, recipes]
+    if: always() && needs.plan.result == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.RELEASES == 'on'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      # The bot's token: store.json's commit goes to main (the bot may skip the branch rules)
+      - name: The bot's token
+        id: bot
+        uses: actions/create-github-app-token@v3.3.0
+        with:
+          client-id: ${{ vars.BOT_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ steps.bot.outputs.token }}
+
+      - name: Python with jsonschema
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/venv"
+          "${RUNNER_TEMP}/venv/bin/pip" install -q jsonschema
+          echo "${RUNNER_TEMP}/venv/bin" >> "${GITHUB_PATH}"
+
+      - name: The packages built
+        # None when every build failed or nothing was built (only store.json to publish)
+        continue-on-error: true
+        uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: release-*
+          path: dist
+
+      - name: Release them
+        run: python3 ci/release.py publish dist
+
+      - name: Publish store.json
+        # A recipe that failed its tests isn't published: the next run on main does it, once fixed
+        if: needs.recipes.result != 'failure'
+        env:
+          STORE_SIGNING_KEY: ${{ secrets.STORE_SIGNING_KEY }}
+          BOT_SLUG: ${{ steps.bot.outputs.app-slug }}
+        run: |
+          umask 077
+          printf '%s\n' "${STORE_SIGNING_KEY}" > "${RUNNER_TEMP}/store-key.pem"
+          git config user.name "${BOT_SLUG}[bot]"
+          git config user.email "${BOT_SLUG}[bot]@users.noreply.github.com"
+          bash ci/publish_store.sh "${RUNNER_TEMP}/store-key.pem"
+
+      - name: Remove old releases (only lists them unless the repository variable CLEANUP is apply)
+        if: needs.recipes.result != 'failure'
+        run: python3 ci/release.py cleanup --store "${RUNNER_TEMP}/ci-store/store.json" ${{ vars.CLEANUP == 'apply' && '--apply' || '' }}
+
+      - name: Forget the signing key
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/store-key.pem"

@@ -93,10 +93,17 @@ if ! docker build --platform "${PLATFORM}" -f "${DOCKERFILE}" -t "${IMAGE}" "sta
     exit 1
 fi
 
-# Create statically linked version of the program
-if ! docker run --rm ${DOCKER_TTY} --platform "${PLATFORM}" -v "$(pwd)":/data "${IMAGE}:latest" /bin/bash -c "\
+# Create statically linked version of the program. Its output is handed back to the user running this (HOST_IDS: the
+# build scripts' own chown, and again here for any that don't), whose ID isn't always 1000 (e.g. 1001 in GitHub's CI)
+HOST_IDS="$(id -u):$(id -g)"
+
+if ! docker run --rm ${DOCKER_TTY} --platform "${PLATFORM}" -e HOST_IDS="${HOST_IDS}" -v "$(pwd)":/data "${IMAGE}:latest" \
+    /bin/bash -c "\
 	cd /data/static/${APP_NAME};\
-	/bin/bash ./build.sh;"; then
+	/bin/bash ./build.sh;\
+	status=\$?;\
+	chown -R ${HOST_IDS} /data/packages/static/${APP_NAME} 2>/dev/null;\
+	exit \$status;"; then
     echo "Static build of ${APP_NAME} (${ARCH}) failed!"
 
     exit 1

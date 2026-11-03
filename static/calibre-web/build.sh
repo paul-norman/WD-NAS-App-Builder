@@ -255,7 +255,7 @@ function run() {
     rm -f ${LATEST_PATH}
     printf '%s' "${VERSION}" > ${LATEST_PATH}
 
-    chown -R 1000:1000 /data/packages /data/static/calibre-web/requirements.txt
+    chown -R "${HOST_IDS:-1000:1000}" /data/packages /data/static/calibre-web/requirements.txt
 }
 
 run

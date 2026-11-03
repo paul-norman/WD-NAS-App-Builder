@@ -19,3 +19,5 @@ Tests that run without a NAS: each suite starts containers standing in for it *(
 - What's tested here is what doesn't need the NAS's hardware or firmware; each suite's README says what's left for the NAS.
 
 Needs Docker on Linux *(e.g. WSL)*, Python 3 and the apps built for the PR4100 *(each suite says which)*.
+
+CI runs them for each change *(the shared package test for every app it builds, and the suites of the apps and recipes it affects)*: see [`ci/README.md`](../ci/README.md), and [`ci/tests.conf`](../ci/tests.conf) for the commands it runs. A new suite with its own `run_tests.sh` needs a line there.
