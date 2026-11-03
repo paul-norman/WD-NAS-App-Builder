@@ -27,8 +27,7 @@ OUTPUT_PATH=/data/packages/static/loki/${VERSION}/${ARCH}
 # Downloads a file and checks it against its SHA256
 function fetch() {
     cd ${BUILD_PATH}
-    wget -q "$1" -O "$2"
-    echo "$3  $2" | sha256sum -c -
+    sh /data/static/fetch.sh "$1" "$2" "$3"
 }
 
 function build_runas() {

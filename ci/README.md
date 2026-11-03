@@ -17,7 +17,7 @@ GitHub Actions builds and tests every change, and on `main` releases each new ap
 | Changed | Runs |
 |---|---|
 | `apps/<app>/` *(not its README)* or `static/<app>/` | The app built, its shared package test and its own suite |
-| Files every build uses *(`build.sh`, `build_static.sh`, `apps/*_helpers.*`, `docker/`, `mksapkg-OS5`, the survey: `ci/survey*.sh`)* | Every app built and tested. Only apps with a new version are released |
+| Files every build uses *(`build.sh`, `build_static.sh`, `static/fetch.sh`, `apps/*_helpers.*`, `docker/`, `mksapkg-OS5`, the survey: `ci/survey*.sh`)* | Every app built and tested. Only apps with a new version are released |
 | `tests/<suite>/` | That suite, on the app's released package *(no build)* |
 | `tests/apps/` | The shared package test of every app; `tests/common/`, `tests/images/`, `ci/tests.conf`: every suite |
 | `recipes/<id>/` | Its test through the Store *(`tests/store/run_tests.sh <id>`)* |
@@ -39,6 +39,14 @@ One release per app version, tagged `<app>-v<version>` *(e.g. `navidrome-v0.64.2
 **Old releases** are removed after each release run ([`release.py`](release.py) `cleanup`): an app keeps its newest two, and any whose replacement is less than 14 days old *(so a quick run of fixes doesn't remove the last version that ran for a while)*, and never one `store.json` still offers. Their git tags are kept, to rebuild from. Until the repository variable `CLEANUP` is `apply`, it only lists what it would remove *(in the release job's log)*.
 
 **The build cache**: static builds *(e.g. Jellyfin's, Calibre-Web's - some take an hour)* are kept as assets of the `build-cache` release, named after a hash of `static/<app>/`, `build_static.sh` and the survey's scripts, so a build only redoes them when they change. Each keeps its survey *(below)* with it. Nothing there is for installing. Assets no build uses any more are removed with old releases.
+
+## The source mirror
+
+Every file a static build downloads is pinned by its SHA256 and fetched through [`static/fetch.sh`](../static/fetch.sh): it tries a copy kept from an earlier download *(`packages/mirror/<sha256>`, on any machine that builds)*, then the file's own site *(three times)*, then any other sites given for the very same file *(e.g. ffmpeg's: Debian's and Alpine's copies of its release, while they keep that version)*, then this repository's `source-mirror` release - and uses the file only if it matches. A site that's down *(it happens: ffmpeg.org, musl.libc.org)* then doesn't stop a build whose files the mirror has. CI adds each new download to the mirror once it's used *(with the build cache, so once `RELEASES` is on: some downloads are others' programs)*.
+
+Downloads a Dockerfile builds from *(e.g. the ffmpeg stages)* are listed in `static/<app>/downloads` *(`<url> <file> <sha256> [<other url> ...]`)* instead: `build_static.sh` fetches them the same way before building the image, into `static/<app>/.downloads/`, which the Dockerfile copies.
+
+Not through the mirror: Calibre's archive *(checked against the SHA512 Calibre publishes, from GitHub)* and the Docker app's kernel sources *(WD's 1.6 GB GPL archives)*.
 
 ## Sources
 

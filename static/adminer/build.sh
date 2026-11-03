@@ -26,11 +26,11 @@ OUTPUT_PATH=/data/packages/static/adminer/${VERSION}/${ARCH}
 
 function build_adminer() {
     cd ${BUILD_PATH}
-    wget -q "https://github.com/vrana/adminer/releases/download/v${VERSION}/adminer-${VERSION}.php" -O adminer.php
-    echo "${ADMINER_SHA256}  adminer.php" | sha256sum -c -
+    sh /data/static/fetch.sh "https://github.com/vrana/adminer/releases/download/v${VERSION}/adminer-${VERSION}.php" \
+        adminer.php "${ADMINER_SHA256}"
     mkdir -p adminer-plugins
-    wget -q "https://www.adminer.org/static/download/${VERSION}/drivers/redis.php" -O adminer-plugins/redis.php
-    echo "${REDIS_DRIVER_SHA256}  adminer-plugins/redis.php" | sha256sum -c -
+    sh /data/static/fetch.sh "https://www.adminer.org/static/download/${VERSION}/drivers/redis.php" \
+        adminer-plugins/redis.php "${REDIS_DRIVER_SHA256}"
 }
 
 function build_runas() {

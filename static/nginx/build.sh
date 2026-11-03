@@ -15,6 +15,15 @@ ZLIB_VERSION=1.3.2
 BROTLI_VERSION=1.2.1
 # ngx_brotli has no releases: pinned to its latest commit
 NGX_BROTLI_COMMIT=a71f9312c2deb28875acc7bacfdd5695a111aa53
+# Checked against nginx's signature (Sergey Kandaurov's key, as nginx.org publishes it), OpenSSL's published SHA256,
+# PCRE2's and zlib's signatures (Nicholas Wilson's, Mark Adler's keys); Brotli's are GitHub's archives as first
+# downloaded (nothing published to check them against)
+NGINX_SHA256=3cf46f5ed7504d460125866b7bea99fb357f31d887e2e63b35503310e9b8b6c8
+OPENSSL_SHA256=603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a
+PCRE2_SHA256=929f0b20e62879252a15886b06c89f1edef61a363cbd5826fb041080a5e557ae
+ZLIB_SHA256=bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16
+NGX_BROTLI_SHA256=1d21be34f3b7b6d05a8142945e59b3a47665edcdfe0f3ee3d3dbef121f90c08c
+BROTLI_SHA256=98d35d11a78dc453aebb7d10c3748f3f73ff78c8267c0dc697b8631f67bf7e8f
 
 ARCH=$(uname -m)
 
@@ -29,12 +38,21 @@ OUTPUT_PATH=/data/packages/static/nginx/${VERSION}/${ARCH}
 
 function download() {
     cd ${BUILD_PATH}
-    wget -q "https://nginx.org/download/nginx-${VERSION}.tar.gz"
-    wget -q "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"
-    wget -q "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz"
-    wget -q "https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz"
-    wget -q "https://github.com/google/ngx_brotli/archive/${NGX_BROTLI_COMMIT}.tar.gz" -O ngx_brotli.tar.gz
-    wget -q "https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VERSION}.tar.gz" -O brotli.tar.gz
+    sh /data/static/fetch.sh "https://nginx.org/download/nginx-${VERSION}.tar.gz" \
+        nginx-${VERSION}.tar.gz "${NGINX_SHA256}"
+    sh /data/static/fetch.sh \
+        "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" \
+        openssl-${OPENSSL_VERSION}.tar.gz "${OPENSSL_SHA256}"
+    sh /data/static/fetch.sh \
+        "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz" \
+        pcre2-${PCRE2_VERSION}.tar.gz "${PCRE2_SHA256}"
+    sh /data/static/fetch.sh \
+        "https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz" \
+        zlib-${ZLIB_VERSION}.tar.gz "${ZLIB_SHA256}"
+    sh /data/static/fetch.sh "https://github.com/google/ngx_brotli/archive/${NGX_BROTLI_COMMIT}.tar.gz" \
+        ngx_brotli.tar.gz "${NGX_BROTLI_SHA256}"
+    sh /data/static/fetch.sh "https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VERSION}.tar.gz" \
+        brotli.tar.gz "${BROTLI_SHA256}"
 
     for archive in *.tar.gz; do
         tar -xzf "${archive}"

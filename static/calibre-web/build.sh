@@ -48,11 +48,17 @@ OUTPUT_PATH=/data/packages/static/calibre-web/${VERSION}/amd64
 # rebuilds install exactly the same packages) - delete it to take newer ones
 LOCK=/data/static/calibre-web/requirements.txt
 
-# Downloads a file and checks it: $1 address, $2 file name, $3 checksum, $4 sha256 (default) or sha512
+# Downloads a file and checks it: $1 address, $2 file name, $3 checksum, $4 sha256 (default) or sha512. SHA256 ones go
+# through the shared helper (with the mirror to fall back on); Calibre's (it publishes SHA512s) straight from GitHub
 function fetch() {
     cd ${BUILD_PATH}
-    wget -q "$1" -O "$2"
-    echo "$3  $2" | ${4:-sha256}sum -c -
+
+    if [ "${4:-sha256}" = 'sha256' ]; then
+        sh /data/static/fetch.sh "$1" "$2" "$3"
+    else
+        wget -q "$1" -O "$2"
+        echo "$3  $2" | ${4}sum -c -
+    fi
 }
 
 function get_calibre() {

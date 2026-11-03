@@ -4,13 +4,13 @@ This is a repository to provide apps for the WD NAS machines running OS5 *(FW > 
 
 To make this process as simple as possible for non-expert users, a [Store](apps/store/README.md) app has been created that will replace the now end-of-life *(EOL)* WD Store *(those apps will still be available)*. This will offer native apps and Docker "Recipes" to provide up-to-date software for this NAS.
 
-Much of the underlying Linux system is now badly out of date, so a few replacement apps are strongly recommended to be installed initially for security reasons:
+**Much of the underlying Linux system is now badly out of date**, so a few replacement apps are **strongly recommended to be installed initially** for security reasons:
 
 - [OpenSSH](apps/openssh/README.md)
 - [Python](apps/python/README.md)
 - [PHP](apps/php/README.md)
 
-In addition, the [Nginx](apps/nginx/README.md) app will allow a
+In addition, the [Nginx](apps/nginx/README.md) app will allow access to all web-based apps via friendly URLs and offer SSL security.
 
 ## Building an existing app
 
@@ -57,6 +57,8 @@ Where a program can't work as a fully static binary *(e.g. ValKey 9+, which load
 `static/docker` is different again: it builds kernel modules that WD's kernel lacks *(`overlay`, `iptable_raw`)* from WD's own GPL source, for one specific firmware version *(see the [Docker app](apps/docker/README.md))*.
 
 Each `static/<static_app_name>/build.sh` must declare the version it builds on its own line as `VERSION=<version>`. A version that has already been built for an architecture is skipped, so bumping `VERSION` is all that's needed to trigger a rebuild *(delete the matching `/packages/static/...` directory to force one)*.
+
+Every file a static build downloads is pinned by its SHA256 and fetched with `static/fetch.sh <url> <file> <sha256>` *(`/data/static/fetch.sh` in the build's container)*: it checks the file, keeps a copy in `/packages/mirror` for later builds, and falls back on the project's mirror when a site is down. Files a Dockerfile builds from are listed in `static/<static_app_name>/downloads` and fetched the same way before the image is built. After a build, each static build's distribution packages are recorded for its sources *(see [CI](ci/README.md), Sources)*.
 
 ## Project structure
 

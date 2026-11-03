@@ -49,8 +49,9 @@ SYSTEM_LIBS='libc.so.6 libm.so.6 libpthread.so.0 libdl.so.2 librt.so.1 libstdc++
 
 function build_openssl() {
     cd ${BUILD_PATH}
-    wget -q "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"
-    echo "${OPENSSL_SHA256}  openssl-${OPENSSL_VERSION}.tar.gz" | sha256sum -c -
+    sh /data/static/fetch.sh \
+        "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" \
+        openssl-${OPENSSL_VERSION}.tar.gz "${OPENSSL_SHA256}"
     tar -xzf openssl-${OPENSSL_VERSION}.tar.gz
     cd openssl-${OPENSSL_VERSION}
     ./Configure --prefix=${PREFIX} --libdir=lib shared no-tests no-docs
@@ -60,8 +61,8 @@ function build_openssl() {
 
 function build_postgresql() {
     cd ${BUILD_PATH}
-    wget -q "https://ftp.postgresql.org/pub/source/v${VERSION}/postgresql-${VERSION}.tar.bz2"
-    echo "${SHA256}  postgresql-${VERSION}.tar.bz2" | sha256sum -c -
+    sh /data/static/fetch.sh "https://ftp.postgresql.org/pub/source/v${VERSION}/postgresql-${VERSION}.tar.bz2" \
+        postgresql-${VERSION}.tar.bz2 "${SHA256}"
     tar -xjf postgresql-${VERSION}.tar.bz2
     cd postgresql-${VERSION}
     ./configure --prefix=${PREFIX} --with-openssl --with-icu --with-lz4 --with-zstd --with-uuid=e2fs --with-readline \
@@ -76,8 +77,7 @@ function build_postgresql() {
 # Downloads and unpacks a source archive after checking its checksum: $1 = URL, $2 = SHA-256, $3 = folder to unpack into
 function fetch() {
     cd ${BUILD_PATH}
-    wget -q "$1" -O source.tar
-    echo "$2  source.tar" | sha256sum -c -
+    sh /data/static/fetch.sh "$1" source.tar "$2"
     mkdir -p "$3"
     tar -xf source.tar -C "$3" --strip-components=1
     rm source.tar

@@ -14,6 +14,8 @@ VERSION=8.5.12
 # php.net's published SHA256 of the source (php-${VERSION}.tar.gz), checked before building
 PHP_SHA256=81a0f450349e84b08eb43faa85f8a4c835684f3cc1c50471775d1317a046c525
 SPC_VERSION=2.8.5
+# Its x86_64 binary's digest, as GitHub publishes it for the release
+SPC_SHA256=523ba4279c54c7a377156c0dd3a36adf92ee64b01e9a7f5e9e2ec084b8e458e5
 
 # The NAS's PHP 7.4 extensions, then the extras
 EXTENSIONS='apcu,bcmath,bz2,ctype,curl,dom,exif,fileinfo,filter,gd,gettext,iconv,mbstring,mysqli,mysqlnd,openssl,pdo,pdo_mysql,pdo_sqlite,posix,readline,session,simplexml,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zlib'
@@ -37,7 +39,9 @@ function build_php() {
     cd ${BUILD_PATH}
 
     # static-php-cli itself (a single self-contained binary)
-    wget -q "https://github.com/crazywhalecc/static-php-cli/releases/download/${SPC_VERSION}/spc-linux-$(uname -m).tar.gz" -O spc.tar.gz
+    sh /data/static/fetch.sh \
+        "https://github.com/crazywhalecc/static-php-cli/releases/download/${SPC_VERSION}/spc-linux-$(uname -m).tar.gz" \
+        spc.tar.gz "${SPC_SHA256}"
     tar -xzf spc.tar.gz
     chmod +x spc
 

@@ -24,8 +24,9 @@ OUTPUT_PATH=/data/packages/static/kvweb/${VERSION}/${ARCH}
 
 function build_kvweb() {
     cd ${BUILD_PATH}
-    wget -q "https://github.com/natrimmer/kvweb/releases/download/v${VERSION}/kvweb_linux_amd64.tar.gz" -O kvweb.tar.gz
-    echo "${KVWEB_SHA256}  kvweb.tar.gz" | sha256sum -c -
+    sh /data/static/fetch.sh \
+        "https://github.com/natrimmer/kvweb/releases/download/v${VERSION}/kvweb_linux_amd64.tar.gz" \
+        kvweb.tar.gz "${KVWEB_SHA256}"
     tar -xzf kvweb.tar.gz kvweb
     strip kvweb
 }

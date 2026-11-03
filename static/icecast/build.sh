@@ -51,8 +51,7 @@ export PKG_CONFIG='pkg-config --static'
 # Downloads a file and checks it against its SHA256, then unpacks it
 function fetch() {
     cd ${BUILD_PATH}
-    wget -q "$1" -O "$2"
-    echo "$3  $2" | sha256sum -c -
+    sh /data/static/fetch.sh "$@"
     tar -xf "$2"
 }
 
@@ -124,7 +123,10 @@ function build_ezstream() {
 }
 
 function build_ffmpeg() {
-    fetch "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" ffmpeg.tar.xz ${FFMPEG_SHA256}
+    # (Debian's and Alpine's copies of the very same file, if ffmpeg.org is down)
+    fetch "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" ffmpeg.tar.xz ${FFMPEG_SHA256} \
+        "https://deb.debian.org/debian/pool/main/f/ffmpeg/ffmpeg_${FFMPEG_VERSION}.orig.tar.xz" \
+        "https://distfiles.alpinelinux.org/distfiles/edge/ffmpeg-${FFMPEG_VERSION}.tar.xz"
     cd ffmpeg-${FFMPEG_VERSION}
     # Audio only: the usual music formats in, raw audio out (ezstream's decoder); raw audio in, MP3 out (its encoder)
     # (ffmpeg reads its standard input - "-" - through the fd protocol)

@@ -24,8 +24,9 @@ OUTPUT_PATH=/data/packages/static/prometheus/${VERSION}/${ARCH}
 
 function build_prometheus() {
     cd ${BUILD_PATH}
-    wget -q "https://github.com/prometheus/prometheus/releases/download/v${VERSION}/prometheus-${VERSION}.linux-amd64.tar.gz" -O prometheus.tar.gz
-    echo "${PROMETHEUS_SHA256}  prometheus.tar.gz" | sha256sum -c -
+    sh /data/static/fetch.sh \
+        "https://github.com/prometheus/prometheus/releases/download/v${VERSION}/prometheus-${VERSION}.linux-amd64.tar.gz" \
+        prometheus.tar.gz "${PROMETHEUS_SHA256}"
     tar -xzf prometheus.tar.gz
     strip prometheus-${VERSION}.linux-amd64/prometheus
 }

@@ -23,8 +23,9 @@ OUTPUT_PATH=/data/packages/static/ntfy/${VERSION}/${ARCH}
 
 function build_ntfy() {
     cd ${BUILD_PATH}
-    wget -q "https://github.com/binwiederhier/ntfy/releases/download/v${VERSION}/ntfy_${VERSION}_linux_amd64.tar.gz" -O ntfy.tar.gz
-    echo "${NTFY_SHA256}  ntfy.tar.gz" | sha256sum -c -
+    sh /data/static/fetch.sh \
+        "https://github.com/binwiederhier/ntfy/releases/download/v${VERSION}/ntfy_${VERSION}_linux_amd64.tar.gz" \
+        ntfy.tar.gz "${NTFY_SHA256}"
     tar -xzf ntfy.tar.gz
 }
 

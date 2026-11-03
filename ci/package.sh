@@ -16,6 +16,7 @@ cd "$(dirname "$0")/.." || exit 1
 APP="$1"
 MODE="${2:-build}"
 CACHE_RELEASE='build-cache'
+MIRROR_RELEASE='source-mirror'
 # GitHub's limit for a release asset
 CACHE_MAX_BYTES=$((2 * 1024 * 1024 * 1024 - 1))
 VERSION="$(sed -n 's/^Version:[[:space:]]*//p' "apps/${APP}/apkg.rc" | tr -d '\r')"
@@ -120,6 +121,43 @@ save_static() {
     return 0
 }
 
+# Adds the downloads this build made (static/fetch.sh keeps each in packages/mirror, named after its SHA256) to the
+# mirror the builds fall back on, if it hasn't them yet.
+#
+# Prints what it added; returns 0 (a failed upload only means one fewer fallback)
+save_mirror() {
+    local listed
+    local file
+
+    [ -n "$(ls -A packages/mirror 2>/dev/null)" ] || return 0
+
+    if ! gh release view "${MIRROR_RELEASE}" > /dev/null 2>&1; then
+        gh release create "${MIRROR_RELEASE}" --prerelease --latest=false \
+            --title 'Source mirror (what the builds download)' \
+            --notes "Copies of the files the builds download, named after their SHA256: the builds fall back on them \
+when a site is down (see ci/README.md). Nothing here is meant to be installed." \
+            > /dev/null 2>&1
+    fi
+
+    listed=" $(gh release view "${MIRROR_RELEASE}" --json assets --jq '.assets[].name' 2>/dev/null | tr '\n' ' ') "
+
+    for file in packages/mirror/*; do
+        case "${file}" in
+            *.part) continue ;;
+        esac
+
+        [[ "${listed}" == *" $(basename "${file}") "* ]] && continue
+
+        if gh release upload "${MIRROR_RELEASE}" "${file}" > /dev/null; then
+            echo "Mirror: added $(basename "${file}")"
+        else
+            echo "::warning::Mirror: $(basename "${file}") couldn't be added"
+        fi
+    done
+
+    return 0
+}
+
 # Fetches the app's PR4100 package and amd64 bundle from the release of its version.
 #
 # Returns 0 if they were fetched, 1 if not
@@ -166,6 +204,11 @@ fi
 
 if [ -d "static/${APP}" ] && [ "${RESTORED}" != 0 ] && [ "${CACHE_UPLOAD:-no}" = 'yes' ]; then
     save_static
+fi
+
+# Like the build cache, the mirror holds builds' downloads (some of them others' programs), so it fills when releases do
+if [ "${CACHE_UPLOAD:-no}" = 'yes' ]; then
+    save_mirror
 fi
 
 touch "${DIR}/.ci-ready"

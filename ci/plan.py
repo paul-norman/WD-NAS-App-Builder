@@ -45,9 +45,10 @@ SHARED_BUILD = (
     "build_static.sh",
     "mksapkg-OS5",
     "docker/",
-    # Every static build's survey (its sources)
+    # Every static build's survey (its sources) and downloads
     "ci/survey.sh",
     "ci/survey_inside.sh",
+    "static/fetch.sh",
 )
 # Test files every suite uses: a change runs every app's suite
 SHARED_TESTS = ("tests/common/", "tests/images/")

@@ -27,8 +27,9 @@ OUTPUT_PATH=/data/packages/static/node_exporter/${VERSION}/${ARCH}
 
 function build_smartctl() {
     cd ${BUILD_PATH}
-    wget -q "https://github.com/smartmontools/smartmontools/releases/download/RELEASE_${SMARTMONTOOLS_VERSION//./_}/smartmontools-${SMARTMONTOOLS_VERSION}.tar.gz" -O smartmontools.tar.gz
-    echo "${SMARTMONTOOLS_SHA256}  smartmontools.tar.gz" | sha256sum -c -
+    sh /data/static/fetch.sh \
+        "https://github.com/smartmontools/smartmontools/releases/download/RELEASE_${SMARTMONTOOLS_VERSION//./_}/smartmontools-${SMARTMONTOOLS_VERSION}.tar.gz" \
+        smartmontools.tar.gz "${SMARTMONTOOLS_SHA256}"
     tar -xzf smartmontools.tar.gz
     cd smartmontools-${SMARTMONTOOLS_VERSION}
     ./configure LDFLAGS=-static --without-libsystemd --without-systemdsystemunitdir --without-selinux --without-libcap-ng

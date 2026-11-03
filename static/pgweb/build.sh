@@ -24,8 +24,8 @@ OUTPUT_PATH=/data/packages/static/pgweb/${VERSION}/${ARCH}
 
 function build_pgweb() {
     cd ${BUILD_PATH}
-    wget -q "https://github.com/sosedoff/pgweb/releases/download/v${VERSION}/pgweb_linux_amd64.zip" -O pgweb.zip
-    echo "${PGWEB_SHA256}  pgweb.zip" | sha256sum -c -
+    sh /data/static/fetch.sh "https://github.com/sosedoff/pgweb/releases/download/v${VERSION}/pgweb_linux_amd64.zip" \
+        pgweb.zip "${PGWEB_SHA256}"
     unzip -q pgweb.zip
     mv pgweb_linux_amd64 pgweb
 }

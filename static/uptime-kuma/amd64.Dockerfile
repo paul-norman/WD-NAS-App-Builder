@@ -3,9 +3,10 @@
 FROM alpine:3.22 AS ping
 RUN apk add --no-cache build-base linux-headers meson wget
 WORKDIR /build
-RUN wget -q https://github.com/iputils/iputils/releases/download/20250605/iputils-20250605.tar.xz && \
-	echo "6f213700dbf96b5cc4499ca70cb15ecd69c09f405b06785bb4a1a10b572b6276  iputils-20250605.tar.xz" | sha256sum -c - && \
-	tar -xJf iputils-20250605.tar.xz && \
+# The sources are downloaded and checked beforehand by build_static.sh (static/uptime-kuma/downloads), with this
+# repository's mirror to fall back on
+COPY .downloads/iputils-20250605.tar.xz ./
+RUN tar -xJf iputils-20250605.tar.xz && \
 	cd iputils-20250605 && \
 	LDFLAGS=-static meson setup build -DUSE_CAP=false -DUSE_IDN=false -DUSE_GETTEXT=false -DBUILD_ARPING=false \
 		-DBUILD_CLOCKDIFF=false -DBUILD_TRACEPATH=false -DBUILD_MANS=false -DSKIP_TESTS=true && \

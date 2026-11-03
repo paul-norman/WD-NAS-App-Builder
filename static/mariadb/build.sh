@@ -34,8 +34,9 @@ SYSTEM_LIBS="libc.so.6 libm.so.6 libpthread.so.0 libdl.so.2 librt.so.1 libstdc++
 
 function download() {
     cd ${BUILD_PATH}
-    wget -q "https://archive.mariadb.org/mariadb-${VERSION}/bintar-linux-systemd-x86_64/mariadb-${VERSION}-linux-systemd-x86_64.tar.gz" -O mariadb.tar.gz
-    echo "${SHA256}  mariadb.tar.gz" | sha256sum -c -
+    sh /data/static/fetch.sh \
+        "https://archive.mariadb.org/mariadb-${VERSION}/bintar-linux-systemd-x86_64/mariadb-${VERSION}-linux-systemd-x86_64.tar.gz" \
+        mariadb.tar.gz "${SHA256}"
     mkdir release
     tar -xzf mariadb.tar.gz -C release --strip-components=1
 }

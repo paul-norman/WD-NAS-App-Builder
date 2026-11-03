@@ -5,6 +5,8 @@ set -o pipefail
 set -x
 
 VERSION=9.1.3
+# Checked against Valkey's own published hash (github.com/valkey-io/valkey-hashes)
+VALKEY_SHA256=184e34ed2d9b51879b682b5b15205e2b9d677c60280e3cb453be8f520d04e293
 
 ARCH=$(uname -m)
 
@@ -21,7 +23,8 @@ function build_valkey() {
     cd ${BUILD_PATH}
 
     # Download
-    wget "https://github.com/valkey-io/valkey/archive/refs/tags/${VERSION}.tar.gz" -O valkey.tar.gz
+    sh /data/static/fetch.sh "https://github.com/valkey-io/valkey/archive/refs/tags/${VERSION}.tar.gz" \
+        valkey.tar.gz "${VALKEY_SHA256}"
     tar -xf valkey.tar.gz --strip-components=1
     rm valkey.tar.gz
 

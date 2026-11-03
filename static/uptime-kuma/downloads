@@ -1,0 +1,4 @@
+# What this static build's Dockerfile builds from, downloaded and checked by build_static.sh before it builds the
+# image (into .downloads/, which the Dockerfile copies), with the mirror to fall back on (static/fetch.sh):
+#     <url> <file> <sha256>
+https://github.com/iputils/iputils/releases/download/20250605/iputils-20250605.tar.xz iputils-20250605.tar.xz 6f213700dbf96b5cc4499ca70cb15ecd69c09f405b06785bb4a1a10b572b6276

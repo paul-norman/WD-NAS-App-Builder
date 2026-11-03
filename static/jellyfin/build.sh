@@ -20,6 +20,12 @@ SQLITE_YEAR=2026
 LIBVA_VERSION=2.24.1
 LIBVA_UTILS_VERSION=2.24.0
 LIBDRM_VERSION=2.4.134
+# libdrm's checked against its signature (Simon Ser's key); SQLite's and libva's are the files as first downloaded
+# (GitHub's archives, and an older SQLite whose hashes its site no longer lists)
+SQLITE_SHA256=646421e12aac110282ef8cc68f1a62d4bb15fc7b8f09da0b53e29ee690500431
+LIBDRM_SHA256=ac5e74d157830eb8bee44c6a6bf3ad49774ef0dd2a72bdad74a8f20308b52a95
+LIBVA_SHA256=0b4a3649ee8d683b9cce2ef094df4fb039d276c0cef7e49337c43d3b297b9f42
+LIBVA_UTILS_SHA256=bf959a1ced3cde8176a7ff50ad358ee98e93301ac068581a8b2617c5b83afcb3
 
 ARCH=$(uname -m)
 
@@ -37,7 +43,8 @@ function build_sqlite() {
     cd ${BUILD_PATH}
 
     # Download
-    wget -q "https://www.sqlite.org/${SQLITE_YEAR}/sqlite-amalgamation-${SQLITE_VERSION}.zip"
+    sh /data/static/fetch.sh "https://www.sqlite.org/${SQLITE_YEAR}/sqlite-amalgamation-${SQLITE_VERSION}.zip" \
+        "sqlite-amalgamation-${SQLITE_VERSION}.zip" "${SQLITE_SHA256}"
     unzip -q "sqlite-amalgamation-${SQLITE_VERSION}.zip"
     cd "sqlite-amalgamation-${SQLITE_VERSION}"
 
@@ -74,7 +81,8 @@ function build_libdrm() {
     cd ${BUILD_PATH}
 
     # Download
-    wget -q "https://dri.freedesktop.org/libdrm/libdrm-${LIBDRM_VERSION}.tar.xz"
+    sh /data/static/fetch.sh "https://dri.freedesktop.org/libdrm/libdrm-${LIBDRM_VERSION}.tar.xz" \
+        "libdrm-${LIBDRM_VERSION}.tar.xz" "${LIBDRM_SHA256}"
     tar -xf "libdrm-${LIBDRM_VERSION}.tar.xz"
     cd "libdrm-${LIBDRM_VERSION}"
 
@@ -89,7 +97,8 @@ function build_libva() {
     cd ${BUILD_PATH}
 
     # Download
-    wget -q "https://github.com/intel/libva/archive/refs/tags/${LIBVA_VERSION}.tar.gz" -O libva.tar.gz
+    sh /data/static/fetch.sh "https://github.com/intel/libva/archive/refs/tags/${LIBVA_VERSION}.tar.gz" \
+        libva.tar.gz "${LIBVA_SHA256}"
     tar -xf libva.tar.gz
     cd "libva-${LIBVA_VERSION}"
 
@@ -103,7 +112,8 @@ function build_libva_utils() {
     cd ${BUILD_PATH}
 
     # Download
-    wget -q "https://github.com/intel/libva-utils/archive/refs/tags/${LIBVA_UTILS_VERSION}.tar.gz" -O libva-utils.tar.gz
+    sh /data/static/fetch.sh "https://github.com/intel/libva-utils/archive/refs/tags/${LIBVA_UTILS_VERSION}.tar.gz" \
+        libva-utils.tar.gz "${LIBVA_UTILS_SHA256}"
     tar -xf libva-utils.tar.gz
     cd "libva-utils-${LIBVA_UTILS_VERSION}"
 

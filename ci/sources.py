@@ -91,6 +91,8 @@ def build_files(app):
     if static.is_dir():
         files.append(static / "build.sh")
         files += sorted(static.glob("*.Dockerfile"))
+        # What a Dockerfile builds from, downloaded beforehand
+        files.append(static / "downloads")
 
     return [path for path in files if path.is_file()]
 

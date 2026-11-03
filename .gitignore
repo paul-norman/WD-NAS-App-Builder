@@ -14,6 +14,8 @@ apps/*/*.xml
 
 __pycache__/
 
+static/*/.downloads/
+
 toolchains/*/work*
 local.mk
 

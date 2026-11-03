@@ -38,8 +38,7 @@ OUTPUT_PATH=/data/packages/static/navidrome/${VERSION}/${ARCH}
 # Downloads a file and checks it against its SHA256
 function fetch() {
     cd ${BUILD_PATH}
-    wget -q "$1" -O "$2"
-    echo "$3  $2" | sha256sum -c -
+    sh /data/static/fetch.sh "$@"
 }
 
 function build_navidrome() {
@@ -67,7 +66,10 @@ function build_lame() {
 }
 
 function build_ffmpeg() {
-    fetch "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" ffmpeg.tar.xz ${FFMPEG_SHA256}
+    # (Debian's and Alpine's copies of the very same file, if ffmpeg.org is down)
+    fetch "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" ffmpeg.tar.xz ${FFMPEG_SHA256} \
+        "https://deb.debian.org/debian/pool/main/f/ffmpeg/ffmpeg_${FFMPEG_VERSION}.orig.tar.xz" \
+        "https://distfiles.alpinelinux.org/distfiles/edge/ffmpeg-${FFMPEG_VERSION}.tar.xz"
     tar -xJf ffmpeg.tar.xz
     cd ffmpeg-${FFMPEG_VERSION}
     # Only audio: reading the common music formats (and their cover art, copied as it is), writing what Navidrome

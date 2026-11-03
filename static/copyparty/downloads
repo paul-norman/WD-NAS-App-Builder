@@ -1,0 +1,7 @@
+# What this static build's Dockerfile builds from, downloaded and checked by build_static.sh before it builds the
+# image (into .downloads/, which the Dockerfile copies), with the mirror to fall back on (static/fetch.sh):
+#     <url> <file> <sha256> [<other url> ...]
+# (other URLs: other sites with the very same file, tried if its own fails)
+https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz opus-1.6.1.tar.gz 6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1
+https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz lame-4.0.tar.gz 3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb
+https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz ffmpeg-9.0.2.tar.xz 8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e https://deb.debian.org/debian/pool/main/f/ffmpeg/ffmpeg_9.0.2.orig.tar.xz https://distfiles.alpinelinux.org/distfiles/edge/ffmpeg-9.0.2.tar.xz
