@@ -147,6 +147,18 @@ header('Cache-Control: no-store');
     </div>
 
     <div data-st="activity" hidden>
+        <div class="st-form" data-st="auto">
+            <h4>Automatic updates</h4>
+            <p class="mg-note">Every night at 04:30 the Store updates the apps and recipes ticked <strong>Update
+                automatically</strong> on their pages: one at a time, from the repository each came from - the Store
+                itself last. Updates that need you (e.g. new settings) are left for you, and said so here.</p>
+            <ul data-st="auto-list"></ul>
+            <p class="mg-note" data-st="auto-last"></p>
+            <p data-st="auto-ntfy" hidden>Tell the ntfy app's topic <input type="text" data-st="auto-topic" placeholder="e.g. nas" spellcheck="false" autocomplete="off">
+                <button type="button" data-st-action="auto-topic">Save</button>
+                <span class="mg-note">(updates, failures, and updates left for you - blank for none)</span></p>
+            <p data-st="auto-message"></p>
+        </div>
         <p class="mg-note" data-st="activity-none">Nothing has been installed, updated or removed yet.</p>
         <div data-st="job" hidden>
             <p><strong data-st="job-title"></strong> - <span data-st="job-state"></span></p>
@@ -324,6 +336,7 @@ header('Cache-Control: no-store');
 
                 showList();
                 showRepos();
+                showAuto();
             });
         }
 
@@ -1022,6 +1035,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
+            if (item.can_update && inst) {
+                autoSwitch(page, 'apps', item.id, details.name);
+            }
+
             if (item.update && item.can_update) {
                 addButton(page, 'Update to ' + item.version, function () {
                     startJob({ job: 'app_update', repo: item.repo, id: item.id }, page.message);
@@ -1190,6 +1207,97 @@ header('Cache-Control: no-store');
                     });
                 });
             });
+        }
+
+        /**
+         * Adds an installed app's or recipe's "Update automatically" switch to its page - and, when it's ticked but
+         * tonight's run would leave its new version alone, why.
+         *
+         * @param {Object} page The page's parts
+         * @param {string} kind apps or recipes
+         * @param {string} id   Its id
+         * @param {string} name Its name
+         *
+         * @return {void}
+         */
+        function autoSwitch(page, kind, id, name) {
+            let auto    = state.catalogue.auto;
+            let box     = element('input', { type: 'checkbox', checked: auto[kind].indexOf(id) !== -1 });
+            let planned = auto.plan[kind + ':' + id];
+
+            page.bar.appendChild(element('label', { className: 'st-switch', title: 'Every night at 04:30 (see the Activity tab)' }, [box, 'Update automatically']));
+
+            if (box.checked && planned && planned.state === 'skip' && planned.to) {
+                page.notes.appendChild(element('p', { className: 'st-notice', textContent: planned.to + ' won\'t be installed automatically: ' + planned.reason + '.' }));
+            }
+
+            box.addEventListener('change', function () {
+                let on = box.checked;
+
+                box.disabled = true;
+
+                call('auto_set', { kind: kind, id: id, on: on ? '1' : '0' }).then(function (response) {
+                    box.disabled = false;
+
+                    if (!response.ok) {
+                        box.checked              = !on;
+                        page.message.textContent = response.error;
+                        page.message.className   = 'mg-bad';
+
+                        return;
+                    }
+
+                    state.catalogue.auto     = response.auto;
+                    page.message.textContent = on ? name + ' is updated automatically, every night at 04:30.' : name + ' is no longer updated automatically.';
+                    page.message.className   = 'mg-ok';
+
+                    showAuto();
+                });
+            });
+        }
+
+        /**
+         * Shows the automatic updates on the Activity tab: what tonight's run would do with each ticked app and recipe,
+         * what the last one did, and the ntfy topic (when the ntfy app is installed).
+         *
+         * @return {void}
+         */
+        function showAuto() {
+            let auto  = state.catalogue.auto;
+            let list  = part('auto-list');
+            let keys  = Object.keys(auto.plan);
+            let topic = part('auto-topic');
+
+            list.textContent = '';
+
+            keys.forEach(function (key) {
+                let item = auto.plan[key];
+                let text = {
+                    update:  'updated to ' + item.to + ' tonight',
+                    current: 'up to date (' + item.from + ')',
+                    skip:    (item.to ? item.to + ' left for you: ' : 'not updated: ') + item.reason
+                }[item.state];
+
+                list.appendChild(element('li', { className: item.state === 'skip' ? 'mg-bad' : '' }, [element('strong', { textContent: item.name }), ' - ' + text]));
+            });
+
+            if (!keys.length) {
+                list.appendChild(element('li', { className: 'mg-note', textContent: 'None are ticked yet.' }));
+            }
+
+            let done = auto.last.results.filter(function (result) {
+                return result.state === 'updated' || result.state === 'failed';
+            }).map(function (result) {
+                return result.name + (result.state === 'updated' ? ' updated to ' : ' failed to update to ') + result.to;
+            });
+
+            part('auto-last').textContent = auto.last.checked ? 'Last run ' + auto.last.checked.replace('T', ' ').slice(0, 16) + ': ' + (done.length ? done.join('; ') : 'nothing needed updating') + '.' : '';
+
+            part('auto-ntfy').hidden = !auto.ntfy && !auto.topic;
+
+            if (document.activeElement !== topic) {
+                topic.value = auto.topic;
+            }
         }
 
         /**
@@ -1397,6 +1505,8 @@ header('Cache-Control: no-store');
             }
 
             page.notes.appendChild(element('p', { className: 'mg-note', textContent: 'Installed ' + details.installed.version + ' - its folder: ' + details.installed.data }));
+
+            autoSwitch(page, 'recipes', item.id, details.name);
 
             if (details.mounts && details.mounts.length) {
                 // What to type in the app's own settings, e.g. Immich's external libraries
@@ -2054,6 +2164,23 @@ header('Cache-Control: no-store');
 
         button('refresh').addEventListener('click', function () {
             refresh('Refreshing the repositories…');
+        });
+
+        button('auto-topic').addEventListener('click', function () {
+            say('Saving…', true, 'auto-message');
+
+            call('auto_topic', { topic: part('auto-topic').value.trim() }).then(function (response) {
+                if (!response.ok) {
+                    say(response.error, false, 'auto-message');
+
+                    return;
+                }
+
+                state.catalogue.auto = response.auto;
+
+                say(response.auto.topic ? 'Saved - the automatic updates are told to "' + response.auto.topic + '".' : 'Saved - ntfy isn\'t told.', true, 'auto-message');
+                showAuto();
+            });
         });
 
         button('repo-add').addEventListener('click', function () {

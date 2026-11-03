@@ -1049,7 +1049,8 @@ function job_installed_recipe(string $id): array
  * Updates a recipe to its repository's version: its files, its settings (only new options are asked), its images and
  * containers, with its hooks.
  *
- * @param array<string, mixed> $spec The job: the recipe's id (target) and the wizard's answers
+ * @param array<string, mixed> $spec The job: the recipe's id (target), the wizard's answers, and defaults (true to
+ *                                   give new options their defaults - unattended)
  *
  * @return string The outcome, for the page
  *
@@ -1078,8 +1079,19 @@ function job_recipe_update(array $spec): string
 
     $data    = $record['data'];
     $current = store_recipe_values($record, $old);
+    $answers = $spec['answers'] ?? [];
 
-    list($values, $errors) = store_answers($recipe, $spec['answers'] ?? [], $current, 'update');
+    // Unattended (the automatic updates): new options take the values the page would offer - one without a usable
+    // default (e.g. a new password) still needs the user
+    if (!empty($spec['defaults'])) {
+        foreach (store_wizard($recipe, $current, 'update') as $field) {
+            if (!array_key_exists($field['key'], $answers)) {
+                $answers[$field['key']] = $field['value'];
+            }
+        }
+    }
+
+    list($values, $errors) = store_answers($recipe, $answers, $current, 'update');
 
     if ($errors) {
         job_fail('Some settings aren\'t valid: '.implode('; ', $errors));
@@ -1237,6 +1249,96 @@ function job_recipe_uninstall(array $spec): string
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Automatic updates
+
+/**
+ * The nightly automatic updates (started by lib/auto_update.php): each ticked app and recipe with a newer version is
+ * updated as its page's Update does - one at a time, the Store itself last (see store_auto_plan()). One failing doesn't
+ * stop the others; what happened to each is recorded, and the ntfy app told (store_auto_record()).
+ *
+ * @param array<string, mixed> $spec The job
+ *
+ * @return string The outcome, for the page
+ *
+ * @throws JobFailed When one of them failed (after all were tried)
+ */
+function job_auto_update(array $spec): string
+{
+    $results = [];
+    $counts  = ['updated' => 0, 'failed' => 0, 'skip' => 0];
+
+    foreach (store_auto_plan() as $item) {
+        if ($item['state'] === 'current') {
+            $results[] = $item + ['message' => ''];
+
+            continue;
+        }
+
+        if ($item['state'] === 'skip') {
+            job_log('Not updating '.$item['name'].($item['to'] !== '' ? ' to '.$item['to'] : '').': '.$item['reason']);
+
+            $results[] = $item + ['message' => ''];
+            $counts['skip']++;
+
+            continue;
+        }
+
+        job_log('== Updating '.$item['name'].' from '.$item['from'].' to '.$item['to']);
+
+        try {
+            if ($item['kind'] === 'apps') {
+                $message = job_app_install(['repo' => $item['repo'], 'target' => $item['id']], true);
+            } else {
+                $message = job_recipe_update(['action' => 'recipe_update', 'target' => $item['id'], 'answers' => [], 'defaults' => true]);
+            }
+
+            job_log($message);
+
+            $results[] = ['state' => 'updated', 'message' => $message] + $item;
+            $counts['updated']++;
+        } catch (Exception $exception) {
+            $message = $exception->getMessage();
+
+            // A recipe whose new version asks for settings (before anything was changed): left for the user, who gives
+            // them on its page - reported once, as other updates left for them are
+            if ($item['kind'] === 'recipes' && strpos($message, 'Some settings aren\'t valid') === 0) {
+                $reason = 'its new version needs settings - update it from its page ('.$message.')';
+
+                job_log('Not updating '.$item['name'].' to '.$item['to'].': '.$reason);
+
+                $results[] = ['state' => 'skip', 'reason' => $reason, 'message' => ''] + $item;
+                $counts['skip']++;
+
+                continue;
+            }
+
+            job_log('Failed: '.$message);
+
+            $results[] = ['state' => 'failed', 'message' => $message] + $item;
+            $counts['failed']++;
+        }
+    }
+
+    store_auto_record($results);
+
+    $parts = [];
+
+    foreach (['updated' => '%d updated', 'failed' => '%d failed', 'skip' => '%d skipped'] as $state => $format) {
+        if ($counts[$state]) {
+            $parts[] = sprintf($format, $counts[$state]);
+        }
+    }
+
+    $summary = 'Automatic updates: '.($parts ? implode(', ', $parts) : 'nothing to update');
+
+    if ($counts['failed']) {
+        job_fail($summary.' - see the log');
+    }
+
+    return $summary;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 try {
     $actions = [
@@ -1247,6 +1349,7 @@ try {
         'recipe_update'    => 'job_recipe_update',
         'recipe_change'    => 'job_recipe_change',
         'recipe_uninstall' => 'job_recipe_uninstall',
+        'auto_update'      => 'job_auto_update',
     ];
 
     if (!isset($actions[$spec['action']])) {

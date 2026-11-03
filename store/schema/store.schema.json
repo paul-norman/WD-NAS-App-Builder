@@ -42,6 +42,15 @@
                 "publisher":     { "type": "string", "minLength": 1, "maxLength": 60 },
                 "sources":       { "$ref": "#/$defs/https_url" },
                 "release_notes": { "$ref": "#/$defs/https_url" },
+                "manual_update": {
+                    "type":        "object",
+                    "description": "Updating from a version before this one needs doing by hand (e.g. a data upgrade): automatic updates leave it, saying why",
+                    "required":    ["version", "reason"],
+                    "properties":  {
+                        "version": { "$ref": "#/$defs/version" },
+                        "reason":  { "type": "string", "minLength": 1 }
+                    }
+                },
                 "requires":      { "$ref": "#/$defs/requires" }
             }
         },

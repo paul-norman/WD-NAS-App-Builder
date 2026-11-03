@@ -11,7 +11,7 @@ While it's on, the Store **is the dashboard's Apps page**: the list of installed
 - **WD Store**: Western Digital's own app store, as the Apps page offered it.
 - **Repositories**: the list of catalogues the Store reads. New versions are looked for by themselves: every night, and when the page opens if it's been over an hour *(Refresh does it now)*. This project is there by default; others can be added by their address *(a GitHub repository, or the HTTPS address of a `store.json`)*.
 
-The Store works only when its page is used: nothing runs in the background. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*. **Activity** shows the log of the latest install, update or removal.
+Two things run by themselves every night: the check for new versions *(04:25)* and the [automatic updates](#automatic-updates) *(04:30, only of what you've ticked)*. Everything else happens only when the page is used. Only NAS admins can use the page *(see [Management pages](../README.md#management-pages))*. **Activity** shows the log of the latest install, update or removal, and the automatic updates.
 
 ## Trust
 
@@ -30,6 +30,18 @@ Apps and recipes run as root, so the Store is careful about where they come from
 - **Updating** an app means removing the installed version and installing the new one - the NAS's installer won't install over an app. The Store only does this for apps that keep their data outside their install folder *(e.g. `Nas_Prog/_jellyfin`)*, which this project's apps do; for others it shows that an update is available. If the NAS's installer fails after the old version was removed, the Store puts the old version back and starts it *(it keeps its files, as hard links, until the new one is in)*, and says why the installer failed. Updating or removing the Nginx app while the dashboard is reached through it asks first, as the page loses its connection: start it from `http://<nas-ip>/` instead.
 - **Removing** an app keeps its data folder; the Store says where it is. An app that another installed app needs *(its `InstDepend`)* can't be removed until that one is.
 - **Removing the Store** *(Installed → Store → Remove)* brings back the NAS's own Apps page. Everything it installed stays installed, and its settings *(e.g. your repositories)* stay in `Nas_Prog/_store` for if it's installed again. To turn it off for a while instead, untick **Running**.
+
+## Automatic updates
+
+Each installed app the Store can update, and each recipe, has an **Update automatically** switch on its page. Every night at 04:30 the Store updates those with a newer version, as their Update button would:
+
+- **From the repository each came from** - never a different one, e.g. a fork. An app installed by hand is updated from the one repository offering it; if several do, update it once from the one you want.
+- **One at a time**: apps after the apps they need *(e.g. PHP before Nginx)*, then recipes, then **the Store itself last** - so its own update can't stop the others. One failing doesn't stop the rest; an app whose new version doesn't install is put back and started, as with its Update button.
+- **Some updates are left for you**, and the **Activity** tab says why: a repository saying a version needs a step by hand *(e.g. a database's data upgrade - `manual_update` in its catalogue)*, a recipe's new version asking for a setting it can't fill in by itself *(e.g. a new password - new settings with a default take it)*, a repository whose signing key changed, or requirements not met. Its page still updates it.
+- **The Activity tab** lists what tonight's run will do with each ticked app and recipe, and what the last run did. A run that updates something shows its log there, as other jobs do.
+- **With the [ntfy app](../ntfy/README.md) installed**, give the Activity tab a topic and ntfy is told what was updated, what failed, and what was left for you *(once per version)*. Nothing is sent on nights with nothing new.
+
+Updating an app restarts it, so ticked apps are briefly down at around 04:30.
 
 ## Repositories
 
@@ -75,11 +87,11 @@ The Store's own default repository *(added on a first install)* is `STORE_DEFAUL
 
 ## Where things are
 
-| What                                                          | Where                                                                                                                                                                |
-|---------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Repositories, cached catalogues and icons, the last job's log | `Nas_Prog/_store` *(root only)*                                                                                                                                      |
-| Packages while they're installed                              | `/usr/local/apps_upload` *(the dashboard's own upload folder, on the disk - deleted once installed)*                                                                 |
-| Each recipe                                                   | `Nas_Prog/<its folder>`: `compose.yaml`, `.env`, `compose.override.yaml` *(folders chosen in its settings)*, `.store/` *(the recipe's files and the install record)* |
+| What                                                                                                        | Where                                                                                                                                                                |
+|-------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Repositories, cached catalogues and icons, the last job's log, the automatic updates' settings and last run | `Nas_Prog/_store` *(root only)*                                                                                                                                      |
+| Packages while they're installed                                                                            | `/usr/local/apps_upload` *(the dashboard's own upload folder, on the disk - deleted once installed)*                                                                 |
+| Each recipe                                                                                                 | `Nas_Prog/<its folder>`: `compose.yaml`, `.env`, `compose.override.yaml` *(folders chosen in its settings)*, `.store/` *(the recipe's files and the install record)* |
 
 ## Testing a repository
 

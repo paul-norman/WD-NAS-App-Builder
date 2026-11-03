@@ -2340,6 +2340,321 @@ function store_existing_settings(array $recipe): array
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Automatic updates: every night (lib/auto_update.php, from root's crontab) the apps and recipes ticked "Update
+// automatically" are updated, one at a time, from the repository each came from - the Store itself last
+
+/**
+ * The automatic updates' settings (Nas_Prog/_store/auto_update.json).
+ *
+ * @return array{ apps: list<string>, recipes: list<string>, topic: string } The ticked apps and recipes, and the ntfy
+ *         topic told what happened ('' for none)
+ */
+function store_auto_settings(): array
+{
+    $data     = store_read_json(store_data_path().'/auto_update.json') ?: [];
+    $settings = ['apps' => [], 'recipes' => [], 'topic' => ''];
+
+    foreach (['apps', 'recipes'] as $kind) {
+        if (isset($data[$kind]) && is_array($data[$kind])) {
+            $settings[$kind] = array_values(array_unique(array_filter($data[$kind], 'is_string')));
+        }
+    }
+
+    if (isset($data['topic']) && is_string($data['topic']) && store_valid_topic($data['topic'])) {
+        $settings['topic'] = $data['topic'];
+    }
+
+    return $settings;
+}
+
+/**
+ * Saves the automatic updates' settings.
+ *
+ * @param array{ apps: list<string>, recipes: list<string>, topic: string } $settings The settings
+ *
+ * @return bool Whether they were saved
+ */
+function store_save_auto_settings(array $settings): bool
+{
+    return store_write_json(store_data_path().'/auto_update.json', [
+        'apps'    => array_values(array_unique($settings['apps'])),
+        'recipes' => array_values(array_unique($settings['recipes'])),
+        'topic'   => $settings['topic'],
+    ]);
+}
+
+/**
+ * Whether a string is an ntfy topic: 1-64 letters, digits, _ and - ('' is no topic).
+ *
+ * @param string $topic The topic
+ *
+ * @return bool Whether it is
+ */
+function store_valid_topic(string $topic): bool
+{
+    return $topic === '' || preg_match('/^[A-Za-z0-9_-]{1,64}$/', $topic) === 1;
+}
+
+/**
+ * Whether an update needs doing by hand, as its repository says (manual_update in its catalogue entry: updating from a
+ * version before manual_update.version needs something only the user can do, e.g. a database's data upgrade).
+ *
+ * @param array<string, mixed> $entry     The app or recipe in its repository's catalogue
+ * @param string               $installed The installed version
+ *
+ * @return string Why, or '' when it can be done unattended
+ */
+function store_manual_update(array $entry, string $installed): string
+{
+    $manual = $entry['manual_update'] ?? null;
+
+    if (!is_array($manual) || !isset($manual['version']) || !is_string($manual['version'])) {
+        return '';
+    }
+
+    if (store_version_compare($installed, $manual['version']) >= 0 || store_version_compare($entry['version'], $manual['version']) < 0) {
+        return '';
+    }
+
+    $reason = isset($manual['reason']) && is_string($manual['reason']) && $manual['reason'] !== '' ? $manual['reason'] : 'its repository says so';
+
+    return 'updating to '.$manual['version'].' or later needs doing by hand: '.$reason;
+}
+
+/**
+ * What tonight's automatic updates would do with each ticked app and recipe: update it (from the repository it came
+ * from), nothing (up to date), or skip it - and why. Apps come first, each after the apps it needs (InstDepend), then
+ * recipes, then the Store itself: an update of the Store replaces the code that runs the others.
+ *
+ * @return list<array{
+ *     kind:    'apps'|'recipes',
+ *     id:      string,
+ *     name:    string,
+ *     repo:    string,
+ *     from:    string,
+ *     to:      string,
+ *     state:   'update'|'current'|'skip',
+ *     reason:  string,
+ * }> The ticked apps and recipes, in the order they're updated
+ */
+function store_auto_plan(): array
+{
+    $settings  = store_auto_settings();
+    $loaded    = store_repos_loaded();
+    $installed = store_installed_apps();
+    $by_store  = store_installed_by_store();
+    $recipes   = store_installed_recipes();
+    $model     = store_nas()['model'];
+    $plan      = [];
+
+    // The repositories offering an id, and each one's entry
+    $offered = function (string $kind, string $id) use ($loaded): array {
+        $found = [];
+
+        foreach ($loaded as $repo) {
+            foreach ($repo['store'] !== null && isset($repo['store'][$kind]) && is_array($repo['store'][$kind]) ? $repo['store'][$kind] : [] as $entry) {
+                if (isset($entry['id']) && $entry['id'] === $id) {
+                    $found[$repo['url']] = [$repo, $entry];
+                }
+            }
+        }
+
+        return $found;
+    };
+
+    foreach (['apps', 'recipes'] as $kind) {
+        foreach ($settings[$kind] as $id) {
+            $item = ['kind' => $kind, 'id' => $id, 'name' => $id, 'repo' => '', 'from' => '', 'to' => '', 'state' => 'skip', 'reason' => ''];
+
+            if ($kind === 'apps') {
+                $current = $installed[$id] ?? null;
+                $source  = isset($by_store[$id]) ? $by_store[$id]['repo'] : null;
+            } else {
+                $current = $recipes[$id] ?? null;
+                $source  = $current !== null ? $current['repo'] : null;
+            }
+
+            if ($current === null) {
+                $plan[] = ['reason' => 'it isn\'t installed'] + $item;
+
+                continue;
+            }
+
+            $item['name'] = $current['name'] ?: $id;
+            $item['from'] = (string)$current['version'];
+            $offers       = $offered($kind, $id);
+
+            // Installed by hand: no source yet - only a single repository offering it is taken as it
+            if ($source === null) {
+                if (count($offers) > 1) {
+                    $plan[] = ['reason' => 'several repositories offer it, and it was installed by hand - update it once from the one you want'] + $item;
+
+                    continue;
+                }
+
+                $source = $offers ? array_keys($offers)[0] : '';
+            }
+
+            if (!isset($offers[$source])) {
+                $plan[] = ['reason' => $source === '' ? 'no repository offers it' : 'its repository no longer offers it ('.$source.')'] + $item;
+
+                continue;
+            }
+
+            list($repo, $entry) = $offers[$source];
+
+            $item['name'] = $entry['name'];
+            $item['repo'] = $source;
+            $item['to']   = (string)$entry['version'];
+
+            if ($repo['key_changed']) {
+                $plan[] = ['reason' => 'its repository\'s signing key has changed - accept or refuse it on the Repositories tab'] + $item;
+
+                continue;
+            }
+
+            if (store_version_compare($entry['version'], $current['version']) <= 0) {
+                $plan[] = ['state' => 'current'] + $item;
+
+                continue;
+            }
+
+            $reason = store_manual_update($entry, (string)$current['version']);
+
+            if ($reason === '' && $kind === 'apps') {
+                $models = array_map(function ($package): string {
+                    return is_array($package) && isset($package['model']) ? (string)$package['model'] : '';
+                }, $entry['packages']);
+
+                if (empty($entry['keeps_data'])) {
+                    $reason = 'it can\'t be updated by the Store without losing its settings - update it by hand';
+                } elseif (!in_array($model, $models, true)) {
+                    $reason = 'there\'s no package for this NAS ('.($model ?: 'unknown model').')';
+                }
+            }
+
+            if ($reason === '') {
+                foreach (store_check_requires($entry['requires'] ?? []) as $problem) {
+                    if ($problem['level'] === 'error') {
+                        $reason = $problem['message'];
+
+                        break;
+                    }
+                }
+            }
+
+            $plan[] = ($reason === '' ? ['state' => 'update'] : ['reason' => $reason]) + $item;
+        }
+    }
+
+    // Apps after those they need, then recipes, then the Store
+    $ordered = [];
+    $apps    = array_values(array_filter($plan, function (array $item): bool {
+        return $item['kind'] === 'apps' && $item['id'] !== 'store';
+    }));
+
+    while ($apps) {
+        $progress = false;
+
+        foreach ($apps as $i => $item) {
+            $needs = array_intersect($installed[$item['id']]['depends'] ?? [], array_column($apps, 'id'));
+
+            if (!$needs) {
+                $ordered[] = $item;
+                $progress  = true;
+
+                unset($apps[$i]);
+            }
+        }
+
+        $apps = array_values($apps);
+
+        // Apps needing each other: in the order they were ticked
+        if (!$progress) {
+            $ordered = array_merge($ordered, $apps);
+            $apps    = [];
+        }
+    }
+
+    foreach ($plan as $item) {
+        if ($item['kind'] === 'recipes') {
+            $ordered[] = $item;
+        }
+    }
+
+    foreach ($plan as $item) {
+        if ($item['kind'] === 'apps' && $item['id'] === 'store') {
+            $ordered[] = $item;
+        }
+    }
+
+    return $ordered;
+}
+
+/**
+ * The last automatic updates (Nas_Prog/_store/auto_update_last.json): when they were checked, and what happened to
+ * each ticked app and recipe.
+ *
+ * @return array{ checked: string, results: list<array<string, string>> } checked is '' if they've never run; each
+ *         result is a plan item (see store_auto_plan()) whose state is updated, failed, current or skip, with a message
+ */
+function store_auto_last(): array
+{
+    $data = store_read_json(store_data_path().'/auto_update_last.json');
+
+    return [
+        'checked' => $data !== null && isset($data['checked']) && is_string($data['checked']) ? $data['checked'] : '',
+        'results' => $data !== null && isset($data['results']) && is_array($data['results']) ? array_values($data['results']) : [],
+    ];
+}
+
+/**
+ * Records what the automatic updates did, and tells the ntfy app's topic (if one is set, and the ntfy app installed)
+ * about anything new: updates, failures, and skips not reported before (a skip is reported once per version).
+ *
+ * @param list<array<string, string>> $results What happened to each ticked app and recipe
+ *
+ * @return void
+ */
+function store_auto_record(array $results): void
+{
+    $previous = store_auto_last();
+    $reported = [];
+
+    foreach ($previous['results'] as $result) {
+        if (($result['state'] ?? '') === 'skip') {
+            $reported[$result['kind'].':'.$result['id'].':'.$result['to']] = true;
+        }
+    }
+
+    store_write_json(store_data_path().'/auto_update_last.json', ['checked' => store_now(), 'results' => $results]);
+
+    $lines  = [];
+    $failed = false;
+
+    foreach ($results as $result) {
+        if ($result['state'] === 'updated') {
+            $lines[] = $result['name'].' updated to '.$result['to'];
+        } elseif ($result['state'] === 'failed') {
+            $lines[] = $result['name'].' '.$result['to'].' failed: '.$result['message'];
+            $failed  = true;
+        } elseif ($result['state'] === 'skip' && $result['to'] !== '' && !isset($reported[$result['kind'].':'.$result['id'].':'.$result['to']])) {
+            $lines[] = $result['name'].' '.$result['to'].' not installed: '.$result['reason'];
+        }
+    }
+
+    $topic = store_auto_settings()['topic'];
+    $token = trim((string)@file_get_contents(store_apps_path().'/_ntfy/token'));
+
+    if (!$lines || $topic === '' || $token === '' || !isset(store_installed_apps()['ntfy'])) {
+        return;
+    }
+
+    store_run(['curl', '-sS', '-f', '--max-time', '10', '-H', 'Authorization: Bearer '.$token, '-H', 'Title: Store: automatic updates',
+        '-H', 'Tags: '.($failed ? 'warning' : 'package'), '--data-binary', '@-', 'http://127.0.0.1:2586/'.$topic], [], null, implode("\n", $lines));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Descriptions: a small, safe subset of Markdown (everything escaped first; links only to HTTPS addresses)
 
 /**

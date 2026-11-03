@@ -312,6 +312,34 @@ function api_app_label($id)
     return $id;
 }
 
+/**
+ * The automatic updates, for the page: the ticked apps and recipes, the ntfy topic (and whether the ntfy app is there
+ * to send to it), what tonight's run would do with each, and what the last one did.
+ *
+ * @return array{
+ *     apps:    list<string>,
+ *     recipes: list<string>,
+ *     topic:   string,
+ *     ntfy:    bool,
+ *     plan:    array<string, array<string, string>>,
+ *     last:    array{ checked: string, results: list<array<string, string>> },
+ * } plan is keyed by kind:id
+ */
+function api_auto(): array
+{
+    $plan = [];
+
+    foreach (store_auto_plan() as $item) {
+        $plan[$item['kind'].':'.$item['id']] = $item;
+    }
+
+    return store_auto_settings() + [
+        'ntfy' => isset(store_installed_apps()['ntfy']),
+        'plan' => (object)$plan,
+        'last' => store_auto_last(),
+    ];
+}
+
 if ($action === 'job') {
     manage_json(api_job($jobs));
 }
@@ -444,7 +472,50 @@ if ($action === 'catalogue') {
         'orphan_recipes' => $orphans,
         'categories'     => STORE_CATEGORIES,
         'volume'         => store_volume(),
+        'auto'           => api_auto(),
     ]);
+}
+
+if ($action === 'auto_set') {
+    // Ticks or unticks an installed app's or recipe's "Update automatically"
+    $kind     = isset($_POST['kind']) && $_POST['kind'] === 'recipes' ? 'recipes' : 'apps';
+    $id       = isset($_POST['id']) ? (string)$_POST['id'] : '';
+    $on       = !empty($_POST['on']);
+    $settings = store_auto_settings();
+
+    if ($on && !isset(($kind === 'apps' ? store_installed_apps() : store_installed_recipes())[$id])) {
+        manage_fail(404, 'It isn\'t installed');
+    }
+
+    $settings[$kind] = array_values(array_diff($settings[$kind], [$id]));
+
+    if ($on) {
+        $settings[$kind][] = $id;
+    }
+
+    if (!store_save_auto_settings($settings)) {
+        manage_fail(500, 'Could not save the setting');
+    }
+
+    manage_json(['auto' => api_auto()]);
+}
+
+if ($action === 'auto_topic') {
+    // The ntfy topic told about the automatic updates ('' for none)
+    $topic    = isset($_POST['topic']) ? trim((string)$_POST['topic']) : '';
+    $settings = store_auto_settings();
+
+    if (!store_valid_topic($topic)) {
+        manage_fail(400, 'Topics are 1-64 letters, digits, _ and -');
+    }
+
+    $settings['topic'] = $topic;
+
+    if (!store_save_auto_settings($settings)) {
+        manage_fail(500, 'Could not save the setting');
+    }
+
+    manage_json(['auto' => api_auto()]);
 }
 
 if ($action === 'details') {

@@ -89,6 +89,7 @@ Apps and recipes share these:
 | `sources`       | optional | URL where the source of the packaged software (and the build) can be found - repositories MUST provide one for GPL / AGPL software                                                                                                 |
 | `release_notes` | optional | URL                                                                                                                                                                                                                                |
 | `requires`      | optional | Section 5                                                                                                                                                                                                                          |
+| `manual_update` | optional | `{"version": "19.0", "reason": "..."}`: updating from a version before `version` to it or later needs something only the user can do (e.g. a database's data upgrade). The Store's automatic updates leave such an update for the user, showing `reason`; updating from its page still works. Keep it in the entry while older versions may still be installed
 
 ## 3. Native apps
 
@@ -143,6 +144,7 @@ Apps and recipes share these:
 - **Install**: checks the requirements (section 5) and the model; downloads the model's package into `/usr/local/apps_upload/` (a link to the first volume's `.systemfile/upload` - on disk, not in RAM) under a temporary name, checks its size and SHA256, renames it to the package's file name, then runs `upload_apkg -m -p <file name> -t 2` - the dashboard's own manual install. `/tmp/upload_apkg_status` is `1` once installed. WD's installer checks the package's own signature, firmware versions and free space too, and deletes the file once installed.
 - **Installed apps** and their versions are read from `/var/www/xml/apkg_all.xml` (`<name>`, `<show>`, `<version>`, `<enable>`).
 - **Update** (a newer `version`): only for apps with `keeps_data: true` - the Store removes the installed app (`del_apkg <id>`, which runs its `stop.sh`, `clean.sh` and `remove.sh`), then installs the new package. `upload_apkg` refuses to install over an installed app (status `4`). Other apps show that an update is available, to be done by hand.
+- **Automatic updates** (optional, per app and recipe): once a night, each ticked app or recipe with a newer `version` in the repository it came from is updated as above - one at a time, apps after those they need, then recipes, then the Store itself. An update its entry's `manual_update` covers, or one whose requirements aren't met, is left for the user, saying why.
 - **Uninstall**: `del_apkg <id>`. The app's `data_folder` is kept; the Store says where it is.
 
 ## 4. Recipes

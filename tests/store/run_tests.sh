@@ -1,7 +1,7 @@
 #!/bin/bash
 # Tests the Store app in a stand-in for the NAS (see README.md):
 #
-#     tests/store/run_tests.sh [repos_apps|recipes|immich|pihole|arr|signatures|ui|all] [--php 7.4|8.5|both]
+#     tests/store/run_tests.sh [repos_apps|recipes|auto|immich|pihole|arr|signatures|ui|all] [--php 7.4|8.5|both]
 #
 # Default: all (except ui) on PHP 7.4. Needs Docker on Linux (host networking; ports 8080, 8443, 18081 and 2283 free),
 # Python 3, and the apps' packages built for the PR4100 (the Store's is built here). Work files go in $STORE_TEST_WORK
@@ -16,8 +16,8 @@ PHP='7.4'
 [ "${2:-}" = '--php' ] && PHP="${3:-7.4}"
 
 case "${WHAT}" in
-    all) TESTS='repos_apps recipes immich pihole arr signatures' ;;
-    repos_apps|recipes|immich|pihole|arr|signatures|ui) TESTS="${WHAT}" ;;
+    all) TESTS='repos_apps recipes auto immich pihole arr signatures' ;;
+    repos_apps|recipes|auto|immich|pihole|arr|signatures|ui) TESTS="${WHAT}" ;;
     *) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac
 

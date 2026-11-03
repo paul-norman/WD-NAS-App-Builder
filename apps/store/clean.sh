@@ -25,10 +25,10 @@
 log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
 rm -rf "${APP_WEB_PATH}" "${APP_MANAGE_PATH}"
 
-# Remove the daily repository check
+# Remove the daily repository check and the automatic updates
 CRONTAB='/var/spool/cron/crontabs/root'
 
-if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-refresh" "${CRONTAB}"; then
-    grep -v "${APP_NAME}-refresh" "${CRONTAB}" > "${CRONTAB}.tmp"
+if [ -f "${CRONTAB}" ] && grep -q -e "${APP_NAME}-refresh" -e "${APP_NAME}-auto-update" "${CRONTAB}"; then
+    grep -v -e "${APP_NAME}-refresh" -e "${APP_NAME}-auto-update" "${CRONTAB}" > "${CRONTAB}.tmp"
     mv "${CRONTAB}.tmp" "${CRONTAB}"
 fi
