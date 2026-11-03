@@ -12,7 +12,7 @@ apps/*/manage/manage_helpers.php
 apps/*/*.sign
 apps/*/*.xml
 
-/store/tools/__pycache__/
+__pycache__/
 
 toolchains/*/work*
 local.mk
