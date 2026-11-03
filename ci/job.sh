@@ -19,35 +19,51 @@ find . -path ./packages -prune -o -type f -name '*.sh' -exec chmod +x {} +
 KIND="$1"
 NAME="$2"
 FAILED=''
+# The packages that couldn't be got (not tried again for the next command)
+FAILED_NEEDS=' '
 
-# Gets the packages a suite needs.
+# Gets the packages a command needs (each only once: ci/package.sh remembers those got, FAILED_NEEDS those that
+# couldn't be).
 #
-# $1 suite The suite's name (an app, or recipe:<id>)
+# $1 needs The apps, comma separated (or -)
 #
 # Returns 0 once all are got, 1 if one couldn't be
 get_needs() {
     local need
 
-    for need in $(python3 ci/plan.py --tests "$1" | head -n 1); do
-        if [[ " ${BUILD_SET:-} " == *" ${need} "* ]]; then
-            ci/package.sh "${need}" build || return 1
-        else
-            ci/package.sh "${need}" fetch || return 1
+    for need in ${1//,/ }; do
+        [ "${need}" = '-' ] && continue
+        [[ "${FAILED_NEEDS}" == *" ${need} "* ]] && return 1
+        local mode='fetch'
+        [[ " ${BUILD_SET:-} " == *" ${need} "* ]] && mode='build'
+
+        if ! ci/package.sh "${need}" "${mode}"; then
+            FAILED_NEEDS="${FAILED_NEEDS}${need} "
+
+            return 1
         fi
     done
 
     return 0
 }
 
-# Runs a suite's commands, each in a group of the log.
+# Runs a suite's commands, each in a group of the log, after getting what it needs (a command whose needs can't be got
+# fails alone).
 #
-# $1 suite The suite's name
+# $1 suite The suite's name (an app, or recipe:<id>)
 #
 # Prints their output; adds each failed command to FAILED
 run_suite() {
+    local needs
     local command
 
-    while IFS= read -r command; do
+    while IFS=$'\t' read -r needs command; do
+        if ! get_needs "${needs}"; then
+            echo "::error::Not run (the packages it needs: ${needs}): ${command}"
+            FAILED="${FAILED}"$'\n'"${command} (the packages it needs)"
+            continue
+        fi
+
         echo "::group::${command}"
         bash -c "${command}"
         local status=$?
@@ -57,11 +73,10 @@ run_suite() {
             echo "::error::Failed: ${command}"
             FAILED="${FAILED}"$'\n'"${command}"
         fi
-    done < <(python3 ci/plan.py --tests "$1" | tail -n +2)
+    done < <(python3 ci/plan.py --tests "$1")
 }
 
 if [ "${KIND}" = 'recipe' ]; then
-    get_needs "recipe:${NAME}" || exit 1
     run_suite "recipe:${NAME}"
 else
     MODE="${3:-build}"
@@ -96,11 +111,7 @@ else
     echo '::endgroup::'
 
     if [ "${SUITE}" = 'yes' ]; then
-        if get_needs "${NAME}"; then
-            run_suite "${NAME}"
-        else
-            FAILED="${FAILED}"$'\n'"the packages ${NAME}'s suite needs"
-        fi
+        run_suite "${NAME}"
     fi
 fi
 

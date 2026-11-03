@@ -1,8 +1,13 @@
 """
 Changes the test repositories' store.json (and re-signs it):
 
-    add-recipe <repo> <fixture> | set-app <repo> <id> <field> <json>
-    | sign <repo> <key> | tamper <repo> | evil <dir>
+    add-recipe <repo> <fixture> | add-app <repo> <id> <keeps_data>
+    | set-app <repo> <id> <field> <json> | sign <repo> <key>
+    | tamper <repo> | evil <dir>
+
+add-app adds a test app (version 1.0, with a small package for the PR4100 -
+WD's installer's stand-in never opens it), with or without keeps_data
+(true / false).
 """
 import base64, hashlib, json, os, pathlib, shutil, subprocess, sys, tempfile
 
@@ -127,6 +132,36 @@ if cmd == "add-recipe":
     store = load()
     store["recipes"] = [
         e for e in store["recipes"] if e["id"] != r["id"]
+    ] + [entry]
+    save(store, key)
+elif cmd == "add-app":
+    app_id, keeps = sys.argv[3], sys.argv[4] == "true"
+    version, model = "1.0", "MyCloudPR4100"
+    name = f"{app_id}_{version}_{model}.bin"
+    package = repo / "packages" / app_id / version / name
+    package.parent.mkdir(parents=True, exist_ok=True)
+    package.write_bytes(f"{app_id} {version} test package\n".encode() * 64)
+    entry = {
+        "id": app_id,
+        "name": app_id.capitalize(),
+        "version": version,
+        "summary": f"A test app ({'keeps' if keeps else 'without'} its data)",
+        "categories": ["development"],
+        "license": "MIT",
+        "packages": [{
+            "model": model,
+            "url": f"https://repo.test:8443/releases/{app_id}/{version}/{name}",
+            "size": package.stat().st_size,
+            "sha256": hashlib.sha256(package.read_bytes()).hexdigest(),
+        }],
+    }
+
+    if keeps:
+        entry.update({"data_folder": f"_{app_id}", "keeps_data": True})
+
+    store = load()
+    store["apps"] = [
+        a for a in store["apps"] if a["id"] != app_id
     ] + [entry]
     save(store, key)
 elif cmd == "set-app":

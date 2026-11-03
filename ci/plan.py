@@ -14,8 +14,8 @@ keeps_data in store/metadata.json.
 
 The plan is printed as JSON, and with --github also written to
 $GITHUB_OUTPUT (matrix, recipes, build_set) and $GITHUB_STEP_SUMMARY.
---tests prints what a suite needs (its first line, the apps, space
-separated) and its commands (one a line), for ci/job.sh.
+--tests prints a suite's commands, one a line after the apps it needs
+(comma separated, or -) and a tab, for ci/job.sh.
 """
 
 import argparse
@@ -518,21 +518,13 @@ def summary(result, problems):
 
 def print_tests(name):
     """
-    Prints what a suite needs and its commands (see the module's
+    Prints a suite's commands with what each needs (see the module's
     description).
 
     :param str name: The suite (an app, or recipe:<id>)
     """
-    lines = suites().get(name, [])
-    needs = []
-
-    for line_needs, _ in lines:
-        needs += [need for need in line_needs if need not in needs]
-
-    print(" ".join(needs))
-
-    for _, command in lines:
-        print(command)
+    for needs, command in suites().get(name, []):
+        print(f"{','.join(needs) or '-'}\t{command}")
 
 
 def main():

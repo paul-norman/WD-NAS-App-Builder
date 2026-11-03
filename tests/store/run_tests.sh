@@ -107,6 +107,9 @@ for version in ${VERSIONS}; do
         docker run --rm -v "${WORK}:${WORK}" busybox:1.36 rm -rf "${WORK}/vol" "${WORK}/www"
         "${PROJ}/store/tools/make_test_repo.sh" "${WORK}/www/repo" https://repo.test:8443/ \
             --package-url 'https://repo.test:8443/releases/{id}/{version}/{file}' --link 2>&1 | grep -v '^warning: no packages' > /dev/null
+        # The apps the tests install: test apps of their own, without and with keeps_data (no app needs building)
+        python3 "${HERE}/bin/repotool.py" add-app "${WORK}/www/repo" plain false
+        python3 "${HERE}/bin/repotool.py" add-app "${WORK}/www/repo" keeper true
         log="${WORK}/${test}-php${version}.log"
         echo "== ${test} (PHP ${version})"
         # The page stays up for a browser: its output comes straight here
