@@ -667,6 +667,108 @@ def debian_files(source, version):
     return files
 
 
+def aports_from_gitlab(origin, commit, target):
+    """
+    Copies an Alpine package's aports folder from Alpine's GitLab (an archive
+    of just that folder). It seems to refuse some machines (GitHub's runners
+    among them), so a failure is only reported.
+
+    :param str          origin: The package's origin (its aports folder)
+    :param str          commit: The aports commit
+    :param pathlib.Path target: Where its files go
+
+    :return: True if its APKBUILD is there now
+    """
+    archive = target.parent / f".{origin}.tar.gz"
+    errors = []
+
+    for repository in ("main", "community"):
+        url = (
+            "https://gitlab.alpinelinux.org/alpine/aports/-/archive/"
+            f"{commit}/aports-{commit}.tar.gz?path={repository}/{origin}"
+        )
+
+        try:
+            download(url, archive)
+
+            with tarfile.open(archive) as tar:
+                prefix = f"aports-{commit}-{repository}-{origin}/{repository}/"
+                members = [
+                    member for member in tar.getmembers()
+                    if member.name.startswith(prefix + origin + "/")
+                    and member.isfile()
+                ]
+
+                for member in members:
+                    path = target / member.name[len(prefix) + len(origin) + 1:]
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(tar.extractfile(member).read())
+        except (OSError, tarfile.TarError) as error:
+            errors.append(f"{repository}: {error}")
+        finally:
+            archive.unlink(missing_ok=True)
+
+        if (target / "APKBUILD").is_file():
+            return True
+
+    print(f"  aports {origin} from GitLab failed ({'; '.join(errors)})")
+
+    return False
+
+
+def aports_from_github(origin, commit, target):
+    """
+    Copies an Alpine package's aports folder from Alpine's mirror of aports
+    on GitHub: just that folder, at the commit (a sparse, shallow fetch).
+
+    :param str          origin: The package's origin (its aports folder)
+    :param str          commit: The aports commit
+    :param pathlib.Path target: Where its files go
+
+    :return: True if its APKBUILD is there now
+    """
+    with tempfile.TemporaryDirectory() as work:
+        def git(*args):
+            subprocess.run(
+                ["git", "-C", work, *args], check=True, capture_output=True
+            )
+
+        try:
+            git("init", "-q")
+            git(
+                "remote", "add", "origin",
+                "https://github.com/alpinelinux/aports",
+            )
+            git(
+                "sparse-checkout", "set", "--no-cone",
+                f"/main/{origin}/", f"/community/{origin}/",
+            )
+            git(
+                "fetch", "-q", "--depth", "1", "--filter=blob:none",
+                "origin", commit,
+            )
+            git("checkout", "-q", "FETCH_HEAD")
+        except subprocess.CalledProcessError as error:
+            reason = error.stderr.decode().strip()
+            print(f"  aports {origin} from GitHub: {reason}")
+
+            return False
+
+        for repository in ("main", "community"):
+            source = pathlib.Path(work) / repository / origin
+
+            if (source / "APKBUILD").is_file():
+                for path in source.rglob("*"):
+                    if path.is_file():
+                        copy = target / path.relative_to(source)
+                        copy.parent.mkdir(parents=True, exist_ok=True)
+                        copy.write_bytes(path.read_bytes())
+
+                return True
+
+    return False
+
+
 def alpine_files(origin, version, commit, folder):
     """
     Downloads an Alpine package's source: its aports folder (APKBUILD and
@@ -685,37 +787,11 @@ def alpine_files(origin, version, commit, folder):
     """
     target = folder / f"{origin}-{version}"
     target.mkdir(parents=True, exist_ok=True)
-    archive = target.parent / f".{origin}.tar.gz"
 
-    for repository in ("main", "community"):
-        url = (
-            "https://gitlab.alpinelinux.org/alpine/aports/-/archive/"
-            f"{commit}/aports-{commit}.tar.gz?path={repository}/{origin}"
-        )
-
-        try:
-            download(url, archive)
-        except OSError:
-            continue
-
-        with tarfile.open(archive) as tar:
-            prefix = f"aports-{commit}-{repository}-{origin}/{repository}/"
-            members = [
-                member for member in tar.getmembers()
-                if member.name.startswith(prefix + origin + "/")
-                and member.isfile()
-            ]
-
-            for member in members:
-                path = target / member.name[len(prefix) + len(origin) + 1:]
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(tar.extractfile(member).read())
-
-        archive.unlink()
-
-        if (target / "APKBUILD").is_file():
-            break
-    else:
+    if not (
+        aports_from_gitlab(origin, commit, target)
+        or aports_from_github(origin, commit, target)
+    ):
         raise OSError(f"aports {commit} has no {origin}")
 
     # The APKBUILD is a shell script setting source and sha512sums: it's read

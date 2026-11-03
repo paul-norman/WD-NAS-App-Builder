@@ -56,7 +56,7 @@ The packages contain other people's software, much of it under licenses that ask
 |---|---|---|
 | `upstream/` | Each copyleft component the build downloads *(e.g. ffmpeg, Icecast)*, or, for a program included as its makers release it *(e.g. Grafana, Jellyfin, Calibre)*, their source release - the components within it are covered by their makers' own source offers | [`sources/<app>.conf`](sources) |
 | `python/`, `npm/` | The copyleft Python and npm packages in the app's bundle *(found from their own metadata)* | PyPI and npm, checked against the digests they publish |
-| `debian/`, `alpine/` | The copyleft distribution packages a static build may have linked in *(their static libraries)* or bundles *(shared libraries copied into the app)* | Debian's archives *(or its snapshot archive)*, Alpine's aports at the commit each was built from *(its APKBUILD read in a container without a network)* - checked against their own checksums |
+| `debian/`, `alpine/` | The copyleft distribution packages a static build may have linked in *(their static libraries)* or bundles *(shared libraries copied into the app)* | Debian's archives *(or its snapshot archive)*, Alpine's aports at the commit each was built from (from Alpine's GitLab, else its GitHub mirror: GitLab seems to refuse GitHub's runners) *(its APKBUILD read in a container without a network)* - checked against their own checksums |
 | *(other folders)* | Sources a static build kept itself *(PHP: every library static-php-cli built in)* | The build |
 | `build-files.tar.gz` | This repository's files that built the packages | The commit |
 
