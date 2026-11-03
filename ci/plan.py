@@ -31,6 +31,10 @@ sys.path.insert(0, str(REPO / "store" / "tools"))
 
 import build_store  # noqa: E402
 
+sys.path.insert(0, str(REPO / "ci"))
+
+import sources  # noqa: E402
+
 # Files every app's build uses: a change rebuilds (and tests) every app
 SHARED_BUILD = (
     "apps/helpers.sh",
@@ -41,6 +45,9 @@ SHARED_BUILD = (
     "build_static.sh",
     "mksapkg-OS5",
     "docker/",
+    # Every static build's survey (its sources)
+    "ci/survey.sh",
+    "ci/survey_inside.sh",
 )
 # Test files every suite uses: a change runs every app's suite
 SHARED_TESTS = ("tests/common/", "tests/images/")
@@ -182,7 +189,9 @@ def suites():
 
         if app not in found:
             with_file = path.parent / "with"
-            needs = with_file.read_text().split() if with_file.is_file() else []
+            needs = (
+                with_file.read_text().split() if with_file.is_file() else []
+            )
             found[app] = [(needs, f"tests/common/run.sh {app} --php both")]
 
     return found
@@ -228,7 +237,8 @@ def served_recipe_files(recipe):
 def check_rules(all_apps, problems):
     """
     Checks the rules that hold whatever changed: every app is in the shared
-    package test and states keeps_data (true, or false on purpose).
+    package test, states keeps_data (true, or false on purpose), and lists
+    the sources of what its build downloads (ci/sources/<app>.conf).
 
     :param list all_apps: The apps
     :param list problems: Where problems are added
@@ -244,6 +254,8 @@ def check_rules(all_apps, problems):
                 f"{app}: not in the shared package test (add it to"
                 " tests/apps/apps.conf)"
             )
+
+        problems += sources.check(app)
 
         if "keeps_data" not in metadata.get(app, {}):
             problems.append(
@@ -280,7 +292,8 @@ def classify(changed, all_apps):
         parts = path.split("/")
 
         if any(
-            path == shared or (shared.endswith("/") and path.startswith(shared))
+            path == shared
+            or (shared.endswith("/") and path.startswith(shared))
             for shared in SHARED_BUILD
         ):
             found["shared_build"] = True
@@ -483,7 +496,10 @@ def summary(result, problems):
         lines.append("")
 
     if result["matrix"]:
-        lines += ["| App | Package | Own suite | Release |", "|---|---|---|---|"]
+        lines += [
+            "| App | Package | Own suite | Release |",
+            "|---|---|---|---|",
+        ]
 
         for item in result["matrix"]:
             lines.append(

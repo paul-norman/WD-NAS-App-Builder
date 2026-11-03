@@ -97,14 +97,21 @@ fi
 # build scripts' own chown, and again here for any that don't), whose ID isn't always 1000 (e.g. 1001 in GitHub's CI)
 HOST_IDS="$(id -u):$(id -g)"
 
-if ! docker run --rm ${DOCKER_TTY} --platform "${PLATFORM}" -e HOST_IDS="${HOST_IDS}" -v "$(pwd)":/data "${IMAGE}:latest" \
-    /bin/bash -c "\
+if ! docker run --rm ${DOCKER_TTY} --platform "${PLATFORM}" -e HOST_IDS="${HOST_IDS}" -v "$(pwd)":/data \
+    "${IMAGE}:latest" /bin/bash -c "\
 	cd /data/static/${APP_NAME};\
 	/bin/bash ./build.sh;\
 	status=\$?;\
 	chown -R ${HOST_IDS} /data/packages/static/${APP_NAME} 2>/dev/null;\
 	exit \$status;"; then
     echo "Static build of ${APP_NAME} (${ARCH}) failed!"
+
+    exit 1
+fi
+
+# The distribution packages the build may have put into its output, for its sources (ci/README.md, Sources)
+if ! bash ci/survey.sh "${APP_NAME}" "${ARCH}" "${VERSION}"; then
+    echo "The survey of static ${APP_NAME} (${ARCH}) failed!"
 
     exit 1
 fi

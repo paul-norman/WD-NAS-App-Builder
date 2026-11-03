@@ -4,10 +4,11 @@
 #
 #     ci/package.sh <app> build|fetch
 #
-# build: builds every model (./build.sh), its static build restored from the build cache (the build-cache release's
-# assets, named after a hash of static/<app> and build_static.sh) when there, and added to it when not and
-# CACHE_UPLOAD=yes. fetch: downloads the PR4100 package and the amd64 bundle the tests use from the release of its
-# version, and builds it if there's none. Needs gh (GH_TOKEN) and zstd. Each app is only got once per job.
+# build: builds every model (./build.sh), its static build (with its survey, <arch>.sources) restored from the build
+# cache (the build-cache release's assets, named after a hash of static/<app>, build_static.sh and the survey's scripts)
+# when there, and added to it when not and CACHE_UPLOAD=yes. fetch: downloads the PR4100 package and the amd64 bundle
+# the tests use from the release of its version, and builds it if there's none. Needs gh (GH_TOKEN) and zstd. Each app
+# is only got once per job.
 set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
@@ -36,11 +37,13 @@ static_version() {
     sed -n 's/^VERSION=//p' "static/${APP}/build.sh" | head -n 1
 }
 
-# The cache key of the app's static build: what it's built from (static/<app> as committed, and build_static.sh).
+# The cache key of the app's static build: what it's built from (static/<app> as committed, build_static.sh and the
+# survey's scripts - ci/release.py computes it too).
 #
 # Prints it (16 hex digits)
 static_key() {
-    printf '%s %s' "$(git rev-parse "HEAD:static/${APP}")" "$(git hash-object build_static.sh)" | sha256sum | cut -c1-16
+    printf '%s %s %s %s' "$(git rev-parse "HEAD:static/${APP}")" "$(git hash-object build_static.sh)" \
+        "$(git hash-object ci/survey.sh)" "$(git hash-object ci/survey_inside.sh)" | sha256sum | cut -c1-16
 }
 
 # Restores the app's static build (amd64) from the build cache, unless it's already there.
@@ -86,10 +89,14 @@ save_static() {
         return 0
     fi
 
-    tar -I 'zstd -T0 -12' -cf "${TEMP}/${asset}" -C "packages/static/${APP}/${version}" amd64 || return 0
+    local parts='amd64'
+    [ -d "packages/static/${APP}/${version}/amd64.sources" ] && parts='amd64 amd64.sources'
+    # shellcheck disable=SC2086
+    tar -I 'zstd -T0 -12' -cf "${TEMP}/${asset}" -C "packages/static/${APP}/${version}" ${parts} || return 0
 
     if [ "$(stat -c %s "${TEMP}/${asset}")" -gt "${CACHE_MAX_BYTES}" ]; then
-        echo "::warning::Static ${APP} ${version} is too big for the build cache ($(du -h "${TEMP}/${asset}" | cut -f1))"
+        echo "::warning::Static ${APP} ${version} is too big for the build cache" \
+            "($(du -h "${TEMP}/${asset}" | cut -f1))"
         rm -f "${TEMP}/${asset}"
 
         return 0

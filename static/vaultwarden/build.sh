@@ -12,6 +12,9 @@ set -x
 
 # Must match the image tag in amd64.Dockerfile
 VERSION=1.37.5
+# The web vault in that image (vault_version in Vaultwarden's docker/DockerSettings.yaml at its tag): checked below, and
+# used for its source (ci/sources/vaultwarden.conf)
+WEB_VAULT_VERSION=2026.10.1
 SQLITE_VERSION=3540100
 SQLITE_YEAR=2026
 # SQLite publishes SHA3-256 hashes: 92281c86e2957f9b9305890f9ac04204caa7b677cc868dc326d942689df28e30 - checked to match
@@ -103,6 +106,11 @@ function run() {
     # The image's program must be the version being packaged, and static
     /opt/vaultwarden/vaultwarden --version | grep -q "^Vaultwarden ${VERSION}$" || { echo "The image holds $(/opt/vaultwarden/vaultwarden --version), not ${VERSION}"; exit 1; }
     check_static /opt/vaultwarden/vaultwarden
+    if ! grep -q "\"${WEB_VAULT_VERSION}\"" /opt/vaultwarden/web-vault/version.json; then
+        echo "The image's web vault is $(cat /opt/vaultwarden/web-vault/version.json), not ${WEB_VAULT_VERSION}"
+
+        exit 1
+    fi
 
     build_sqlite
     build_argon2

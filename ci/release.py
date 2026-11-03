@@ -121,6 +121,10 @@ def release_notes(app, version):
         " (the dashboard's Apps page, manual install). The amd64 bundle is"
         " the packages' contents, for the tests.",
         "",
+        f"Sources: `{app}_{version}_SOURCES.md` lists the sources of what"
+        f" the packages contain (and where they come from), which are in"
+        f" `{app}_{version}_sources.tar`, with the files that built them.",
+        "",
     ]
     paths = [f"apps/{app}", f"static/{app}"]
 
@@ -155,6 +159,9 @@ def publish(dist):
 
         if release_exists(tag):
             print(f"{tag}: already released")
+        elif not (folder / f"{app}_{version}_SOURCES.md").is_file():
+            # Its sources couldn't all be fetched (ci/sources.py release)
+            print(f"::error::{tag}: not released - its sources are missing")
         else:
             (folder / "SHA256SUMS").write_text(
                 "".join(f"{sha256(file)}  {file.name}\n" for file in files)
@@ -246,7 +253,10 @@ def cache_assets_in_use():
 
     :return: Their names
     """
-    builder = plan.git("hash-object", "build_static.sh")
+    builders = " ".join(
+        plan.git("hash-object", path)
+        for path in ("build_static.sh", "ci/survey.sh", "ci/survey_inside.sh")
+    )
     names = set()
 
     for folder in sorted((REPO / "static").iterdir()):
@@ -261,7 +271,7 @@ def cache_assets_in_use():
             continue
 
         tree = plan.git("rev-parse", f"HEAD:static/{folder.name}")
-        key = hashlib.sha256(f"{tree} {builder}".encode()).hexdigest()[:16]
+        key = hashlib.sha256(f"{tree} {builders}".encode()).hexdigest()[:16]
         names.add(f"{folder.name}_{match.group(1)}_amd64_{key}.tar.zst")
 
     return names

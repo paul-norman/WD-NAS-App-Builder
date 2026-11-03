@@ -5,9 +5,10 @@
 #     ci/job.sh recipe <id>
 #
 # For an app: gets its package (ci/package.sh), copies what a release would publish into dist/<app>/ (before any test
-# rebuilds it), gets the packages its suite needs (built when they're in BUILD_SET, the apps this run builds, else
-# fetched), then runs the shared package test and, with yes, its own suite (ci/tests.conf). For a recipe: gets the
-# packages its suite needs, then runs it. Every test runs even after one fails; exits non-zero if any did.
+# rebuilds it) with, when SOURCES=yes, its sources (ci/sources.py release), gets the packages its suite needs (built
+# when they're in BUILD_SET, the apps this run builds, else fetched), then runs the shared package test and, with yes,
+# its own suite (ci/tests.conf). For a recipe: gets the packages its suite needs, then runs it. Every test runs even
+# after one fails; exits non-zero if any did.
 set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
@@ -74,6 +75,20 @@ else
         cp "packages/${NAME}/${VERSION}/${NAME}_${VERSION}_"*.bin "dist/${NAME}/"
         cp "packages/${NAME}/${VERSION}/${NAME}_${VERSION}_amd64.tar.gz" "dist/${NAME}/"
         printf '%s' "${VERSION}" > "dist/${NAME}/version"
+
+        # The sources a release needs (SOURCES=yes: an app to release); without all of them it isn't released
+        if [ "${SOURCES:-no}" = 'yes' ]; then
+            echo "::group::Sources of ${NAME} ${VERSION}"
+            python3 ci/sources.py release "${NAME}" "dist/${NAME}"
+            STATUS=$?
+            echo '::endgroup::'
+
+            if [ "${STATUS}" != 0 ]; then
+                echo "::error::The sources of ${NAME} ${VERSION} couldn't all be fetched"
+
+                exit 1
+            fi
+        fi
     fi
 
     echo "::group::Shared package test: ${NAME}"

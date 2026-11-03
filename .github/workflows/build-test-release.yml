@@ -103,6 +103,8 @@ jobs:
           APP: ${{ matrix.app }}
           MODE: ${{ matrix.mode }}
           SUITE: ${{ matrix.suite && 'yes' || 'no' }}
+          # The sources its release needs (ci/README.md, Sources)
+          SOURCES: ${{ matrix.release && vars.RELEASES == 'on' && 'yes' || 'no' }}
         run: |
           mkdir -p "${RUNNER_TEMP}/tmp"
           export TMPDIR="${RUNNER_TEMP}/tmp"
@@ -207,6 +209,10 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ steps.bot.outputs.token }}
+
+      # Every app's packages and sources come here
+      - name: Free disk space
+        run: bash ci/free_disk.sh
 
       - name: Python with jsonschema
         run: |

@@ -41,10 +41,11 @@ function build_php() {
     tar -xzf spc.tar.gz
     chmod +x spc
 
-    # Build tools, then the sources (PHP pinned to this exact version)
+    # Build tools, then the sources (PHP pinned to this exact version). Every library is built from its source (not
+    # static-php-cli's pre-built ones), so that the sources kept below are exactly what's in the binaries
     ./spc doctor --auto-fix
     ./spc download --for-extensions="${EXTENSIONS}" --for-libs="${LIBS}" \
-        --custom-url="php-src:https://www.php.net/distributions/php-${VERSION}.tar.gz" --prefer-pre-built
+        --custom-url="php-src:https://www.php.net/distributions/php-${VERSION}.tar.gz"
     # Stops the build if the source isn't there under its own name, rather than skipping the check
     echo "${PHP_SHA256}  downloads/php-${VERSION}.tar.gz" | sha256sum -c -
     ./spc build "${EXTENSIONS}" --with-libs="${LIBS}" --build-cli --build-fpm
@@ -64,6 +65,13 @@ function run() {
     cp ${BUILD_PATH}/buildroot/bin/php ${BUILD_PATH}/buildroot/bin/php-fpm ${OUTPUT_PATH}/
     ${OUTPUT_PATH}/php -v
     ${OUTPUT_PATH}/php -m > ${OUTPUT_PATH}/extensions.txt
+
+    # The sources of PHP and the libraries built into it, for the app's releases (ci/README.md, Sources)
+    rm -rf ${OUTPUT_PATH}.sources
+    mkdir -p ${OUTPUT_PATH}.sources/spc-downloads
+    # (archives, folders of sources checked out, and static-php-cli's record of their versions: .lock.json)
+    cp -r ${BUILD_PATH}/downloads/. ${OUTPUT_PATH}.sources/spc-downloads/
+    du -sh ${OUTPUT_PATH}.sources
 
     # Create a latest release file for ease of use in packages
     LATEST_PATH="$(dirname ${OUTPUT_PATH})"
