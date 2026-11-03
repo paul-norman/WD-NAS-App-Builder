@@ -26,6 +26,10 @@ CW_EXTRAS=comics,kobo
 CW_METADATA="rarfile>=3.2,<5.0 markdown2>=2.0.0,<2.6.0 html2text>=2020.1.16,<2025.4.16 python-dateutil>=2.1,<2.10.0
 beautifulsoup4>=4.0.1,<4.16.0 faust-cchardet>=2.1.18,<2.1.20 py7zr>=0.15.0,<0.21.0 mutagen>=1.40.0,<1.50.0
 pycountry>=20.0.0,<27.0.0"
+# Newer than Calibre-Web allows (its caps lag behind security fixes): versions with their fixes, which keep the parts it uses
+# (pypdf's PdfReader, tornado's WSGI server, cryptography's Fernet, certifi's CAs). Not py7zr: 1.x drops the read() it
+# and comicapi use - its open advisories are for extractall() (unused) and CPU / memory use on a crafted .cb7 upload
+CW_OVERRIDES="pypdf==6.21.4 tornado==6.6 cryptography==50.0.2 certifi==2026.10.23"
 CALIBRE_VERSION=9.17.0
 # Calibre's own, from https://calibre-ebook.com/signatures/calibre-<version>-x86_64.txz.sha512
 CALIBRE_SHA512=9faf38f6bb0593598208fbde1be247d698a98d9f16e130ca6507049a02b1d9b65f7d10eeca15f5073d0372f7bb2d45d6c63d39a37f1b13a3cbaf81918e715711
@@ -76,13 +80,24 @@ function get_calibre_web() {
     tar -xzf uv.tar.gz
     local uv=${BUILD_PATH}/uv-x86_64-unknown-linux-musl/uv
 
-    if [ ! -f ${LOCK} ]; then
-        { echo "calibreweb[${CW_EXTRAS}]==${VERSION}"; echo "${CW_METADATA}" | tr ' ' '\n'; } > requirements.in
-        ${uv} pip compile --quiet --python ${APP}/python/bin/python3 --generate-hashes --no-header requirements.in -o ${LOCK}
+    { echo "calibreweb[${CW_EXTRAS}]==${VERSION}"; echo "${CW_METADATA}" | tr ' ' '\n'; } > requirements.in
+    echo "${CW_OVERRIDES}" | tr ' ' '\n' > overrides.txt
+    # An override the lock doesn't have yet: only that package (and what it needs) moved on, the rest kept as locked
+    local upgrade='' pin
+
+    for pin in ${CW_OVERRIDES}; do
+        grep -q "^${pin} " ${LOCK} 2>/dev/null || upgrade="${upgrade} --upgrade-package ${pin%%==*}"
+    done
+
+    if [ ! -f ${LOCK} ] || [ -n "${upgrade}" ]; then
+        ${uv} pip compile --quiet --python ${APP}/python/bin/python3 --generate-hashes --no-header requirements.in \
+            --overrides overrides.txt ${upgrade} -o ${LOCK}
     fi
-    # The lock must hold Calibre-Web's own published checksum
+    # The lock must hold Calibre-Web's own published checksum. It's complete (with the overrides), so it's installed as it
+    # is: without its packages' own requirements checked again, which would refuse the overrides
     grep -q "${CW_WHEEL_SHA256}" ${LOCK}
-    ${uv} pip install --python ${APP}/python/bin/python3 --break-system-packages --require-hashes -r ${LOCK}
+    ${uv} pip install --python ${APP}/python/bin/python3 --break-system-packages --require-hashes -r ${LOCK} \
+        --no-deps
     # Its compiled bytecode, made now for a faster start (the app's folder isn't writable by its user)
     ${APP}/python/bin/python3 -m compileall -q ${APP}/python/lib/python3.14/site-packages > /dev/null || true
     # Not needed by a server: the terminal database (its folders also differ only in case, which a Windows drive holding
