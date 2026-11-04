@@ -257,7 +257,12 @@ prepare_system() {
 
     # Pods route through the NAS, and their bridge's traffic goes through iptables
     echo 1 > /proc/sys/net/ipv4/ip_forward
-    [ -f /proc/sys/net/bridge/bridge-nf-call-iptables ] && echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables
+
+    if [ -f /proc/sys/net/bridge/bridge-nf-call-iptables ]; then
+        echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables
+    else
+        log 'WARNING: no br_netfilter - pods will not reach services whose pods share their bridge (e.g. CoreDNS)'
+    fi
 
     # The pods' logs are kept with the cluster, not in the NAS's small /var/log (in RAM)
     mkdir -p "${POD_LOGS}" /var/log

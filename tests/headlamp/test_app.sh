@@ -34,6 +34,10 @@ if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
     xargs -rn1 < /sys/fs/cgroup/cgroup.procs > /sys/fs/cgroup/init/cgroup.procs 2>/dev/null || true
     sed -e 's/ / +/g' -e 's/^/+/' < /sys/fs/cgroup/cgroup.controllers > /sys/fs/cgroup/cgroup.subtree_control
 fi
+# Pods reaching each other's services across their bridge need the bridge's traffic to go through iptables
+# (br_netfilter: the app loads WD's on the NAS; a test machine's kernel may not have it loaded - GitHub's runners don't)
+[ -d /proc/sys/net/bridge ] || /t/bb/busybox modprobe br_netfilter 2>/dev/null
+[ -d /proc/sys/net/bridge ] || echo 'FAIL br_netfilter: not loaded, and it could not be loaded (the host has no /lib/modules?)'
 command -v /sbin/ip > /dev/null || ln -sf /t/bb/busybox /sbin/ip
 
 echo '== with k3s and Nginx'

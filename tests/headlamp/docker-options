@@ -1,1 +1,1 @@
---privileged --cgroupns=private --tmpfs /mnt/HD:rw,exec,size=8g
+--privileged --cgroupns=private --tmpfs /mnt/HD:rw,exec,size=8g -v /lib/modules:/lib/modules:ro

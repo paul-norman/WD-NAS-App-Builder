@@ -21,6 +21,10 @@ node_ready() {
     return 1
 }
 # The NAS has ip in /sbin (BusyBox's): the stand-in only has it in the suite's own PATH, which the page doesn't get
+# Pods reaching each other's services across their bridge need the bridge's traffic to go through iptables
+# (br_netfilter: the app loads WD's on the NAS; a test machine's kernel may not have it loaded - GitHub's runners don't)
+[ -d /proc/sys/net/bridge ] || /t/bb/busybox modprobe br_netfilter 2>/dev/null
+[ -d /proc/sys/net/bridge ] || echo 'FAIL br_netfilter: not loaded, and it could not be loaded (the host has no /lib/modules?)'
 command -v /usr/local/bin/ip > /dev/null || ln -sf /t/bb/busybox /usr/local/bin/ip
 # Whether a memory amount (e.g. 123Ki) is less than a fraction of another: below <a> <b> <fraction>
 below() { echo "${1%Ki} ${2%Ki} $3" | awk '{ exit !($1 != "" && $1 + 0 > 0 && $1 < $2 * $3) }'; }
@@ -97,7 +101,7 @@ kc wait --for=condition=Ready pod/web --timeout=300s > /dev/null && pass 'a pod 
 kc run client --image=busybox:1.37 --restart=Never --command -- sh -c \
     'for i in 1 2 3 4 5 6 7 8 9 10; do wget -qO- -T 10 http://web.default.svc.cluster.local/ && exit 0; sleep 3; done; exit 1' > /dev/null
 kc wait --for=jsonpath='{.status.phase}'=Succeeded pod/client --timeout=180s > /dev/null; R=$(kc logs client); kc delete pod client > /dev/null
-[ "$R" = 'hello from the NAS' ] && pass 'another pod reaches it by its Service name (CoreDNS, kube-proxy, pod network)' || fail "service: $R"
+[ "$R" = 'hello from the NAS' ] && pass 'another pod reaches it by its Service name (CoreDNS, kube-proxy, pod network)' || fail "service: $R - bridge filtered: $(cat /proc/sys/net/bridge/bridge-nf-call-iptables 2>&1) - $(kc -n kube-system get pods,endpoints -l k8s-app=kube-dns -o wide | tr '\n' ';')"
 IP=$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p')
 R=$(curl -s -m 10 http://$IP:30080/)
 [ "$R" = 'hello from the NAS' ] && pass "its NodePort on the NAS's address ($IP:30080)" || fail "nodeport: $R"
