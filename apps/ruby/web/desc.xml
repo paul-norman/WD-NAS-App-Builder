@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Ruby: the Ruby language, RubyGems and Bundler, to run and build Ruby programs on the NAS.</en-US>
+	<fr-FR>Ruby : le langage Ruby, RubyGems et Bundler, pour exécuter et créer des programmes Ruby sur le NAS.</fr-FR>
+	<es-ES>Ruby: el lenguaje Ruby, RubyGems y Bundler, para ejecutar y crear programas Ruby en el NAS.</es-ES>
+	<de-DE>Ruby: die Sprache Ruby, RubyGems und Bundler, um Ruby-Programme auf dem NAS auszuführen und zu erstellen.</de-DE>
+</config>

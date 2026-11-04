@@ -41,6 +41,7 @@
         "prometheus":         { "categories": ["monitoring"], "license": "Apache-2.0", "data_folder": "_prometheus", "keeps_data": true },
         "python":             { "categories": ["development", "system"], "license": "PSF-2.0", "data_folder": "_python", "keeps_data": true, "replaces": ["python3"] },
         "redis_exporter":     { "categories": ["monitoring", "databases"], "license": "MIT", "data_folder": "_redis_exporter", "keeps_data": true, "requires": { "apps": ["valkey"] } },
+        "ruby":               { "categories": ["development"], "license": "Ruby OR BSD-2-Clause", "data_folder": "_ruby", "keeps_data": true },
         "store":              { "categories": ["system"], "data_folder": "_store", "keeps_data": true },
         "syncthing":          { "categories": ["files", "backup"], "license": "MPL-2.0", "data_folder": "_syncthing", "keeps_data": true, "web": { "local_port": 8384, "nginx": { "name": "syncthing" } } },
         "tailscale":          { "categories": ["network"], "license": "BSD-3-Clause", "data_folder": "_tailscale", "keeps_data": true },
