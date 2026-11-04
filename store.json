@@ -4,8 +4,8 @@
     "summary": "Native apps and Docker recipes for WD My Cloud OS5 NAS devices",
     "homepage": "https://github.com/paul-norman/WD-NAS-App-Builder",
     "maintainer": "Paul Norman",
-    "updated": "2026-11-04T09:35:18Z",
-    "base_url": "https://raw.githubusercontent.com/paul-norman/WD-NAS-App-Builder/900975c43f906f3e5e86d91163c85b725a3c2809/",
+    "updated": "2026-11-04T10:10:39Z",
+    "base_url": "https://raw.githubusercontent.com/paul-norman/WD-NAS-App-Builder/52efcba02c65ad471d603c467378752585900e28/",
     "public_key": "ed25519:MCowBQYDK2VwAyEAHsYCEvCfStihrnbt6J59Q7pbTRldt3PXdjxkwBJI3RY=",
     "apps": [
         {
@@ -15,7 +15,7 @@
             "summary": "Manage the MariaDB and PostgreSQL apps' databases in a web browser (through the Nginx app)",
             "icon": "apps/adminer/web/adminer.svg",
             "homepage": "https://www.adminer.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/adminer",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/adminer",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/adminer-v6.2.0-3",
             "firmware": {
                 "min": "5.27.157"
@@ -66,7 +66,7 @@
             "summary": "Your audiobooks and podcasts, streamed to your phone and browser - with your place kept across devices",
             "icon": "apps/audiobookshelf/web/audiobookshelf.svg",
             "homepage": "https://www.audiobookshelf.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/audiobookshelf",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/audiobookshelf",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/audiobookshelf-v2.37.2-1",
             "firmware": {
                 "min": "5.27.157"
@@ -118,7 +118,7 @@
             "summary": "Error tracking for your own programs and websites - they report their errors with Sentry's SDKs, Bugsink groups them into issues",
             "icon": "apps/bugsink/web/bugsink.png",
             "homepage": "https://www.bugsink.com/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/bugsink",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/bugsink",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/bugsink-v2.6.2",
             "firmware": {
                 "min": "5.27.157"
@@ -173,7 +173,7 @@
             "summary": "Your e-book library in the browser - read, convert, send to e-readers and sync Kobos",
             "icon": "apps/calibre-web/web/calibre-web.svg",
             "homepage": "https://github.com/janeczku/calibre-web",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/calibre-web",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/calibre-web",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/calibre-web-v0.6.27-3",
             "firmware": {
                 "min": "5.27.157"
@@ -225,7 +225,7 @@
             "summary": "Your shares in the browser - upload (resumable, any size), download, search, thumbnails and media playback, WebDAV and SFTP",
             "icon": "apps/copyparty/web/copyparty.svg",
             "homepage": "https://github.com/9001/copyparty",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/copyparty",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/copyparty",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/copyparty-v1.20.26-1",
             "firmware": {
                 "min": "5.27.157"
@@ -277,7 +277,7 @@
             "summary": "Run applications in containers on the NAS, with Docker Compose and the Portainer web UI",
             "icon": "apps/docker/web/logo.svg",
             "homepage": "https://docker.com",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/docker",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/docker",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/docker-v29.9.2",
             "firmware": {
                 "min": "5.27.157"
@@ -359,7 +359,7 @@
             ]
         },
         {
-            "id": "emby",
+            "id": "embyserver",
             "version": "4.10.2.0",
             "name": "Emby Server",
             "summary": "Organises your films, TV, music and photos, and streams them to your TVs, phones and computers - the official Emby package for WD's NAS models",
@@ -369,6 +369,7 @@
             "categories": [
                 "media"
             ],
+            "keeps_data": true,
             "web": {
                 "port": 8096,
                 "path": "/web/index.html"
@@ -437,7 +438,7 @@
             "summary": "The opkg package manager, with thousands of extra command line tools for the NAS",
             "icon": "apps/entware/web/entware.svg",
             "homepage": "https://entware.net/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/entware",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/entware",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/entware-v26.10.19",
             "firmware": {
                 "min": "5.27.157"
@@ -518,7 +519,7 @@
             "summary": "Your own Git server - repositories, issues and pull requests, on the NAS",
             "icon": "apps/forgejo/web/forgejo.svg",
             "homepage": "https://forgejo.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/forgejo",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/forgejo",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/forgejo-v15.0.11",
             "firmware": {
                 "min": "5.27.157"
@@ -569,7 +570,7 @@
             "summary": "The Go programming language and tools, to build and run Go programs on the NAS",
             "icon": "apps/golang/web/logo.svg",
             "homepage": "https://go.dev/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/golang",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/golang",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/golang-v1.27.3",
             "firmware": {
                 "min": "5.27.157"
@@ -613,7 +614,7 @@
             "summary": "Dashboards and alerts for the NAS's metrics (from the Prometheus app) and other data sources",
             "icon": "apps/grafana/web/grafana.svg",
             "homepage": "https://grafana.com/oss/grafana/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/grafana",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/grafana",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/grafana-v13.3.0-1",
             "firmware": {
                 "min": "5.27.157"
@@ -664,7 +665,7 @@
             "summary": "Your own internet radio station - broadcast live from a PC, or a folder of music from the NAS around the clock",
             "icon": "apps/icecast/web/icecast.svg",
             "homepage": "https://icecast.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/icecast",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/icecast",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/icecast-v2.5.0-2",
             "firmware": {
                 "min": "5.27.157"
@@ -716,7 +717,7 @@
             "summary": "The free media server - stream your films, TV, music and photos, with hardware transcoding",
             "icon": "apps/jellyfin/web/jellyfin.svg",
             "homepage": "https://jellyfin.org",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/jellyfin",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/jellyfin",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/jellyfin-v12.4",
             "firmware": {
                 "min": "5.27.157"
@@ -767,7 +768,7 @@
             "summary": "Encrypted, deduplicated, versioned backups of the NAS to the cloud (B2, S3, Google Drive...), another server or a USB drive",
             "icon": "apps/kopia/web/kopia.svg",
             "homepage": "https://kopia.io/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/kopia",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/kopia",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/kopia-v0.23.1",
             "firmware": {
                 "min": "5.27.157"
@@ -818,7 +819,7 @@
             "summary": "Browse and edit the Valkey app's keys in a web browser (through the Nginx app)",
             "icon": "apps/kvweb/web/kvweb.svg",
             "homepage": "https://github.com/natrimmer/kvweb",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/kvweb",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/kvweb",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/kvweb-v0.2.5-2",
             "firmware": {
                 "min": "5.27.157"
@@ -875,7 +876,7 @@
             "summary": "Loki and Vector: collect the NAS's and apps' logs, searchable in Grafana",
             "icon": "apps/loki/web/loki.svg",
             "homepage": "https://grafana.com/oss/loki/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/loki",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/loki",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/loki-v3.7.9-1",
             "firmware": {
                 "min": "5.27.157"
@@ -920,7 +921,7 @@
             "summary": "Catches the emails your apps send and shows them in a web interface, for testing",
             "icon": "apps/mailpit/web/logo.svg",
             "homepage": "https://mailpit.axllent.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/mailpit",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/mailpit",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/mailpit-v1.33.0",
             "firmware": {
                 "min": "5.27.157"
@@ -1006,7 +1007,7 @@
             "summary": "MariaDB 11.8 LTS: replaces the NAS's own MariaDB 10.5 (on a copy of its data), e.g. for phpMyAdmin (Intel models)",
             "icon": "apps/mariadb/web/logo.svg",
             "homepage": "https://mariadb.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/mariadb",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/mariadb",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/mariadb-v11.8.9",
             "firmware": {
                 "min": "5.27.157"
@@ -1054,7 +1055,7 @@
             "summary": "Your music library and streaming services, played on Sonos and other speakers",
             "icon": "apps/music-assistant/web/music-assistant.svg",
             "homepage": "https://www.music-assistant.io/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/music-assistant",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/music-assistant",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/music-assistant-v2.10.9",
             "firmware": {
                 "min": "5.27.157"
@@ -1109,7 +1110,7 @@
             "summary": "MariaDB's metrics for Prometheus and Grafana - the NAS's MariaDB (WD's own, or the MariaDB app's): queries, connections and InnoDB, with a dashboard",
             "icon": "apps/mysqld_exporter/web/mysqld_exporter.svg",
             "homepage": "https://github.com/prometheus/mysqld_exporter",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/mysqld_exporter",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/mysqld_exporter",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/mysqld_exporter-v0.21.0",
             "firmware": {
                 "min": "5.27.157"
@@ -1155,7 +1156,7 @@
             "summary": "GNU nano: a small, easy to use command line text editor",
             "icon": "apps/nano/web/nano.png",
             "homepage": "https://www.nano-editor.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/nano",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/nano",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/nano-v9.3",
             "firmware": {
                 "min": "5.27.157"
@@ -1202,7 +1203,7 @@
             "summary": "Stream your music collection to your browser and phone (Subsonic apps)",
             "icon": "apps/navidrome/web/navidrome.svg",
             "homepage": "https://www.navidrome.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/navidrome",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/navidrome",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/navidrome-v0.64.2",
             "firmware": {
                 "min": "5.27.157"
@@ -1254,7 +1255,7 @@
             "summary": "HTTPS for the NAS's apps (e.g. https://jellyfin.example.com), with free certificates from Let's Encrypt",
             "icon": "apps/nginx/web/logo.svg",
             "homepage": "https://nginx.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/nginx",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/nginx",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/nginx-v1.30.6-7",
             "firmware": {
                 "min": "5.27.157"
@@ -1300,7 +1301,7 @@
             "summary": "The NAS's hardware, system and WD storage metrics for Prometheus and Grafana",
             "icon": "apps/node_exporter/web/node_exporter.svg",
             "homepage": "https://github.com/prometheus/node_exporter",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/node_exporter",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/node_exporter",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/node_exporter-v1.12.1",
             "firmware": {
                 "min": "5.27.157"
@@ -1381,7 +1382,7 @@
             "summary": "The JavaScript runtime, with npm, to run JavaScript applications on the NAS",
             "icon": "apps/nodejs/web/logo.svg",
             "homepage": "https://nodejs.org",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/nodejs",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/nodejs",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/nodejs-v26.13.0",
             "firmware": {
                 "min": "5.27.157"
@@ -1425,7 +1426,7 @@
             "summary": "Push notifications to your phone and browser, from the NAS's apps and scripts",
             "icon": "apps/ntfy/web/ntfy.svg",
             "homepage": "https://ntfy.sh/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/ntfy",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/ntfy",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/ntfy-v2.37.0",
             "firmware": {
                 "min": "5.27.157"
@@ -1476,7 +1477,7 @@
             "summary": "OpenSSH 10.6: replaces the NAS's own SSH server (OpenSSH 8.4 from 2020) - same settings, host key and login - and adds SSH keys from its page (Intel models)",
             "icon": "apps/openssh/web/openssh.svg",
             "homepage": "https://www.openssh.com/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/openssh",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/openssh",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/openssh-v10.6.1",
             "firmware": {
                 "min": "5.27.157"
@@ -1525,7 +1526,7 @@
             "summary": "Browse and query the PostgreSQL app's databases in a web browser (through the Nginx app)",
             "icon": "apps/pgweb/web/pgweb.svg",
             "homepage": "https://github.com/sosedoff/pgweb",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/pgweb",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/pgweb",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/pgweb-v0.17.0-2",
             "firmware": {
                 "min": "5.27.157"
@@ -1576,7 +1577,7 @@
             "summary": "PHP 8.5: replaces the NAS's own PHP 7.4, for its web interface and its PHP scripts (Intel models)",
             "icon": "apps/php/web/logo.svg",
             "homepage": "https://www.php.net/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/php",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/php",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/php-v8.5.12-2",
             "firmware": {
                 "min": "5.27.157"
@@ -1625,7 +1626,7 @@
             "summary": "Manage the NAS's MySQL (MariaDB) databases from a web interface",
             "icon": "apps/phpMyAdmin/web/logo.png",
             "homepage": "https://www.phpmyadmin.net/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/phpMyAdmin",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/phpMyAdmin",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/phpMyAdmin-v5.2.3-1",
             "firmware": {
                 "min": "5.27.157"
@@ -1796,7 +1797,7 @@
             "summary": "PostgreSQL's metrics for Prometheus and Grafana - the PostgreSQL app's activity, transactions and cache, with a dashboard",
             "icon": "apps/postgres_exporter/web/postgres_exporter.svg",
             "homepage": "https://github.com/prometheus-community/postgres_exporter",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/postgres_exporter",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/postgres_exporter",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/postgres_exporter-v0.20.1",
             "firmware": {
                 "min": "5.27.157"
@@ -1847,7 +1848,7 @@
             "summary": "PostgreSQL 18: the advanced open source database, for apps on the NAS or the network (Intel models)",
             "icon": "apps/postgresql/web/logo.svg",
             "homepage": "https://www.postgresql.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/postgresql",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/postgresql",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/postgresql-v18.6-1",
             "firmware": {
                 "min": "5.27.157"
@@ -1892,7 +1893,7 @@
             "summary": "Collects and stores the NAS's metrics (from the Node Exporter app and others), for Grafana and alerts",
             "icon": "apps/prometheus/web/prometheus.svg",
             "homepage": "https://prometheus.io/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/prometheus",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/prometheus",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/prometheus-v3.15.1-1",
             "firmware": {
                 "min": "5.27.157"
@@ -1937,7 +1938,7 @@
             "summary": "Python 3.14: replaces the NAS's own Python 3.9 as python3, with pip, venv and uv (Intel models)",
             "icon": "apps/python/web/python.svg",
             "homepage": "https://www.python.org/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/python",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/python",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/python-v3.14.10",
             "firmware": {
                 "min": "5.27.157"
@@ -1986,7 +1987,7 @@
             "summary": "Valkey's metrics for Prometheus and Grafana - the Valkey app's memory, clients, commands and keys, with a dashboard",
             "icon": "apps/redis_exporter/web/redis_exporter.svg",
             "homepage": "https://github.com/oliver006/redis_exporter",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/redis_exporter",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/redis_exporter",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/redis_exporter-v1.96.0",
             "firmware": {
                 "min": "5.27.157"
@@ -2037,7 +2038,7 @@
             "summary": "Installs native apps and Docker recipes from this project's repository and others you add",
             "icon": "apps/store/web/store.svg",
             "homepage": "https://github.com/paul-norman/WD-NAS-App-Builder",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/store",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/store",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/store-v0.2.25",
             "firmware": {
                 "min": "5.27.157"
@@ -2117,7 +2118,7 @@
             "summary": "Continuous, private, peer-to-peer file synchronisation between your devices",
             "icon": "apps/syncthing/web/syncthing.svg",
             "homepage": "https://syncthing.net/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/syncthing",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/syncthing",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/syncthing-v2.1.7",
             "firmware": {
                 "min": "5.27.157"
@@ -2205,7 +2206,7 @@
             "summary": "Secure, private access to the NAS from anywhere, over WireGuard",
             "icon": "apps/tailscale/web/tailscale.svg",
             "homepage": "https://tailscale.com/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/tailscale",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/tailscale",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/tailscale-v1.104.4",
             "firmware": {
                 "min": "5.27.157"
@@ -2286,7 +2287,7 @@
             "summary": "Who's watching what on Plex - history, statistics, graphs and notifications for Plex Media Server",
             "icon": "apps/tautulli/web/tautulli.svg",
             "homepage": "https://tautulli.com/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/tautulli",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/tautulli",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/tautulli-v2.18.2",
             "firmware": {
                 "min": "5.27.157"
@@ -2338,7 +2339,7 @@
             "summary": "Monitors your websites, services and devices, and alerts you when they go down",
             "icon": "apps/uptime-kuma/web/uptime-kuma.svg",
             "homepage": "https://github.com/louislam/uptime-kuma",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/uptime-kuma",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/uptime-kuma",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/uptime-kuma-v2.5.9",
             "firmware": {
                 "min": "5.27.157"
@@ -2389,7 +2390,7 @@
             "summary": "A fast in-memory key/value database, and a drop-in replacement for Redis",
             "icon": "apps/valkey/web/logo.svg",
             "homepage": "https://valkey.io/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/valkey",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/valkey",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/valkey-v9.1.3",
             "firmware": {
                 "min": "5.27.157"
@@ -2434,7 +2435,7 @@
             "summary": "A lightweight Bitwarden-compatible password manager server, for all your devices",
             "icon": "apps/vaultwarden/web/vaultwarden.svg",
             "homepage": "https://github.com/dani-garcia/vaultwarden",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/vaultwarden",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/vaultwarden",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/vaultwarden-v1.37.5-1",
             "firmware": {
                 "min": "5.27.157"
@@ -2490,7 +2491,7 @@
             "summary": "A fast, modern VPN into your home network - phones and laptops connect to the NAS from anywhere (QR codes for the WireGuard app)",
             "icon": "apps/wireguard/web/wireguard.svg",
             "homepage": "https://www.wireguard.com/",
-            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/900975c43f906f3e5e86d91163c85b725a3c2809/apps/wireguard",
+            "sources": "https://github.com/paul-norman/WD-NAS-App-Builder/tree/52efcba02c65ad471d603c467378752585900e28/apps/wireguard",
             "release_notes": "https://github.com/paul-norman/WD-NAS-App-Builder/releases/tag/wireguard-v0.0.20250522-1",
             "firmware": {
                 "min": "5.27.157"
