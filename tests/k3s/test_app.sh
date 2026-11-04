@@ -21,10 +21,9 @@ node_ready() {
     return 1
 }
 # The NAS has ip in /sbin (BusyBox's): the stand-in only has it in the suite's own PATH, which the page doesn't get
-# Pods reaching each other's services across their bridge need the bridge's traffic to go through iptables
-# (br_netfilter: the app loads WD's on the NAS; a test machine's kernel may not have it loaded - GitHub's runners don't)
-[ -d /proc/sys/net/bridge ] || /t/bb/busybox modprobe br_netfilter 2>/dev/null
-[ -d /proc/sys/net/bridge ] || echo 'FAIL br_netfilter: not loaded, and it could not be loaded (the host has no /lib/modules?)'
+# Pods reaching each other's services across their bridge need its traffic to go through iptables (br_netfilter: the
+# app loads WD's on the NAS). GitHub's runners don't have it loaded: k3s loads it itself, from the host's modules
+# (docker-options mounts /lib/modules)
 command -v /usr/local/bin/ip > /dev/null || ln -sf /t/bb/busybox /usr/local/bin/ip
 # Whether a memory amount (e.g. 123Ki) is less than a fraction of another: below <a> <b> <fraction>
 below() { echo "${1%Ki} ${2%Ki} $3" | awk '{ exit !($1 != "" && $1 + 0 > 0 && $1 < $2 * $3) }'; }
@@ -125,7 +124,8 @@ R=$(post settings -d memory=25 -d servicelb=1)
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && grep -q '^MEMORY=25$' $D/settings && grep -q '^SERVICELB=1$' $D/settings \
     && pass 'saved (and k3s restarted)' || fail "settings: $R"
 node_ready
-A=$(kc get node "$N" -o jsonpath='{.status.allocatable.memory}')
+# (The node still shows its old memory until the restarted kubelet updates it)
+i=0; while [ $i -lt 60 ]; do A=$(kc get node "$N" -o jsonpath='{.status.allocatable.memory}'); below "$A" "$M" 0.3 && break; sleep 2; i=$((i + 1)); done
 below "$A" "$M" 0.3 && pass "the pods may now use a quarter: $A of $M" || fail "allocatable: $A of $M"
 [ "$(echo "$(post settings -d memory=95 -d servicelb=1)" | j '$d["ok"]')" = false ] && grep -q '^MEMORY=25$' $D/settings \
     && pass 'a share above 90% refused' || fail "95%: $(cat $D/settings)"
