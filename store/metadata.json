@@ -51,8 +51,8 @@
         "wireguard":          { "categories": ["network", "security"], "license": "MIT AND GPL-2.0-only AND LGPL-2.1-or-later", "data_folder": "_wireguard", "keeps_data": true }
     },
     "external": {
-        "emby": {
-            "_comment":   "Built by Emby for each WD NAS model (Emby's own OS5 packages, from its latest GitHub release - build_store.py --external; sizes and SHA256s from GitHub). Not keeps_data: where its package keeps its library isn't known, so the Store leaves its updates to be done by hand. It uses port 8096, as the Jellyfin app does. Its icon: Emby's own, from its resources repository (pinned to a commit)",
+        "embyserver": {
+            "_comment":   "Built by Emby for each WD NAS model (Emby's own OS5 packages, from its latest GitHub release - build_store.py --external; sizes and SHA256s from GitHub). Its id is its package's name (embyserver). Its library (programdata) is in /mnt/HD/HD_a2/emby, outside its app folder, and its remove.sh only deletes its app folder (seen on the NAS, 4.10.2.0): keeps_data. No data_folder - that's a folder in Nas_Prog. It uses port 8096, as the Jellyfin app does. Its icon: Emby's own, from its resources repository (pinned to a commit)",
             "feed":       "emby",
             "name":       "Emby Server",
             "summary":    "Organises your films, TV, music and photos, and streams them to your TVs, phones and computers - the official Emby package for WD's NAS models",
@@ -60,6 +60,7 @@
             "icon":       "https://raw.githubusercontent.com/MediaBrowser/Emby.Resources/ab08c6910828e77c6efd3e08d02a1a60e096ce63/images/Logos/logoicon512.png",
             "homepage":   "https://emby.media/",
             "categories": ["media"],
+            "keeps_data": true,
             "web":        { "port": 8096, "path": "/web/index.html" }
         },
         "plexmediaserver": {
