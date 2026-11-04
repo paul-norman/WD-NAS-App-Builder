@@ -7,6 +7,17 @@
 export PATH=$PATH:/sbin
 DOMAIN=nas.example.test
 kc() { /sbin/kubectl "$@" 2>&1; }
+# Waits (up to 4 minutes) for the cluster's node to be registered and ready: kubectl wait fails at once while there's no
+# node yet (k3s registers it a little after its API answers)
+node_ready() {
+    i=0
+    while [ $i -lt 120 ]; do
+        [ "$(kc get nodes -o 'jsonpath={.items[*].status.conditions[?(@.type=="Ready")].status}')" = True ] && return 0
+        sleep 2; i=$((i + 1))
+    done
+
+    return 1
+}
 # Headlamp's API for the cluster: api <path> [token] prints the status code (the body in /tmp/api.json)
 api() { curl -s -m 10 -o /tmp/api.json -w '%{http_code}' ${2:+-H "Authorization: Bearer $2"} "http://127.0.0.1:4466/clusters/nas$1"; }
 site() { p=$1; shift; curl -sk -m 10 --resolve "headlamp.$DOMAIN:443:127.0.0.1" "$@" "https://headlamp.$DOMAIN$p"; }
@@ -27,7 +38,7 @@ command -v /sbin/ip > /dev/null || ln -sf /t/bb/busybox /sbin/ip
 
 echo '== with k3s and Nginx'
 install_app k3s
-kc wait --for=condition=Ready node --all --timeout=240s > /dev/null && pass 'the k3s app: its node ready' || { fail "k3s: $(tail -n 20 $P/_k3s/k3s.log)"; exit 1; }
+node_ready && pass 'the k3s app: its node ready' || { fail "k3s: $(tail -n 20 $P/_k3s/k3s.log)"; exit 1; }
 install_app nginx
 wait_port 443 30 && pass 'Nginx answering' || { fail "Nginx: $(tail -n 5 /tmp/start.log)"; exit 1; }
 php -r '$f=$argv[1]; $s=json_decode(file_get_contents($f),true); $s["domain"]=$argv[2]; file_put_contents($f, json_encode($s));' $P/_nginx/apps.json $DOMAIN
@@ -91,7 +102,7 @@ echo '== started before k3s (as at boot)'
 sh $P/headlamp/stop.sh $P/headlamp > /dev/null 2>&1; sh $P/k3s/stop.sh $P/k3s > /dev/null 2>&1
 sh $P/headlamp/start.sh $P/headlamp > /dev/null 2>&1; wait_port 4466 30
 [ "$(get status | j '$d["k3s"] === false && $d["cluster"] === true')" = true ] && pass 'Headlamp up while k3s is stopped (the page says so)' || fail "before k3s: $(get status | head -c 300)"
-sh $P/k3s/start.sh $P/k3s > /dev/null 2>&1; kc wait --for=condition=Ready node --all --timeout=240s > /dev/null
+sh $P/k3s/start.sh $P/k3s > /dev/null 2>&1; node_ready
 i=0; while [ $i -lt 30 ] && [ "$(api /api/v1/namespaces "$TOKEN")" != 200 ]; do sleep 2; i=$((i + 1)); done
 [ "$(api /api/v1/namespaces "$TOKEN")" = 200 ] && pass 'k3s started afterwards: Headlamp reaches it without a restart' || fail "after k3s: $(api /api/v1/namespaces "$TOKEN")"
 
