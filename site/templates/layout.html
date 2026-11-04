@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>$title</title>
+    <meta name="description" content="$description">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="WD NAS App Builder">
+    <meta property="og:title" content="$title">
+    <meta property="og:description" content="$description">
+    <meta property="og:image" content="$image">
+    <meta property="og:url" content="$url">
+    <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0f1424" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="${root}assets/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="canonical" href="$url">
+    <link rel="icon" href="${root}assets/favicon.svg" type="image/svg+xml">
+    <script>
+        try {
+            if (['light', 'dark'].indexOf(localStorage.getItem('wd-nas-theme')) !== -1) {
+                document.documentElement.dataset.theme = localStorage.getItem('wd-nas-theme');
+            }
+        } catch (error) {}
+    </script>
+    <link rel="stylesheet" href="${root}assets/site.css?v=$asset_version">
+    <script src="${root}assets/site.js?v=$asset_version" defer></script>
+</head>
+<body data-root="$root">
+    <header class="top">
+        <div class="wrap top-inner">
+            <a class="brand" href="${root}"><img src="${root}assets/favicon.svg" alt="" width="28" height="28"> WD NAS App Builder</a>
+            <nav class="top-nav">
+                <a href="${root}#apps">Apps</a>
+                <a href="${root}#store">Store</a>
+                <a href="${root}#recipes">Recipes</a>
+                <a class="nav-github" href="$repository" aria-label="GitHub" title="GitHub"><span class="icon-github" aria-hidden="true"></span></a>
+                <button class="theme-toggle" type="button" data-site="theme" aria-label="Switch to dark mode" title="Switch to dark mode" hidden>
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+                </button>
+            </nav>
+        </div>
+    </header>
+    <main>
+$main
+    </main>
+    <footer class="foot">
+        <div class="wrap">
+            <p>This is an unofficial project, not made or supported by Western Digital. The apps are built and tested by
+                <a href="$repository">through GitHub</a> from their published sources; each one keeps its own licence.</p>
+            <p class="muted">Catalogue updated $updated.</p>
+        </div>
+    </footer>
+</body>
+</html>

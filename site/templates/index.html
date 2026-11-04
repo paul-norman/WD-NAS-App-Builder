@@ -1,0 +1,56 @@
+        <section class="hero">
+            <div class="wrap">
+                <p class="eyebrow">For WD My Cloud NAS devices on OS5</p>
+                <h1>Apps for WD NAS devices</h1>
+                <p class="lead">Media servers, databases, backups, monitoring, development tools and more - $app_count apps built to run natively on the NAS, plus Docker recipes for bigger stacks. Each is up to date, tested on every change, and comes with a management page of its own in the NAS dashboard.</p>
+                <div class="hero-points">
+                    <div><strong>Native</strong><span>Apps run on the NAS itself, with its own memory, not a container's limit.</span></div>
+                    <div><strong>Kept current</strong><span>New versions are built, tested and released automatically.</span></div>
+                    <div><strong>One place</strong><span>The Store installs, updates and removes apps (nightly auto-update is optional).</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="picker" id="apps">
+            <div class="wrap">
+                <h2>Which NAS do you have?</h2>
+                <p class="muted">Apps are built for each model. Pick yours to see what it can run - and the right download.</p>
+                <div class="models" role="group" aria-label="Your NAS model">
+$model_buttons
+                </div>
+                <p class="picker-note" data-site="picker-note" hidden></p>
+            </div>
+        </section>
+
+        <section class="store" id="store">
+            <div class="wrap">
+$store_card
+            </div>
+        </section>
+
+        <section class="catalogue">
+            <div class="wrap">
+                <div class="catalogue-head">
+                    <h2>Apps <span class="count" data-site="app-count">$app_count</span></h2>
+                    <div class="filters">
+                        <input type="search" data-site="search" placeholder="Search apps" aria-label="Search apps">
+                        <select data-site="category" aria-label="Category">
+                            <option value="">All categories</option>
+                            <option value="security-upgrade">Security upgrades</option>
+$category_options
+                        </select>
+                    </div>
+                </div>
+                <p class="muted" data-site="none" hidden>No apps match.</p>
+                <div class="cards">
+$app_cards
+                </div>
+
+                <h2 class="recipes-title" id="recipes">Docker recipes <span class="count">$recipe_count</span></h2>
+                <p class="muted">Bigger stacks that run in Docker - installed, configured and updated by the Store (they need
+                    the Docker app, and an Intel model).</p>
+                <div class="cards">
+$recipe_cards
+                </div>
+            </div>
+        </section>

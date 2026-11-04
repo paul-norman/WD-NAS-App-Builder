@@ -1,0 +1,38 @@
+        <section class="app-head">
+            <div class="wrap app-head-inner">
+                <img class="app-icon big" src="$icon" alt="" width="96" height="96">
+                <div>
+                    <p class="eyebrow"><a href="${root}#apps">All apps</a></p>
+                    <h1>$name <span class="version">$version</span></h1>
+                    <p class="lead">$summary</p>
+                    <p class="badges">$badges</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="app-body">
+            <div class="wrap app-grid">
+                <div class="app-main">
+$security
+$notice
+                    <div class="download-box" data-site="download-box">
+                        <h2>Download</h2>
+$downloads
+                    </div>
+$description
+                </div>
+                <aside class="app-side">
+                    <h3>Links</h3>
+                    <ul class="links">
+$links
+                    </ul>
+                    <h3>Details</h3>
+                    <dl class="facts">
+$facts
+                    </dl>
+                    <h3>Share</h3>
+                    <p class="share"><code data-site="share-url">$url</code></p>
+                    <p><button type="button" class="button" data-site="copy-link" hidden>Copy the link</button></p>
+                </aside>
+            </div>
+        </section>

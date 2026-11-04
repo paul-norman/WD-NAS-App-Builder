@@ -42,6 +42,7 @@
                 "publisher":     { "type": "string", "minLength": 1, "maxLength": 60 },
                 "sources":       { "$ref": "#/$defs/https_url" },
                 "release_notes": { "$ref": "#/$defs/https_url" },
+                "security":      { "type": "string", "minLength": 1, "maxLength": 200, "description": "Why it improves the NAS's security (e.g. it replaces an unsupported version of something WD ships) - shown with a Security badge" },
                 "manual_update": {
                     "type":        "object",
                     "description": "Updating from a version before this one needs doing by hand (e.g. a data upgrade): automatic updates leave it, saying why",

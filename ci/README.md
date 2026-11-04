@@ -68,6 +68,16 @@ The packages contain other people's software, much of it under licenses that ask
 
 After the releases, [`publish_store.sh`](publish_store.sh) builds `store.json` for the commit ([`store/tools/build_store.py`](../store/tools/build_store.py)): apps built in this run with their new packages, the others as the `store.json` on `main` lists them *(or from their releases)*, an app whose new version failed still offering its previous one. It's signed with the repository's key *(`store.json.sig`)* and committed to `main` by the bot, only when something in it changed. Its `base_url` is the commit it was built from, so the icons and recipe files always match its checksums. One release job runs at a time *(two merges can't overwrite each other's `store.json`)*; a recipe that failed its tests holds back `store.json` until a run passes.
 
+## The website
+
+After each release run, the `pages` job builds the project's website from the `store.json` just published *(`main`'s)* and deploys it to GitHub Pages, at `https://<owner>.github.io/<repository>/` *([`site.py`](site.py), with the templates, stylesheet and script in [`site/`](../site))*:
+
+- **The home page**: what the project is, a choice of NAS model *(remembered by the browser, or given in a link: `?model=PR4100`)*, the Store first *(with how to install it)*, then every app and recipe as cards - greyed out where the chosen model has no package, each Download pointing at that model's.
+- **A page for each app and recipe**, the address to share *(e.g. `/jellyfin/`)*: its downloads for every model *(the visitor's highlighted)*, its links *(the release notes of its current version, its source)*, what it needs, and its README *(without its build instructions)*. Being regenerated with each release, it always shows the current version - without JavaScript too.
+- Its own copy of `store.json`, and of the icons *(other sites' too, e.g. Plex's)*.
+
+To try it locally: `python3 ci/site.py store.json /tmp/site --metadata store/metadata.json`, then `python3 -m http.server -d /tmp/site` *(`--metadata` adds the security notes from `store/metadata.json`, for when the published `store.json` predates them)*.
+
 ## Running it locally
 
 The steps are scripts, so they run without GitHub *(Docker and the repository's usual needs)*:
@@ -89,7 +99,8 @@ Once, for the repository owner. In the repository's **Settings**:
    - Repository secrets: `STORE_SIGNING_KEY` *(the Ed25519 key `store.json` is signed with: `openssl genpkey -algorithm ed25519 -out key.pem`, the whole file)* and `BOT_PRIVATE_KEY` *(the GitHub App's private key, the whole `.pem` file)*.
    - Repository variables: `BOT_CLIENT_ID` *(the App's **Client ID**, on its settings page - not the App ID)*; later `CLEANUP` = `apply`, once the cleanup's listed removals look right.
 2. **General → Pull Requests**: tick *Allow auto-merge* and *Automatically delete head branches*.
-3. **Rules → Rulesets → New branch ruleset**, for the default branch: *Require a pull request before merging*, and *Require status checks to pass* with the check **result** *(it only appears once the workflow has run)*. In *Bypass list*, add the GitHub App *(it commits `store.json`)* and Repository admin *(you, to push directly)*.
+3. **Pages**: *Source* - **GitHub Actions** *(the `pages` job deploys the website)*.
+4. **Rules → Rulesets → New branch ruleset**, for the default branch: *Require a pull request before merging*, and *Require status checks to pass* with the check **result** *(it only appears once the workflow has run)*. In *Bypass list*, add the GitHub App *(it commits `store.json`)* and Repository admin *(you, to push directly)*.
 
 The GitHub App *(the bot)*: your profile's **Settings → Developer settings → GitHub Apps → New GitHub App**, webhook off, repository permissions *Contents* and *Pull requests*: read and write, installed on this repository only. Its token is used for what GitHub's own workflow token can't do: committing to `main` past the branch rules, and *(for the update workflow)* opening pull requests that run this workflow.
 

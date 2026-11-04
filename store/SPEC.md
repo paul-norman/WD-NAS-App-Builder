@@ -90,6 +90,7 @@ Apps and recipes share these:
 | `release_notes` | optional | URL                                                                                                                                                                                                                                |
 | `requires`      | optional | Section 5                                                                                                                                                                                                                          |
 | `manual_update` | optional | `{"version": "19.0", "reason": "..."}`: updating from a version before `version` to it or later needs something only the user can do (e.g. a database's data upgrade). The Store's automatic updates leave such an update for the user, showing `reason`; updating from its page still works. Keep it in the entry while older versions may still be installed
+| `security`      | optional | Why it improves the NAS's security, in a sentence *(e.g. it replaces an unsupported version of something WD ships)* - shown with a Security badge |
 
 ## 3. Native apps
 

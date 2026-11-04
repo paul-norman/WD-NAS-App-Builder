@@ -251,3 +251,37 @@ jobs:
       - name: Forget the signing key
         if: always()
         run: rm -f "${RUNNER_TEMP}/store-key.pem"
+
+  # The website (GitHub Pages): built from the store.json just published - main's, with the bot's commit - after every
+  # release run, so its pages always show the current versions (see ci/site.py). Pages' source must be "GitHub Actions"
+  # (Settings -> Pages)
+  pages:
+    needs: [release]
+    if: always() && needs.release.result == 'success'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+
+      - name: Build the website
+        run: python3 ci/site.py store.json "${RUNNER_TEMP}/site"
+
+      - uses: actions/configure-pages@v6.0.0
+
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: ${{ runner.temp }}/site
+
+      - id: deploy
+        uses: actions/deploy-pages@v5.0.1
