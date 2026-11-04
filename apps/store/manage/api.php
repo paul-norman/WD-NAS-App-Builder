@@ -432,6 +432,8 @@ if ($action === 'catalogue') {
                 'installed'   => $installed !== null ? $installed['version'] : '',
                 'from_here'   => $installed === null || $installed['repo'] === $repo['url'],
                 'update'      => $installed !== null && $installed['repo'] === $repo['url'] && store_version_compare($recipe['version'], $installed['version']) > 0,
+                // Installed from a repository the Store no longer reads: this one can take it over
+                'source_gone' => $installed !== null && !in_array($installed['repo'], array_column($loaded, 'url'), true),
             ];
         }
     }
@@ -728,6 +730,45 @@ if ($action === 'accept_key') {
     }
 
     manage_fail(400, 'Nothing to accept - refresh and try again');
+}
+
+if ($action === 'recipe_switch') {
+    // A recipe installed from a repository the Store no longer reads, taken over by one that offers it: its install
+    // record names the new repository (its settings, folders and containers are left as they are), so that its
+    // updates come from there. A repository still read keeps its recipes
+    $repo_url  = isset($_POST['repo']) ? (string)$_POST['repo'] : '';
+    $id        = isset($_POST['id']) ? (string)$_POST['id'] : '';
+    $installed = store_installed_recipes();
+
+    if (api_job_running($jobs)) {
+        manage_fail(409, 'Wait for the current job to finish');
+    }
+
+    if (!isset($installed[$id])) {
+        manage_fail(404, 'It isn\'t installed');
+    }
+
+    if (in_array($installed[$id]['repo'], array_column(store_repos(), 'url'), true)) {
+        manage_fail(409, 'Its repository is still in the list: its updates come from there');
+    }
+
+    list(, $entry) = store_find('recipes', $repo_url, $id);
+
+    if ($entry === null) {
+        manage_fail(404, 'That repository doesn\'t offer it - refresh the repositories');
+    }
+
+    $record         = $installed[$id];
+    $data           = $record['data'];
+    $record['repo'] = $repo_url;
+
+    unset($record['data']);
+
+    if (!store_write_json($data.'/.store/installed.json', $record)) {
+        manage_fail(500, 'Could not save its install record');
+    }
+
+    manage_json();
 }
 
 if ($action === 'clear_job') {

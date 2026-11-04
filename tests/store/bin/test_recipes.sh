@@ -65,6 +65,19 @@ python3 /tbin/repotool.py add-recipe /www/repo /tfix/hello-2; post refresh >/dev
 get details "&kind=recipes&repo=$REPO&id=hello" >/dev/null; [ "$(j 'array_map(function($f){return $f["key"];}, $d["update_fields"])')" = '["NEW_SETTING"]' ] && pass 'update asks only the new option' || fail "update fields: $(j '$d["update_fields"]')"
 post start -d job=recipe_update -d id=hello --data-urlencode 'answers={"NEW_SETTING":"brand new"}' >/dev/null; job_wait; sleep 2
 curl -s http://127.0.0.1:18081/ | grep -q '^Orphaned blue loud=no v2 new=brand new' && grep -q '^update version=1.0.0-2 previous=1.0.0-1' $D/hooks.log && grep -q '"version": "1.0.0-2"' $D/.store/installed.json && pass "updated with pre/post_update hooks: $JOB_MSG" || fail "update: $JOB_STATE $JOB_MSG $(tail -2 $D/hooks.log)"
+echo '== its repository gone: another one takes it over'
+FORK=https://evil.test:8443/fork/store.json; rm -rf /www/evil/fork; cp -r /www/repo /www/evil/fork
+post add_repo -d url=$FORK -d confirm=1 >/dev/null
+F='array_values(array_filter($d["recipes"], function($r){return $r["id"]==="hello" && $r["repo"]===getenv("FORK");}))[0]'; export FORK
+get catalogue >/dev/null; [ "$(j "$F[\"source_gone\"]")" = false ] && [ "$(post recipe_switch -d repo=$FORK -d id=hello)" != 200 ] \
+    && pass "not taken over while its own repository is read: $(j '$d["error"]')" || fail "switch refused: $(cat /tmp/body)"
+post remove_repo -d url=$REPO >/dev/null; get catalogue >/dev/null
+[ "$(j "$F[\"source_gone\"]")" = true ] && [ "$(post recipe_switch -d repo=$FORK -d id=hello)" = 200 ] && grep -q "\"repo\": \"$FORK\"" $D/.store/installed.json \
+    && get catalogue >/dev/null && [ "$(j "$F[\"from_here\"]")" = true ] && grep -q '^NEW_SETTING=' $D/.env \
+    && pass 'its repository removed: switched to the other one offering it (its settings kept)' || fail "switch: $(cat /tmp/body) $(grep repo $D/.store/installed.json)"
+# Back to the test repository, the same way
+post add_repo -d url=$REPO -d confirm=1 >/dev/null; post remove_repo -d url=$FORK >/dev/null
+[ "$(post recipe_switch -d repo=$REPO -d id=hello)" = 200 ] && grep -q "\"repo\": \"$REPO\"" $D/.store/installed.json && pass 'and back' || fail "back: $(cat /tmp/body)"
 echo '== uninstall (keeping its folder)'
 get details "&kind=recipes&repo=$REPO&id=hello" >/dev/null; echo "  deletable: $(j '$d["deletable"]')"
 post start -d job=recipe_uninstall -d id=hello --data-urlencode 'delete=["SITE_FOLDER"]' >/dev/null; job_wait

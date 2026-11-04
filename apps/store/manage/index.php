@@ -1045,6 +1045,36 @@ header('Cache-Control: no-store');
                 }, page.blocked, 'st-primary');
             }
 
+            if (item.source !== null) {
+                // Installed from here, but another repository has a newer version: its page there can switch to it
+                let newer = state.catalogue.apps.filter(function (a) {
+                    return a.id === item.id && a.repo !== item.repo && versionCompare(a.version, item.installed) > 0;
+                });
+
+                if (newer.length) {
+                    let also = element('p', { className: 'mg-note' }, ['Also offered by: ']);
+
+                    newer.forEach(function (a, i) {
+                        let open = element('a', { href: '#', textContent: a.repo_name + ' (' + a.version + ')' });
+
+                        open.addEventListener('click', function (event) {
+                            event.preventDefault();
+
+                            showDetail('apps', a);
+                        });
+
+                        if (i) {
+                            also.appendChild(document.createTextNode(', '));
+                        }
+
+                        also.appendChild(open);
+                    });
+
+                    also.appendChild(document.createTextNode(' - its page there can switch ' + details.name + ' to it' + (item.can_update ? ' (its data is kept).' : '.')));
+                    page.notes.appendChild(also);
+                }
+            }
+
             if (item.source === null) {
                 // Installed by hand: other repositories with a newer version - updating from one makes it its source
                 let others = state.catalogue.apps.filter(function (a) {
@@ -1474,6 +1504,31 @@ header('Cache-Control: no-store');
          */
         function renderRecipeActions(page, item, details) {
             if (!details.installed) {
+                if (!item.from_here && item.source_gone) {
+                    // Its repository is no longer read: this one can take it over (its settings and data stay)
+                    page.notes.appendChild(element('p', { className: 'st-notice', textContent: 'Installed from ' + (item.source_name || 'another repository')
+                        + ', which the Store no longer reads - so it gets no updates. Switch it to this repository: its settings, folders and containers stay as they are, and its updates come from here.' }));
+
+                    addButton(page, 'Switch to this repository', function () {
+                        call('recipe_switch', { repo: item.repo, id: item.id }).then(function (response) {
+                            if (!response.ok) {
+                                page.message.textContent = response.error;
+                                page.message.className   = 'mg-bad';
+
+                                return;
+                            }
+
+                            state.flash = details.name + ' now comes from ' + item.repo_name + '.';
+
+                            loadCatalogue().then(function () {
+                                reopenDetail();
+                            });
+                        });
+                    }, page.blocked, 'st-primary');
+
+                    return;
+                }
+
                 if (!item.from_here) {
                     page.notes.appendChild(element('p', { className: 'st-notice', textContent: 'Installed from ' + (item.source_name || 'another repository') + ': its settings, updates and removal are on its page there.' }));
 

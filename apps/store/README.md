@@ -72,7 +72,8 @@ A fork of this project usually offers the same apps, under the same ids. The Sto
 - Each app is listed once per repository. Repositories with the same name are labelled with their owner *(e.g. `WD NAS App Builder (paul-norman)` and `WD NAS App Builder (someone)`)*.
 - The Store remembers which repository it installed each app and recipe from, and only that one updates it. Another repository's page for it says where it came from; for apps that keep their data, it offers **Switch to this repository** - an update from that repository, after which its updates come from there.
 - An app installed by hand *(Manual install, or over SSH)* has no repository: any repository can update it, the Installed tab shows the newest version on offer, and its page lists the others. The update you choose sets where its updates come from.
-- A recipe is installed from one repository at a time *(its folder is the same)*: another repository's page for it points to its page there.
+- A recipe is installed from one repository at a time *(its folder is the same)*: another repository's page for it points to its page there. If the repository it came from has been removed from the list, another repository offering it can take it over instead *(**Switch to this repository** on its page there - its settings, folders and containers stay as they are)*.
+- An app's page also says when another repository has a newer version of it, with a link to its page there *(which can switch it over)*.
 
 ## Forking
 
