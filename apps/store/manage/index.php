@@ -37,7 +37,7 @@ header('Cache-Control: no-store');
         #store-manage .st-card strong { display: block; }
         #store-manage .st-card .st-summary { display: block; font-size: 0.9em; opacity: 0.8; margin-top: 0.15rem; white-space: normal; }
         #store-manage .st-badges { margin-top: 0.15rem; white-space: normal; }
-        #store-manage .st-badge { display: inline-block; white-space: nowrap; font-size: 0.75em; padding: 0.05rem 0.45rem; border-radius: 1rem; margin: 0.3rem 0.3rem 0 0; background: rgba(127, 127, 127, 0.18); }
+        #store-manage .st-badge { display: inline-block; box-sizing: border-box; max-width: 100%; white-space: normal; overflow-wrap: anywhere; font-size: 0.75em; padding: 0.05rem 0.45rem; border-radius: 1rem; margin: 0.3rem 0.3rem 0 0; background: rgba(127, 127, 127, 0.18); }
         #store-manage .st-badge.st-installed { background: rgba(46, 125, 50, 0.18); }
         #store-manage .st-badge.st-update { background: rgba(47, 111, 219, 0.2); }
         #store-manage .st-badge.st-unsupported { background: rgba(198, 40, 40, 0.15); }
