@@ -1,0 +1,23 @@
+Package:			tautulli
+Version:			2.18.2
+Packager:			PDN
+Email:
+Homepage:			https://tautulli.com/
+Description:		Tautulli: who's watching what on Plex - history, statistics, graphs and notifications for Plex Media Server.
+Icon:				tautulli.svg
+AddonShowName:		Tautulli
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

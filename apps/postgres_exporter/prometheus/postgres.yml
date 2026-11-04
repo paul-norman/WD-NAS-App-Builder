@@ -1,0 +1,8 @@
+# The Postgres Exporter app's scrape job, for the Prometheus app (which copies it into its own configuration, with
+# @INSTANCE@ as the NAS's name - as its other jobs' instance label)
+scrape_configs:
+  - job_name: postgres
+    static_configs:
+      - targets: ['127.0.0.1:9187']
+        labels:
+          instance: '@INSTANCE@'

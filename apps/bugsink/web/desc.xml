@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Bugsink: error tracking for your own programs and websites - they report their errors with Sentry's SDKs, Bugsink groups them into issues.</en-US>
+	<fr-FR>Bugsink : suivi des erreurs de vos propres programmes et sites web - ils signalent leurs erreurs avec les SDK de Sentry, Bugsink les regroupe en problèmes.</fr-FR>
+	<es-ES>Bugsink: seguimiento de errores de sus propios programas y sitios web - informan de sus errores con los SDK de Sentry, Bugsink los agrupa en incidencias.</es-ES>
+	<de-DE>Bugsink: Fehlerverfolgung für Ihre eigenen Programme und Websites - sie melden ihre Fehler mit den SDKs von Sentry, Bugsink fasst sie zu Problemen zusammen.</de-DE>
+</config>

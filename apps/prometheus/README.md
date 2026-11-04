@@ -4,6 +4,7 @@
 
 - It's on port `9090`, reachable **on the NAS itself only** by default: Prometheus has no login, and Grafana reaches it there. The management page can open it to the local network.
 - Its configuration is written by the app *(at every start, and by the page's **Reload**)*: it scrapes itself and the Node Exporter app, if installed - following that app's port and password, so changing them on Node Exporter's page updates Prometheus too.
+- **Other apps' metrics are collected by themselves**: an app can ship a scrape job *(`prometheus/*.yml` in its folder - e.g. the [Postgres](../postgres_exporter/README.md), [MariaDB](../mysqld_exporter/README.md) and [Valkey](../redis_exporter/README.md) exporters)*. Prometheus copies each installed app's into `apps.d/` *(with the NAS's name as its `instance`)* and reloads when such an app is installed or removed - in either order.
 - Your own scrape jobs go in `scrape.d/*.yml`, and alerting / recording rules in `rules.d/*.yml` *(see `scrape.d/README.txt`)*. A file with an error doesn't stop Prometheus: it keeps its previous configuration, and the page shows that the reload failed.
 - History is kept for 30 days by default *(adjustable on the page)*. For one NAS that's typically a few hundred MB.
 - It runs as its own `prometheus` user *(created by the app, ID 73)*, not as root.

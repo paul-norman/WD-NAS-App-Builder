@@ -148,10 +148,28 @@ def publish(dist):
     """
     head = plan.git("rev-parse", "HEAD")
 
-    for folder in sorted(dist.iterdir()) if dist.is_dir() else []:
-        # The workflow's artifacts are named release-<app>
-        app = folder.name.replace("release-", "", 1)
+    # Each app's artifact (release-<app>) is a folder of its own - unless the
+    # run has only one: the workflow's download then unpacks it into dist
+    # itself
+    if (dist / "version").is_file():
+        folders = [dist]
+    else:
+        folders = [
+            folder for folder in sorted(dist.iterdir()) if folder.is_dir()
+        ] if dist.is_dir() else []
+
+    for folder in folders:
         version = (folder / "version").read_text().strip()
+
+        if folder == dist:
+            # Its name, from its packages' (<app>_<version>_<model>.bin)
+            names = [
+                path.name.split(f"_{version}_")[0]
+                for path in folder.glob(f"*_{version}_*")
+            ]
+            app = names[0] if names else ""
+        else:
+            app = folder.name.replace("release-", "", 1)
         tag = f"{app}-v{version}"
         files = sorted(folder.glob(f"{app}_{version}_*"))
         packages = REPO / "packages" / app / version

@@ -5,8 +5,9 @@
 - It's at `http://<nas-ip>:3000` on the local network, and also served over HTTPS by the [Nginx app](../nginx/README.md), if installed, at `https://grafana.<its domain>` *(added automatically; the site can be renamed or switched off there)*. The management page can limit it to the Nginx app only.
 - Log in as `admin`, with the password the app generates on first start *(shown on the management page, which can also reset it)*.
 - Set up by the app:
-  - the Prometheus app as the default data source, and the [logs app](../loki/README.md)'s Loki *(each when installed)*, with its **NAS logs** dashboard
+  - the Prometheus app as the default data source, and the [logs app](../loki/README.md)'s Loki *(each when installed)*
   - two dashboards in a **NAS** folder: **WD NAS** *(made for the app: storage health and RAID state from WD's own records, disk temperatures, a table of the disks, volume space, CPU, memory and disk throughput)* and **[Node Exporter Full](https://grafana.com/grafana/dashboards/1860)** *(the standard, very detailed system dashboard - by rfmoz, Apache-2.0)*. They're read-only *(copy one in Grafana, with "Save as", to change it)*.
+  - **other apps' dashboards**, in the same **NAS** folder: an app can ship some *(`dashboards/*.json` in its folder - e.g. the logs app's **NAS logs**, and the [Postgres](../postgres_exporter/README.md), [MariaDB](../mysqld_exporter/README.md) and [Valkey](../redis_exporter/README.md) exporters')*. Grafana gathers each installed app's into `Nas_Prog/_grafana/app-dashboards`, and notices an app being installed or removed within 30 seconds - no restart needed.
   - no telemetry, news feed, or plugins downloaded at start-up
 - It runs as its own `grafana` user *(created by the app, ID 74)*, not as root.
 - Its data is kept next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_grafana`, and survives reinstalls and removal:

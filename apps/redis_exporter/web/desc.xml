@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Valkey Exporter: Valkey's metrics for Prometheus and Grafana (the Valkey app), with a dashboard.</en-US>
+	<fr-FR>Valkey Exporter : les métriques de Valkey pour Prometheus et Grafana (l'app Valkey), avec un tableau de bord.</fr-FR>
+	<es-ES>Valkey Exporter: las métricas de Valkey para Prometheus y Grafana (la app Valkey), con un panel.</es-ES>
+	<de-DE>Valkey Exporter: die Metriken von Valkey für Prometheus und Grafana (die Valkey-App), mit Dashboard.</de-DE>
+</config>

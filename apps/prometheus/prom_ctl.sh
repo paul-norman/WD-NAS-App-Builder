@@ -4,10 +4,13 @@
 #   prom_ctl.sh start    - write its configuration, then start it (on port 9090: the NAS itself only, or the whole network)
 #   prom_ctl.sh stop     - stop Prometheus
 #   prom_ctl.sh restart  - stop, then start
-#   prom_ctl.sh reload   - rewrite its configuration (e.g. after the Node Exporter app's settings changed) and reload it
+#   prom_ctl.sh reload [--without <app>]
+#                        - rewrite its configuration (e.g. after the Node Exporter app's settings changed, or an app
+#                          with scrape jobs was installed) and reload it; --without leaves out an app being removed
 #
 # Its configuration (prometheus.yml) is written by the app: it scrapes itself and the Node Exporter app (following its
-# port and password). Other scrape jobs go in scrape.d/*.yml, and alerting / recording rules in rules.d/*.yml
+# port and password), plus the scrape jobs other apps declare (Nas_Prog/<app>/prometheus/*.yml, e.g. the database
+# exporters'). Your own scrape jobs go in scrape.d/*.yml, and alerting / recording rules in rules.d/*.yml
 
 APP_PATH="$(dirname "$(readlink -f "$0")")"
 APPS_PATH="$(dirname "${APP_PATH}")"
@@ -102,8 +105,35 @@ EOF
     chmod 600 "${PROM_LOG}"
 }
 
-# prometheus.yml: Prometheus itself, the Node Exporter app (if installed), and the user's own scrape jobs and rules
+# Copies the scrape jobs other apps declare (Nas_Prog/<app>/prometheus/*.yml) into apps.d, with @INSTANCE@ as the
+# NAS's name (as the other jobs' instance label) - all but the app given: one being removed still has its files.
+#
+# $1 without An app to leave out, or nothing
+#
+# Prints nothing
+sync_app_jobs() {
+    mkdir -p "${DATA_PATH}/apps.d"
+    rm -f "${DATA_PATH:?}/apps.d/"*.yml
+
+    for file in "${APPS_PATH}"/*/prometheus/*.yml; do
+        [ -f "${file}" ] || continue
+        app="$(basename "$(dirname "$(dirname "${file}")")")"
+        [ "${app}" = "${1:-}" ] && continue
+
+        sed "s/@INSTANCE@/$(hostname)/g" "${file}" > "${DATA_PATH}/apps.d/${app}-$(basename "${file}")"
+        chmod 644 "${DATA_PATH}/apps.d/${app}-$(basename "${file}")"
+    done
+}
+
+# prometheus.yml: Prometheus itself, the Node Exporter app (if installed), other apps' scrape jobs, and the user's own
+# scrape jobs and rules.
+#
+# $1 without An app to leave out of the other apps' jobs (one being removed), or nothing
+#
+# Prints nothing
 write_config() {
+    sync_app_jobs "${1:-}"
+
     set -- $(prom_ids)
     ne_settings="${APPS_PATH}/_node_exporter/settings"
     ne_job=''
@@ -138,6 +168,7 @@ global:
   evaluation_interval: 30s
 
 scrape_config_files:
+  - '${DATA_PATH}/apps.d/*.yml'
   - '${DATA_PATH}/scrape.d/*.yml'
 
 rule_files:
@@ -202,8 +233,13 @@ stop() {
     rm -f "${PID_FILE}"
 }
 
+# Rewrites the configuration and has Prometheus reload it (if it's running).
+#
+# $1 without An app to leave out of the other apps' jobs (one being removed), or nothing
+#
+# Prints what it did
 reload() {
-    write_config
+    write_config "${1:-}"
 
     if running; then
         kill -HUP "$(cat "${PID_FILE}")"
@@ -224,10 +260,14 @@ case "$1" in
     start) start ;;
     stop) stop ;;
     restart) stop; start ;;
-    reload) reload ;;
+    reload)
+        without=''
+        [ "${2:-}" = '--without' ] && without="${3:-}"
+        reload "${without}"
+        ;;
     daily) rotate_log ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|reload|daily" >&2
+        echo "Usage: $0 setup|start|stop|restart|reload [--without <app>]|daily" >&2
 
         exit 1
         ;;

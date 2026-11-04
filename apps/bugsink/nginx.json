@@ -1,0 +1,6 @@
+{
+    "name":    "bugsink",
+    "label":   "Bugsink",
+    "target":  "http://127.0.0.1:8000",
+    "uploads": true
+}

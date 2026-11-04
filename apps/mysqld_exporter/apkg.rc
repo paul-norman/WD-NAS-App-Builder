@@ -1,0 +1,23 @@
+Package:			mysqld_exporter
+Version:			0.21.0
+Packager:			PDN
+Email:
+Homepage:			https://github.com/prometheus/mysqld_exporter
+Description:		MariaDB Exporter: MariaDB's metrics for Prometheus and Grafana - the NAS's MariaDB (WD's own, or the MariaDB app's): queries, connections and InnoDB, with a dashboard.
+Icon:				mysqld_exporter.svg
+AddonShowName:		MariaDB Exporter
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:		
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

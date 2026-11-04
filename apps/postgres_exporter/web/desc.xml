@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Postgres Exporter: PostgreSQL's metrics for Prometheus and Grafana (the PostgreSQL app), with a dashboard.</en-US>
+	<fr-FR>Postgres Exporter : les métriques de PostgreSQL pour Prometheus et Grafana (l'app PostgreSQL), avec un tableau de bord.</fr-FR>
+	<es-ES>Postgres Exporter: las métricas de PostgreSQL para Prometheus y Grafana (la app PostgreSQL), con un panel.</es-ES>
+	<de-DE>Postgres Exporter: die Metriken von PostgreSQL für Prometheus und Grafana (die PostgreSQL-App), mit Dashboard.</de-DE>
+</config>

@@ -1,0 +1,23 @@
+Package:			redis_exporter
+Version:			1.96.0
+Packager:			PDN
+Email:
+Homepage:			https://github.com/oliver006/redis_exporter
+Description:		Valkey Exporter: Valkey's metrics for Prometheus and Grafana - the Valkey app's memory, clients, commands and keys, with a dashboard.
+Icon:				redis_exporter.svg
+AddonShowName:		Valkey Exporter
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:		valkey
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

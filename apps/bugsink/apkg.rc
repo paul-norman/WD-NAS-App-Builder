@@ -1,0 +1,23 @@
+Package:			bugsink
+Version:			2.6.2
+Packager:			PDN
+Email:
+Homepage:			https://www.bugsink.com/
+Description:		Bugsink: error tracking for your own programs and websites - they report their errors with Sentry's SDKs, Bugsink groups them into issues.
+Icon:				bugsink.png
+AddonShowName:		Bugsink
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

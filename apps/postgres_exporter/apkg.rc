@@ -1,0 +1,23 @@
+Package:			postgres_exporter
+Version:			0.20.1
+Packager:			PDN
+Email:
+Homepage:			https://github.com/prometheus-community/postgres_exporter
+Description:		Postgres Exporter: PostgreSQL's metrics for Prometheus and Grafana - the PostgreSQL app's activity, transactions and cache, with a dashboard.
+Icon:				postgres_exporter.svg
+AddonShowName:		Postgres Exporter
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:		postgresql
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

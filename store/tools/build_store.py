@@ -21,10 +21,11 @@ if it lists that version) or --released (an index of the released packages:
 older version, still offered), else the app is skipped, with a warning.
 
 With --external, apps published by others (metadata.json's "external": e.g.
-Plex Media Server, which Plex builds for WD's NAS models) are listed too:
-their packages stay where their publisher hosts them, and are downloaded once
-(into packages/_external/, checked against the publisher's checksum) for
-their sizes and SHA256.
+Plex Media Server and Emby Server, which Plex and Emby build for WD's NAS
+models) are listed too: their packages stay where their publisher hosts them.
+Their sizes and SHA256s come from the publisher's list when it has them
+(Emby's GitHub releases); otherwise the packages are downloaded once (into
+packages/_external/, checked against the publisher's checksum) for them.
 
 With --sign-key (an Ed25519 private key in PEM, e.g. from `openssl genpkey
 -algorithm ed25519 -out key.pem`), its public key goes in store.json and
@@ -36,6 +37,7 @@ import base64
 import datetime
 import hashlib
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -229,8 +231,77 @@ def plex_feed(metadata):
     return os5["version"].split("-")[0], packages
 
 
+# Emby's names for WD's OS5 models (in its packages' file names), and WD's
+EMBY_MODELS = {
+    "pr4100": "MyCloudPR4100",
+    "pr2100": "MyCloudPR2100",
+    "dl4100": "WDMyCloudDL4100",
+    "dl2100": "WDMyCloudDL2100",
+    "ex4100": "WDMyCloudEX4100",
+    "ex2100": "WDMyCloudEX2100",
+    "ex2_ultra": "MyCloudEX2Ultra",
+    "mirror_gen2": "WDMyCloudMirror",
+    "my_cloud_gen2": "WDMyCloud",
+}
+
+
+def emby_feed(metadata):
+    """
+    Emby's latest release on GitHub: a package per WD model and firmware
+    (emby-server-western_digital_<model>_os5_<version>_<arch>.bin for OS5),
+    with the sizes and SHA256s GitHub publishes - nothing to download. With
+    GH_TOKEN set (as in CI), GitHub's API is asked as that token.
+
+    :param dict metadata: The app's details in metadata.json's "external"
+
+    :return: The version, and a package (model, url, size, sha256) for each
+             model
+    """
+    request = urllib.request.Request(
+        "https://api.github.com/repos/MediaBrowser/Emby.Releases/releases"
+        "/latest",
+        headers={"Accept": "application/vnd.github+json"},
+    )
+
+    if os.environ.get("GH_TOKEN"):
+        request.add_header("Authorization", "Bearer " + os.environ["GH_TOKEN"])
+
+    with urllib.request.urlopen(request, timeout=60) as response:
+        release = json.load(response)
+
+    version = release["tag_name"]
+    pattern = re.compile(
+        r"^emby-server-western_digital_(.+)_os5_"
+        + re.escape(version)
+        + r"_(x86_64|arm)\.bin$"
+    )
+    packages = []
+
+    for asset in release["assets"]:
+        match = pattern.match(asset["name"])
+        digest = asset.get("digest") or ""
+
+        if not match or match.group(1) not in EMBY_MODELS:
+            continue
+
+        if not digest.startswith("sha256:"):
+            sys.exit(f"{asset['name']} has no SHA256 on GitHub")
+
+        packages.append({
+            "model": EMBY_MODELS[match.group(1)],
+            "url": asset["browser_download_url"],
+            "size": asset["size"],
+            "sha256": digest[len("sha256:"):],
+        })
+
+    if not packages:
+        sys.exit(f"Emby {version} has no OS5 packages for WD's models")
+
+    return version, sorted(packages, key=lambda package: package["model"])
+
+
 # Publishers' lists of their packages for WD's NAS models, by feed name
-FEEDS = {"plex": plex_feed}
+FEEDS = {"plex": plex_feed, "emby": emby_feed}
 
 
 def external_entry(app_id, metadata, published):
@@ -253,6 +324,12 @@ def external_entry(app_id, metadata, published):
         for key, value in metadata.items()
         if key != "feed" and not key.startswith("_")
     })
+    # A feed that publishes sizes and SHA256s gives packages as they are
+    if found and isinstance(found[0], dict):
+        entry["packages"] = found
+
+        return entry
+
     published_urls = {
         package["url"] for package in (published or {}).get("packages", [])
     }

@@ -9,9 +9,12 @@
 #   graf_ctl.sh backup         - back up its database (safely, while it runs)
 #   graf_ctl.sh daily          - the daily job: a backup, and keeping the log small
 #   graf_ctl.sh nginx          - add / update Grafana's site in the Nginx app (and reload it)
+#   graf_ctl.sh dashboards [--without <app>]
+#                              - gather other apps' dashboards again (after one is installed or removed - --without leaves
+#                                out an app being removed); Grafana picks the change up by itself within a minute
 #
 # Its configuration (grafana.ini) and provisioning (the Prometheus app and the logs app's Loki as data sources, and the
-# dashboards) are written by the app at every start
+# dashboards - its own, and those other apps ship in Nas_Prog/<app>/dashboards) are written by the app at every start
 
 APP_PATH="$(dirname "$(readlink -f "$0")")"
 APPS_PATH="$(dirname "${APP_PATH}")"
@@ -21,6 +24,7 @@ HOME_PATH="${BIN}/grafana"
 GRAF_DATA="${DATA_PATH}/data"
 CONFIG="${DATA_PATH}/grafana.ini"
 PROVISIONING="${DATA_PATH}/provisioning"
+APP_DASHBOARDS="${DATA_PATH}/app-dashboards"
 SETTINGS_FILE="${DATA_PATH}/settings"
 PASSWORD_FILE="${DATA_PATH}/admin_password"
 GRAF_LOG="${DATA_PATH}/grafana.log"
@@ -186,21 +190,13 @@ datasources:
     url: http://127.0.0.1:3100
     editable: false
 EOF
-        cat > "${PROVISIONING}/dashboards/logs.yaml" <<EOF
-# Written by the Grafana app: the logs app's dashboard
-apiVersion: 1
-providers:
-  - name: nas-logs
-    folder: NAS
-    type: file
-    disableDeletion: true
-    allowUiUpdates: false
-    options:
-      path: ${APPS_PATH}/loki/dashboards
-EOF
     else
-        rm -f "${PROVISIONING}/datasources/loki.yaml" "${PROVISIONING}/dashboards/logs.yaml"
+        rm -f "${PROVISIONING}/datasources/loki.yaml"
     fi
+
+    # (The logs app's dashboard had a provider of its own: it's one of the other apps' dashboards now)
+    rm -f "${PROVISIONING}/dashboards/logs.yaml"
+    sync_app_dashboards
 
     # The app's dashboards (read-only - copy one in Grafana to change it), in a "NAS" folder
     cat > "${PROVISIONING}/dashboards/nas.yaml" <<EOF
@@ -214,8 +210,38 @@ providers:
     allowUiUpdates: false
     options:
       path: ${BIN}/dashboards
+  - name: nas-apps
+    folder: NAS
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: ${APP_DASHBOARDS}
 EOF
     chmod 644 "${PROVISIONING}"/*/*.yaml
+}
+
+# Copies the dashboards other apps ship (Nas_Prog/<app>/dashboards/*.json - e.g. the logs app's, the database
+# exporters') into the folder Grafana reads them from (its "NAS" folder) - all but the app given: one being removed still
+# has its files. Grafana notices the change by itself (every 30 seconds).
+#
+# $1 without An app to leave out, or nothing
+#
+# Prints nothing
+sync_app_dashboards() {
+    mkdir -p "${APP_DASHBOARDS}"
+    chmod 755 "${APP_DASHBOARDS}"
+    rm -f "${APP_DASHBOARDS:?}/"*.json
+
+    for file in "${APPS_PATH}"/*/dashboards/*.json; do
+        [ -f "${file}" ] || continue
+        app="$(basename "$(dirname "$(dirname "${file}")")")"
+        [ "${app}" = grafana ] || [ "${app}" = "${1:-}" ] && continue
+
+        cp "${file}" "${APP_DASHBOARDS}/${app}-$(basename "${file}")"
+        chmod 644 "${APP_DASHBOARDS}/${app}-$(basename "${file}")"
+    done
 }
 
 start() {
@@ -352,8 +378,13 @@ case "$1" in
     backup) backup ;;
     daily) backup; rotate_log ;;
     nginx) nginx_site ;;
+    dashboards)
+        without=''
+        [ "${2:-}" = '--without' ] && without="${3:-}"
+        sync_app_dashboards "${without}"
+        ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|reset-password|backup|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|reset-password|backup|daily|nginx|dashboards [--without <app>]" >echo "Usage: $0 setup|start|stop|restart|reset-password|backup|daily|nginx" >&22
 
         exit 1
         ;;

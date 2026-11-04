@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>MariaDB Exporter: MariaDB's metrics for Prometheus and Grafana (WD's own or the MariaDB app), with a dashboard.</en-US>
+	<fr-FR>MariaDB Exporter : les métriques de MariaDB pour Prometheus et Grafana (celle de WD ou l'app MariaDB), avec un tableau de bord.</fr-FR>
+	<es-ES>MariaDB Exporter: las métricas de MariaDB para Prometheus y Grafana (la de WD o la app MariaDB), con un panel.</es-ES>
+	<de-DE>MariaDB Exporter: die Metriken von MariaDB für Prometheus und Grafana (WDs eigene oder die MariaDB-App), mit Dashboard.</de-DE>
+</config>
