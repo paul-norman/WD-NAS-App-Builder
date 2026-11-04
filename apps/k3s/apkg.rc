@@ -1,0 +1,23 @@
+Package:			k3s
+Version:			1.37.2
+Packager:			PDN
+Email:
+Homepage:			https://k3s.io/
+Description:		k3s: lightweight Kubernetes - a single-node cluster on the NAS, with kubectl.
+Icon:				k3s.svg
+AddonShowName:		k3s
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Headlamp: a web UI for the k3s app's Kubernetes cluster - workloads, logs, shells and more.</en-US>
+	<fr-FR>Headlamp : une interface web pour le cluster Kubernetes de l'app k3s - charges de travail, journaux, shells et plus.</fr-FR>
+	<es-ES>Headlamp: una interfaz web para el clúster Kubernetes de la app k3s - cargas de trabajo, registros, shells y más.</es-ES>
+	<de-DE>Headlamp: eine Weboberfläche für den Kubernetes-Cluster der k3s-App - Workloads, Logs, Shells und mehr.</de-DE>
+</config>

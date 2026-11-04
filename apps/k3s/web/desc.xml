@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>k3s: lightweight Kubernetes - a single-node cluster on the NAS, with kubectl.</en-US>
+	<fr-FR>k3s : Kubernetes léger - un cluster à un nœud sur le NAS, avec kubectl.</fr-FR>
+	<es-ES>k3s: Kubernetes ligero - un clúster de un nodo en el NAS, con kubectl.</es-ES>
+	<de-DE>k3s: leichtgewichtiges Kubernetes - ein Ein-Knoten-Cluster auf dem NAS, mit kubectl.</de-DE>
+</config>
