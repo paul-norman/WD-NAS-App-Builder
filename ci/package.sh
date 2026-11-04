@@ -179,9 +179,20 @@ fetch() {
 
 if [ "${MODE}" = 'fetch' ] && fetch; then
     printf '%s' "${VERSION}" > "packages/${APP}/latest"
-    touch "${DIR}/.ci-ready"
 
-    exit 0
+    # The tests of an app with a static build use it too (e.g. its binaries, run directly): from the build cache, else
+    # the app is built after all
+    if [ -d "static/${APP}" ]; then
+        restore_static
+    fi
+
+    if [ ! -d "static/${APP}" ] || [ -n "$(ls -A "packages/static/${APP}/$(static_version)/amd64" 2>/dev/null)" ]; then
+        touch "${DIR}/.ci-ready"
+
+        exit 0
+    fi
+
+    echo "${APP} ${VERSION}: its static build isn't in the build cache - building it"
 fi
 
 RESTORED=1
