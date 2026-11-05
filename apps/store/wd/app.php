@@ -101,7 +101,9 @@ install - WD's scripts and dialogs below, unchanged.
 <script type="text/javascript" src="/web/function/appsDiag.js?v=<?=$r;?>"></script>
 
 <script type="text/javascript">
-let APPS_EULA = 0;
+// var, not let: the dashboard loads this page into itself each time the Apps page is opened, running this again - a
+// second let of the same name is an error that stops the whole script (a blank page), a second var isn't
+var APPS_EULA = 0;
 
 // For the Store's page: opening an app's own page (Configure) and back, and WD's app store in its WD Store tab
 window.storeApps = {
