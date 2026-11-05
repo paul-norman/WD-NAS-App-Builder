@@ -144,6 +144,15 @@ setup() {
 
     set -- $(pl_ids)
 
+    # Python's multiprocessing (Celery's worker pool) keeps its semaphores in /dev/shm, which WD's firmware lacks (or has
+    # as a plain folder only root can write in): a small shared memory file system there, as any other Linux system has
+    if ! awk '$2 == "/dev/shm" { found = 1 } END { exit !found }' /proc/self/mounts; then
+        mkdir -p /dev/shm && mount -t tmpfs -o mode=1777,size=64m,nosuid,nodev shm /dev/shm \
+            && log 'mounted a shared memory file system on /dev/shm (Celery needs one)'
+    fi
+
+    chmod 1777 /dev/shm 2>/dev/null
+
     # Its data (database, search index, documents, its own log and temporary files) belongs to its user; the page's
     # settings and the secrets to root
     mkdir -p "${DATA_PATH}/data" "${DATA_PATH}/media" "${DATA_PATH}/tmp" "${DATA_PATH}/home" "${RUN_PATH}"

@@ -7,8 +7,8 @@ manage_require_admin('paperless-ngx');
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store');
 ?>
-<div id="paperless-manage">
-    <?php manage_styles('paperless-manage'); ?>
+<div id="paperless-ngx-manage">
+    <?php manage_styles('paperless-ngx-manage'); ?>
 
     <h2>Paperless-ngx</h2>
     <table>

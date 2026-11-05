@@ -30,6 +30,8 @@ ImageDraw.Draw(image).text((120, 200), sys.argv[2], fill=0, font=font)
 image.save(sys.argv[1], dpi=(150, 150))' "$1" "$2" $B/fonts/LiberationSerif-Regular.ttf
 }
 
+# As on WD's NAS: no /dev/shm (Celery's worker pool needs one: the app mounts it)
+umount /dev/shm 2>/dev/null; rm -rf /dev/shm
 echo '== with Valkey and Nginx'
 install_app valkey
 wait_port 6379 30 && pass 'Valkey answering' || { fail "Valkey: $(tail -n 5 /tmp/start.log)"; exit 1; }
@@ -51,6 +53,8 @@ GIDS=$(for pid in $(pythons); do awk '/^Gid:/ { print $2 }' /proc/$pid/status; d
     || fail "processes: $N, uids $UIDS gids $GIDS"
 [ "$(stat -c '%U %a' $D/data)" = 'paperless 700' ] && [ "$(stat -c '%U %a' $D/media)" = 'paperless 700' ] && [ "$(stat -c '%u %a' $D/admin_password)" = '0 600' ] \
     && [ "$(stat -c '%u %a' $D/secret_key)" = '0 600' ] && [ -f $D/data/db.sqlite3 ] && pass 'its database and documents its own, its secrets root'"'"'s' || fail "data: $(ls -la $D)"
+awk '$2 == "/dev/shm" && $3 == "tmpfs" { found = 1 } END { exit !found }' /proc/self/mounts && [ "$(stat -c '%a' /dev/shm)" = 1777 ] \
+    && pass 'a shared memory file system mounted on /dev/shm (the NAS has none; Celery needs one)' || fail "/dev/shm: $(ls -ld /dev/shm 2>&1)"
 [ -d $CONSUME ] && [ "$(stat -c '%U %G %a' $CONSUME)" = 'paperless share 2775' ] && pass "its consume folder made in the shares: $CONSUME (the share group's)" || fail "consume: $(ls -ld $CONSUME)"
 
 echo '== its login'
