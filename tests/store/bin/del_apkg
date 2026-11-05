@@ -1,9 +1,17 @@
 #!/bin/sh
 echo "del_apkg $1" >> /tmp/wdtools.log
 P="$(cat /etc/store_test_volume)/Nas_Prog"
+# As WD's does: nothing at all for an app another installed app needs (its InstDepend lists it) - only the list printed
+for rc in "$P"/*/apkg.rc; do
+    if [ -f "$rc" ] && sed -n 's/^InstDepend:[[:space:]]*//p' "$rc" | tr ', ' '\n\n' | grep -qx "$1"; then
+        echo "del_apkg $1 refused: $(dirname "$rc") needs it" >> /tmp/wdtools.log
+        sh /tbin/apkg_xml.sh
+        exit 0
+    fi
+done
 # As WD's does: the app's own stop.sh and clean.sh first - e.g. the Store's take its page away - then its folder
 if [ -n "$1" ] && [ -f "$P/$1/apkg.rc" ]; then
-	for script in stop.sh clean.sh; do [ -f "$P/$1/$script" ] && sh "$P/$1/$script" "$P/$1" >/dev/null 2>&1; done
-	rm -rf "$P/$1"
+    for script in stop.sh clean.sh; do [ -f "$P/$1/$script" ] && sh "$P/$1/$script" "$P/$1" >/dev/null 2>&1; done
+    rm -rf "$P/$1"
 fi
 sh /tbin/apkg_xml.sh

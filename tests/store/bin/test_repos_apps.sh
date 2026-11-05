@@ -81,6 +81,23 @@ get job >/dev/null; LOG=$(j '$d["log"]')
 sh /tbin/apkg_xml.sh
 post start -d job=app_update -d repo=$REPO -d id=keeper >/dev/null; job_wait
 [ "$JOB_STATE" = '"done"' ] && grep -q '99.3' $P/keeper/apkg.rc && [ ! -d $P/_store/previous/keeper ] && pass "updated afterwards, its kept copy gone: $JOB_MSG" || fail "update after put back: $JOB_STATE $JOB_MSG"
+# An app another needs (its InstDepend, as Headlamp's lists k3s): WD's uninstaller refuses to remove it, so the update
+# removes the other one first and installs it again afterwards
+python3 /tbin/repotool.py add-app /www/repo addon true; echo keeper > /tmp/inst_depend_addon; post refresh >/dev/null
+post start -d job=app_install -d repo=$REPO -d id=addon >/dev/null; job_wait; mkdir -p $P/_addon; echo kept > $P/_addon/data
+python3 /tbin/repotool.py set-app /www/repo keeper version '"99.4"'; post refresh >/dev/null; : > /tmp/wdtools.log
+post start -d job=app_update -d repo=$REPO -d id=keeper >/dev/null; job_wait
+ORDER=$(grep -o '^\(del_apkg\|upload_apkg\) [a-z]*' /tmp/wdtools.log | tr '\n' ',')
+[ "$JOB_STATE" = '"done"' ] && grep -q '99.4' $P/keeper/apkg.rc && grep -q 'InstDepend:.*keeper' $P/addon/apkg.rc && [ "$(cat $P/_addon/data)" = kept ] \
+    && [ "$ORDER" = 'del_apkg addon,del_apkg keeper,upload_apkg keeper,upload_apkg addon,' ] && echo "$JOB_MSG" | grep -q 'Addon installed again' \
+    && pass "updated an app another needs: that one removed first, installed again after ($ORDER) - $JOB_MSG" || fail "dependent update: $JOB_STATE $JOB_MSG $ORDER"
+# One the Store couldn't install again (plain: no keeps_data): refused before anything is changed
+printf 'InstDepend:\t\tkeeper\n' >> $P/plain/apkg.rc; sh /tbin/apkg_xml.sh
+python3 /tbin/repotool.py set-app /www/repo keeper version '"99.5"'; post refresh >/dev/null; : > /tmp/wdtools.log
+post start -d job=app_update -d repo=$REPO -d id=keeper >/dev/null; job_wait
+[ "$JOB_STATE" = '"failed"' ] && echo "$JOB_MSG" | grep -q 'Remove Plain, update Keeper' && grep -q '99.4' $P/keeper/apkg.rc && [ -d $P/plain ] && [ -d $P/addon ] && [ ! -s /tmp/wdtools.log ] \
+    && pass "refused when a needing app can't be installed again, nothing changed: $JOB_MSG" || fail "refusal: $JOB_STATE $JOB_MSG $(cat /tmp/wdtools.log)"
+sed -i '/^InstDepend:/d' $P/plain/apkg.rc; rm -f /tmp/inst_depend_addon; post start -d job=app_uninstall -d id=addon >/dev/null; job_wait; sh /tbin/apkg_xml.sh
 python3 /tbin/repotool.py set-app /www/repo plain version '"99.0"'; post refresh >/dev/null
 post start -d job=app_update -d repo=$REPO -d id=plain >/dev/null; job_wait
 [ "$JOB_STATE" = '"failed"' ] && grep -q -v '99.0' $P/plain/apkg.rc && pass "plain (no keeps_data) not updated by the Store: $JOB_MSG" || fail "plain update: $JOB_STATE $JOB_MSG"

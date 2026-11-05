@@ -300,9 +300,11 @@ function job_app_install(array $spec, bool $update): string
         job_fail('The app isn\'t in that repository any more - refresh the repositories');
     }
 
+    // The installed apps read afresh: store_nas() keeps its first answer, and a job can install several apps
     $id        = $app['id'];
     $nas       = store_nas();
-    $installed = isset($nas['apps'][$id]);
+    $apps      = store_installed_apps();
+    $installed = isset($apps[$id]);
 
     if ($update && !$installed) {
         job_fail($app['name'].' isn\'t installed');
@@ -333,6 +335,11 @@ function job_app_install(array $spec, bool $update): string
     }
 
     job_requires($app['requires'] ?? []);
+
+    // The installed apps that need this one (InstDepend): WD's uninstaller refuses to remove an app others need, so
+    // they're removed first and installed again afterwards - checked now, before anything is changed
+    $dependents = $update ? job_dependents($id, $app['name']) : [];
+    $removed    = [];
 
     $url = store_resolve_url($package['url'], $repo['base']);
 
@@ -374,7 +381,8 @@ function job_app_install(array $spec, bool $update): string
                 job_log('Warning: could not keep a copy of the installed version, to put back if the new one doesn\'t install');
             }
 
-            job_log('Removing the installed version ('.$nas['apps'][$id]['version'].') - its data folder stays');
+            job_remove_dependents($dependents, $app['name'], $removed);
+            job_log('Removing the installed version ('.$apps[$id]['version'].') - its data folder stays');
             job_run(['del_apkg', $id]);
 
             for ($i = 0; $i < 120 && isset(store_installed_apps()[$id]); $i++) {
@@ -417,6 +425,16 @@ function job_app_install(array $spec, bool $update): string
             job_installer_log($debug_size);
             job_fail('The NAS\'s installer failed: '.job_installer_reason($result).($kept ? job_put_back($id, $folder, $previous) : ''));
         }
+    } catch (JobFailed $failed) {
+        // The apps removed because they need this one: installed again all the same (the previous version may have
+        // been put back)
+        if ($removed) {
+            $failures = job_reinstall_dependents($removed);
+
+            throw new JobFailed($failed->getMessage().($failures ? '. '.$failures : '. '.job_names($removed).' installed again'));
+        }
+
+        throw $failed;
     } finally {
         @unlink(STORE_UPLOAD_PATH.'/'.$name);
     }
@@ -427,10 +445,162 @@ function job_app_install(array $spec, bool $update): string
     $apps = store_installed_apps();
 
     // Unless WD's list says it's switched off - the NAS starts apps once they're installed; its list can lag
-    $ready = (isset($apps[$id]) && $apps[$id]['enabled'] === false) || job_wait_web($app['web'] ?? null, 'its page in the NAS dashboard, and /tmp/debug_apkg');
-
-    return $app['name'].' '.(isset($apps[$id]) ? $apps[$id]['version'] : $app['version']).($ready ? ' is installed' : ' is installed but still starting')
+    $ready   = (isset($apps[$id]) && $apps[$id]['enabled'] === false) || job_wait_web($app['web'] ?? null, 'its page in the NAS dashboard, and /tmp/debug_apkg');
+    $message = $app['name'].' '.(isset($apps[$id]) ? $apps[$id]['version'] : $app['version']).($ready ? ' is installed' : ' is installed but still starting')
        .(!empty($app['data_folder']) && $update ? ' (its data in '.$app['data_folder'].' was kept)' : '');
+
+    if ($removed) {
+        $failures = job_reinstall_dependents($removed);
+
+        if ($failures !== '') {
+            job_fail($message.', but '.$failures);
+        }
+
+        $message .= ', and '.job_names($removed).' installed again';
+    }
+
+    return $message;
+}
+
+/**
+ * The installed apps that need an app (their InstDepend lists it, or lists an app that does), and where the Store can
+ * install each again from: WD's uninstaller won't remove an app that others need, so an update removes them first.
+ *
+ * @param string $id   The app's id
+ * @param string $name Its name, for messages
+ *
+ * @return list<array{ id: string, name: string, repo: string }> The apps, those needing it directly first
+ *
+ * @throws JobFailed When one of them can't be installed again by the Store
+ */
+function job_dependents(string $id, string $name): array
+{
+    $installed  = store_installed_apps();
+    $by_store   = store_installed_by_store();
+    $model      = store_nas()['model'];
+    $dependents = [];
+    $queue      = [$id];
+
+    while ($queue) {
+        $needed = array_shift($queue);
+
+        foreach ($installed as $other => $app) {
+            if ($other === $id || isset($dependents[$other]) || !in_array($needed, $app['depends'], true)) {
+                continue;
+            }
+
+            $label  = $app['name'] ?: $other;
+            $source = isset($by_store[$other]) ? $by_store[$other]['repo'] : null;
+            $offers = [];
+
+            foreach (store_repos_loaded() as $repo) {
+                list(, $entry) = store_find('apps', $repo['url'], $other);
+
+                if ($entry !== null) {
+                    $offers[$repo['url']] = $entry;
+                    $label                = $entry['name'];
+                }
+            }
+
+            // Installed by hand: taken from the only repository offering it
+            if ($source === null && count($offers) === 1) {
+                $source = array_keys($offers)[0];
+            }
+
+            $entry = $source !== null && isset($offers[$source]) ? $offers[$source] : null;
+            $why   = '';
+
+            if ($entry === null) {
+                $why = $source === null && count($offers) > 1 ? 'several repositories offer it, and it was installed by hand' : 'no repository offers it';
+            } elseif (empty($entry['keeps_data'])) {
+                $why = 'it would lose its settings';
+            } elseif (!in_array($model, array_column($entry['packages'], 'model'), true)) {
+                $why = 'it has no package for this NAS';
+            }
+
+            if ($why !== '') {
+                job_fail($label.' needs '.$name.', so it has to be removed for the update and installed again - but the Store can\'t install it again ('
+                    .$why.'). Remove '.$label.', update '.$name.', then install '.$label.' again');
+            }
+
+            $dependents[$other] = ['id' => $other, 'name' => $entry['name'], 'repo' => $source];
+            $queue[]            = $other;
+        }
+    }
+
+    return array_values($dependents);
+}
+
+/**
+ * Removes the apps that need the app being updated (see job_dependents()) with WD's uninstaller - those needing them
+ * first. Their data folders stay.
+ *
+ * @param list<array{ id: string, name: string, repo: string }> $dependents The apps
+ * @param string                                                $name       The app being updated, for the log
+ * @param list<array{ id: string, name: string, repo: string }> $removed    Set to those removed so far
+ *
+ * @return void
+ *
+ * @throws JobFailed When one of them isn't removed
+ */
+function job_remove_dependents(array $dependents, string $name, array &$removed): void
+{
+    foreach (array_reverse($dependents) as $dependent) {
+        job_log('Removing '.$dependent['name'].' for now (it needs '.$name.') - its data folder stays, and it\'s installed again afterwards');
+        job_run(['del_apkg', $dependent['id']]);
+
+        for ($i = 0; $i < 120 && isset(store_installed_apps()[$dependent['id']]); $i++) {
+            sleep(1);
+        }
+
+        if (isset(store_installed_apps()[$dependent['id']])) {
+            job_fail($dependent['name'].' could not be removed');
+        }
+
+        array_unshift($removed, $dependent);
+    }
+}
+
+/**
+ * Installs again the apps removed for an update (see job_remove_dependents()), from the repositories they came from -
+ * each one tried, even if another fails.
+ *
+ * @param list<array{ id: string, name: string, repo: string }> $removed The apps, in the order they're installed
+ *
+ * @return string What failed, for the job's message ('' if they were all installed)
+ */
+function job_reinstall_dependents(array $removed): string
+{
+    $failed = [];
+
+    foreach ($removed as $dependent) {
+        job_log('Installing '.$dependent['name'].' again');
+
+        try {
+            job_log(job_app_install(['repo' => $dependent['repo'], 'target' => $dependent['id']], false));
+        } catch (JobFailed $exception) {
+            job_log('Failed: '.$exception->getMessage());
+
+            $failed[] = $dependent['name'].' could not be installed again ('.$exception->getMessage().') - install it from the Store';
+        }
+    }
+
+    return implode('. ', $failed);
+}
+
+/**
+ * The names of a few apps, for a message.
+ *
+ * @param list<array{ name: string }> $apps The apps
+ *
+ * @return string Their names, e.g. "A, B and C"
+ */
+function job_names(array $apps): string
+{
+    $names = array_column($apps, 'name');
+    $last  = array_pop($names);
+
+    return $names ? implode(', ', $names).' and '.$last : (string)$last;
 }
 
 /**
@@ -1279,6 +1449,20 @@ function job_auto_update(array $spec): string
 
             $results[] = $item + ['message' => ''];
             $counts['skip']++;
+
+            continue;
+        }
+
+        // Already installed again at that version by an earlier update here: an app that needed the one updated
+        $now = $item['kind'] === 'apps' ? (store_installed_apps()[$item['id']] ?? null) : null;
+
+        if ($now !== null && store_version_compare($now['version'], $item['to']) >= 0) {
+            $message = $item['name'].' '.$now['version'].' was installed with the app it needs';
+
+            job_log($message);
+
+            $results[] = ['state' => 'updated', 'message' => $message] + $item;
+            $counts['updated']++;
 
             continue;
         }

@@ -12,5 +12,7 @@ if [ -f /tmp/upload_apkg_gives_up ]; then echo 3 > /tmp/upload_apkg_status; exit
 if [ -d "$P/$id" ]; then echo 4 > /tmp/upload_apkg_status; exit 0; fi
 # Shaped like this project's apps: a page in the dashboard
 mkdir -p "$P/$id"; printf 'Package:\t\t\t%s\nVersion:\t\t\t%s\nAddonShowName:\t\t%s\nDescription:\t\t%s for testing\nIcon:\t\t\t\t%s.svg\nAddonIndexPage:\t\tindex.php\nCenterType:\t\t\t1\n' "$id" "$version" "$id" "$id" "$id" > "$P/$id/apkg.rc"
+# The apps it needs, if a test set them (/tmp/inst_depend_<id>)
+[ -f "/tmp/inst_depend_$id" ] && printf 'InstDepend:\t\t%s\n' "$(cat "/tmp/inst_depend_$id")" >> "$P/$id/apkg.rc"
 sha256sum "$bin" | cut -d' ' -f1 > "$P/$id/.installed_sha256"
 rm -f "$bin"; sh /tbin/apkg_xml.sh; echo 1 > /tmp/upload_apkg_status
