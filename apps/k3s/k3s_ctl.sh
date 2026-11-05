@@ -155,7 +155,7 @@ load_app_module() {
 }
 
 # Loads the kernel modules, then writes what the kernel still lacks to the kernel file (for the management page): one
-# "module <why>" or "missing <feature>" line each, empty when nothing's missing. Only on WD's NAS (its model file): other
+# "module <why>" or "missing <feature>" line each, empty if nothing's missing. Only on WD's NAS (its model file): other
 # kernels (e.g. the tests') load what iptables needs by themselves, when it's first used.
 #
 # Prints nothing

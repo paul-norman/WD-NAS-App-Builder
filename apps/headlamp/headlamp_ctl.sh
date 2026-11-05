@@ -99,7 +99,7 @@ setup() {
     chmod 600 "${HEADLAMP_LOG}"
 }
 
-# Writes the cluster's account for Headlamp into k3s's manifests folder (k3s applies it, now or whenever it next starts):
+# Writes Headlamp's account in the cluster into k3s's manifests folder (k3s applies it now, or whenever it next starts):
 # the headlamp-admin service account, as cluster-admin, with a long-lived token.
 #
 # Prints nothing; returns 1 if the k3s app's cluster isn't there

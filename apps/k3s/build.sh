@@ -2,7 +2,8 @@
 . '../build_helpers.sh'
 
 # k3s and the kernel modules it needs are prepared by static/k3s (which the root build.sh runs first) - for the Intel
-# models with modules built from WD's GPL source (the DL2100's archive is truncated, so it has none: k3s can't work there)
+# models with modules built from WD's GPL source (the DL2100's archive is truncated, so it has none: k3s can't work
+# there)
 declare -A MODELS
 MODELS[amd64]='MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100'
 
