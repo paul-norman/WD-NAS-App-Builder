@@ -1,6 +1,6 @@
 # OpenSSH App
 
-Replaces the NAS's own SSH server - **OpenSSH 8.4p1**, from 2020 - with **OpenSSH 10.6p1**, keeping everything WD set up: its settings, its host key *(so computers that know the NAS don't warn)* and its login *(user `sshd`, with the password set in the dashboard)*. Its page adds SSH keys and a "keys only" switch, and shows how to set up a computer to connect. Intel models only.
+Replaces the NAS's own SSH server - **OpenSSH 8.4p1**, from 2020 - with **OpenSSH 10.6p2**, keeping everything WD set up: its settings, its host key *(so computers that know the NAS don't warn)* and its login *(user `sshd`, with the password set in the dashboard)*. Its page adds SSH keys and a "keys only" switch, and shows how to set up a computer to connect. Intel models only.
 
 - OpenSSH's own release is used *(checked against its SHA256; also signed with OpenSSH's release key)*, built by `static/openssh` fully static against musl, with OpenSSL's libcrypto *(for RSA keys - the NAS's host key is one)*. Nothing depends on the NAS's own libraries, and musl reads `/etc/passwd` and `/etc/shadow` itself: a static glibc build would load the NAS's own user lookup libraries at every login, and break when they change.
 - **What's newer**: post-quantum key exchange *(`mlkem768x25519` - OpenSSH 10.1+ clients warn about servers without it)*, the pre-login code in its own process *(`sshd-auth`)* inside a system call sandbox, penalties for addresses that keep failing to log in *(the internet's scanners - except the NAS itself)*, strict key exchange *(against the Terrapin attack)* and six years of fixes.
@@ -46,4 +46,4 @@ From the project root directory:
 ./build.sh openssh
 ```
 
-The WD bin files will be created in `packages/openssh/`. The app's version *(`10.6.1` for OpenSSH's `10.6p1`)* is set in `apkg.rc` and `static/openssh/build.sh` *(which must match, with OpenSSH's version and its release's checksum)*.
+The WD bin files will be created in `packages/openssh/`. The app's version *(`10.6.2` for OpenSSH's `10.6p2`)* is set in `apkg.rc` and `static/openssh/build.sh` *(which must match, with OpenSSH's version and its release's checksum)*.

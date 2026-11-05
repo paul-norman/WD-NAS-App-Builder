@@ -18,10 +18,10 @@
 set -e
 set -x
 
-# The app's version, and OpenSSH's (10.6p1 = OpenSSH 10.6, portable release 1)
-VERSION=10.6.1
-OPENSSH_VERSION=10.6p1
-SHA256=a9dc9565dffe8640f64d863cd29a32bc4a3dbdec0566a7fc44c5d6ee767d5f39
+# The app's version, and OpenSSH's (10.6p2 = OpenSSH 10.6, portable release 2)
+VERSION=10.6.2
+OPENSSH_VERSION=10.6p2
+SHA256=9ae44872090cf2f06b3cf9ff147e7f16f309671340763ed2f99248398ae29d5b
 PRIVSEP_USER=sshpriv
 
 ARCH=$(uname -m)

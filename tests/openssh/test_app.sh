@@ -63,9 +63,9 @@ echo '== its page'
 page_up
 ST=$(get status)
 FP=$(ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub | cut -d ' ' -f 2)
-[ "$(echo "$ST" | j '$d["listener"]')" = '"app"' ] && [ "$(echo "$ST" | j '$d["version"]')" = '"10.6p1"' ] && [ "$(echo "$ST" | j '$d["sandbox"]')" = '"seccomp"' ] \
+[ "$(echo "$ST" | j '$d["listener"]')" = '"app"' ] && [ "$(echo "$ST" | j '$d["version"]')" = '"10.6p2"' ] && [ "$(echo "$ST" | j '$d["sandbox"]')" = '"seccomp"' ] \
     && [ "$(echo "$ST" | j '$d["host_keys"][0]["fingerprint"]')" = "\"$FP\"" ] && [ "$(echo "$ST" | j '$d["home"]["keys"][0]["comment"]')" = '"users-old-key"' ] \
-    && [ "$(echo "$ST" | j '$d["home"]["kept"]')" = false ] && pass "the page: 10.6p1 running (seccomp sandbox), the NAS's fingerprint, the user's own key (in RAM here: lost at a reboot)" \
+    && [ "$(echo "$ST" | j '$d["home"]["kept"]')" = false ] && pass "the page: 10.6p2 running (seccomp sandbox), the NAS's fingerprint, the user's own key (in RAM here: lost at a reboot)" \
     || fail "status: $(echo "$ST" | head -c 400)"
 
 echo '== keys from the page'

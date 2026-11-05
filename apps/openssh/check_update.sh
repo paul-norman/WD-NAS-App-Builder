@@ -6,7 +6,7 @@ APP_PATH="$(dirname "$(readlink -f "$0")")"
 LAST_FILE="$(dirname "${APP_PATH}")/_openssh/last_update_alert"
 RELEASES='https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/'
 
-# The app's 10.6.1 is OpenSSH's 10.6p1
+# The app's 10.6.2 is OpenSSH's 10.6p2
 INSTALLED="$(sed -n 's/^Version:[[:space:]]*//p' "${APP_PATH}/apkg.rc" | tr -d '\r' | sed 's/-[0-9]*$//; s/\.\([0-9]*\)$/p\1/')"
 
 if command -v curl > /dev/null; then
