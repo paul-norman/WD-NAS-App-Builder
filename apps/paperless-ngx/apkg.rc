@@ -1,0 +1,23 @@
+Package:			paperless-ngx
+Version:			3.4.2
+Packager:			PDN
+Email:
+Homepage:			https://docs.paperless-ngx.com/
+Description:		Paperless-ngx: scan, OCR, index and archive your documents, searchable from any browser.
+Icon:				paperless-ngx.svg
+AddonShowName:		Paperless-ngx
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:		valkey
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

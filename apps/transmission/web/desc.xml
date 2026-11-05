@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Transmission: a BitTorrent client with a web interface, downloading into the NAS's shares.</en-US>
+	<fr-FR>Transmission : un client BitTorrent avec une interface web, qui télécharge dans les partages du NAS.</fr-FR>
+	<es-ES>Transmission: un cliente BitTorrent con interfaz web, que descarga en las carpetas compartidas del NAS.</es-ES>
+	<de-DE>Transmission: ein BitTorrent-Client mit Weboberfläche, der in die Freigaben des NAS herunterlädt.</de-DE>
+</config>
