@@ -52,6 +52,9 @@ page_up() {
     fi
     PAGE=http://127.0.0.1:8080/apps/$APP; CK='Cookie: PHPSESSID=adminsession123'
     T=$(curl -s -H "$CK" $PAGE/index.php | sed -n 's/.*let csrf *= "\([^"]*\)".*/\1/p')
+    # The page's script finds its part of the page by <app>-manage (lower case): any other id leaves the page empty
+    curl -s -H "$CK" $PAGE/index.php | grep -q "id=\"$(echo "$APP" | tr 'A-Z' 'a-z')-manage\"" \
+        || fail "${1:+$1: }its page has no <div id=\"$(echo "$APP" | tr 'A-Z' 'a-z')-manage\"> (its script would find nothing to fill in)"
 
     # A page that only shows things - READ_ONLY_PAGE=1 - has no actions, so no CSRF token
     if [ -n "${READ_ONLY_PAGE:-}" ]; then

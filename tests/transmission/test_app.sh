@@ -28,9 +28,9 @@ echo '== installed and started'
 install_app
 wait_port 9091 30 && pass 'answering on 9091' || { fail "not answering: $(tail -n 10 /tmp/debug_apkg; tail -n 10 $D/transmission.log)"; exit 1; }
 PID=$(cat /var/run/transmission.pid)
-[ "$(awk '/^Uid:/ { print $2 }' /proc/$PID/status)" = 95 ] && [ "$(awk '/^Gid:/ { print $2 }' /proc/$PID/status)" = 1000 ] \
+[ "$(awk '/^Uid:/ { print $2 }' /proc/$PID/status)" = 97 ] && [ "$(awk '/^Gid:/ { print $2 }' /proc/$PID/status)" = 1000 ] \
     && [ "$(stat -c '%U %a' $D/config)" = 'transmission 700' ] && [ "$(stat -c '%u %a' $D/password)" = '0 600' ] && [ "$(stat -c '%u %a' $D/settings)" = '0 600' ] \
-    && pass "runs as its own user (95) in the share group, its data its own, the password and settings root's" \
+    && pass "runs as its own user (97) in the share group, its data its own, the password and settings root's" \
     || fail "user: $(grep -E '^(Uid|Gid):' /proc/$PID/status | tr '\n' ' ') $(ls -la $D)"
 DL=$V/Public/Downloads
 [ -d $DL ] && [ "$(stat -c '%U %G %a' $DL)" = 'transmission share 2775' ] && grep -q "^DOWNLOAD_DIR=$DL$" $D/settings \

@@ -26,7 +26,7 @@ TR_LOG="${DATA_PATH}/transmission.log"
 PID_FILE=/var/run/transmission.pid
 PORT=9091
 # Its own user (created if missing): the ID used when creating it. Its group is the NAS's share group if there is one
-TR_ID=95
+TR_ID=97
 LOG=/tmp/debug_apkg
 
 # Writes a line to the NAS's app log (/tmp/debug_apkg), with the time and the script's name, and prints it.
