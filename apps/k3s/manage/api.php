@@ -17,13 +17,15 @@ $k3s           = $app_path.'/binaries/k3s';
  *
  * @param string $file The settings file (KEY=value lines, also read by the app's control script)
  *
- * @return array{ MEMORY: string, SERVICELB: string } The settings (MEMORY '' for the default share)
+ * @return array{ MEMORY: string, SERVICELB: string, NO_PIVOT: string } The settings (MEMORY '' for the default share;
+ *                                                                     NO_PIVOT '' to detect it - not on the page)
  */
 function k3s_settings(string $file): array
 {
     $settings = [
         'MEMORY'    => '',
         'SERVICELB' => '0',
+        'NO_PIVOT'  => '',
     ];
 
     foreach (@file($file, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
@@ -187,8 +189,10 @@ if ($action === 'settings') {
         manage_fail(400, 'The memory share is 25% to 90%');
     }
 
+    // NO_PIVOT isn't on the page: kept as it is (see k3s_ctl.sh)
     $text = 'MEMORY='.$memory."\n"
-        .'SERVICELB='.(empty($_POST['servicelb']) ? 0 : 1)."\n";
+        .'SERVICELB='.(empty($_POST['servicelb']) ? 0 : 1)."\n"
+        .($settings['NO_PIVOT'] !== '' ? 'NO_PIVOT='.$settings['NO_PIVOT']."\n" : '');
 
     if (!manage_write_file($settings_file, $text)) {
         manage_fail(500, 'The settings could not be saved');

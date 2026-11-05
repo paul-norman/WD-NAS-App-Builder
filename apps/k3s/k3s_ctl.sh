@@ -332,6 +332,51 @@ setup() {
     prepare_system
 }
 
+# Whether containers must start without pivot_root: the kernel refuses it when the root file system is the initial one in
+# RAM (rootfs / ramfs / tmpfs) - as on WD's NAS (Docker's app works round it the same way: DOCKER_RAMDISK). runc then
+# moves the container's root into place and chroots into it instead: less strict isolation, so only where it's needed.
+# The NO_PIVOT setting (1 or 0) overrides this, e.g. for tests.
+#
+# Returns 0 if they must
+no_pivot_root() {
+    case "$(setting NO_PIVOT auto)" in
+        1) return 0 ;;
+        0) return 1 ;;
+    esac
+
+    case "$(awk '$2 == "/" { type = $3 } END { print type }' /proc/self/mounts)" in
+        rootfs|ramfs|tmpfs) return 0 ;;
+    esac
+
+    return 1
+}
+
+# Writes an addition to containerd's configuration (k3s's own imports config-v3.toml.d/*.toml next to it, merging them
+# in): k3s's runc runtime starts containers without pivot_root - where that's needed (see no_pivot_root); otherwise none.
+#
+# Prints nothing
+write_containerd_config() {
+    local file="${K3S_DATA}/agent/etc/containerd/config-v3.toml.d/50-wd-nas.toml"
+
+    rm -f "${K3S_DATA}/agent/etc/containerd/config-v3.toml.tmpl"
+
+    if ! no_pivot_root; then
+        rm -f "${file}"
+
+        return 0
+    fi
+
+    mkdir -p "$(dirname "${file}")"
+    cat > "${file}" <<'EOF'
+# Written by the k3s app: containers start without pivot_root (the NAS's root file system is in RAM, where the kernel
+# refuses it)
+version = 3
+
+[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.runc.options]
+  NoPivotRoot = true
+EOF
+}
+
 start() {
     local snapshotter=native ip disable_lb='' waited=0
 
@@ -343,6 +388,9 @@ start() {
 
     setup || return 1
     write_kubelet_config
+    write_containerd_config
+
+    no_pivot_root && log 'containers start without pivot_root (the root file system is in RAM)'
 
     # Images are layered with overlayfs when the kernel has it (the app's module), else copied whole (slower, much bigger)
     grep -q 'overlay$' /proc/filesystems && snapshotter=overlayfs

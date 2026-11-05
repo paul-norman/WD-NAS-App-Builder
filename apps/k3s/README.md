@@ -31,6 +31,7 @@ What else differs from a typical k3s install:
 - k3s's own iptables is used *(`--prefer-bundled-bin`)*: the NAS's lacks the extensions. Kubernetes' and flannel's rules are added alongside the NAS's own and Docker's, and removed when the app stops.
 - Stale UDP connections aren't cleaned up when a pod's address changes *(no conntrack netlink - it would change WD's own `nf_conntrack` module)*: rarely noticeable on one node.
 - The kubelet's files are in `_k3s/kubelet` and the pods' logs in `_k3s/pod-logs` *(the NAS's `/var` is in RAM)*.
+- **Containers start without `pivot_root`**: the NAS's root file system is in RAM, where the kernel refuses it *(as for the Docker app)*, so runc moves each container's files into place and changes root into them instead *(`NoPivotRoot`, added to containerd's configuration in `_k3s/data/agent/etc/containerd/config-v3.toml.d/50-wd-nas.toml` - only where the root file system is in RAM)*. Containers are isolated a little less strictly than on a usual server.
 
 ## Ports
 

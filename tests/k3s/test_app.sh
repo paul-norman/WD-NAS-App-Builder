@@ -38,6 +38,9 @@ if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
 fi
 
 echo '== installed and started'
+# As on the NAS (its root file system is in RAM, where the kernel refuses pivot_root): containers start without it - here
+# forced, as this container's root file system is a normal one
+mkdir -p $D && printf 'MEMORY=\nSERVICELB=0\nNO_PIVOT=1\n' > $D/settings
 install_app
 [ "$(readlink /sbin/kubectl)" = "$K" ] && [ "$(readlink /sbin/crictl)" = "$K" ] && [ "$(readlink /sbin/k3s)" = "$K" ] \
     && pass 'k3s, kubectl and crictl linked into /sbin' || fail "links: $(ls -l /sbin/kubectl /sbin/crictl /sbin/k3s 2>&1)"
@@ -71,6 +74,12 @@ kc -n kube-system rollout status deploy/local-path-provisioner --timeout=300s > 
     || fail "paths: $(ls $D $D/kubelet 2>&1) $(ls -l /var/log/pods) $(find /var/lib/rancher /var/lib/kubelet 2>&1 | head -n 20)"
 grep -q 'containerd snapshotter: overlayfs' /tmp/debug_apkg && pass 'images layered with overlayfs' || fail "snapshotter: $(grep snapshotter /tmp/debug_apkg)"
 
+# Every container started without pivot_root: containerd hands runc the option (in each container's options.json)
+O=$(ls /run/k3s/containerd/io.containerd.runtime.v2.task/k8s.io/*/options.json 2>/dev/null | wc -l)
+W=$(grep -L '"no_pivot_root":true' /run/k3s/containerd/io.containerd.runtime.v2.task/k8s.io/*/options.json 2>/dev/null | wc -l)
+[ -f $D/data/agent/etc/containerd/config-v3.toml.d/50-wd-nas.toml ] && [ "$O" -gt 0 ] && [ "$W" = 0 ] \
+    && pass "its containers start without pivot_root, as the NAS needs (all $O of them)" \
+    || fail "no pivot_root: $W of $O without it $(cat /run/k3s/containerd/io.containerd.runtime.v2.task/k8s.io/*/options.json 2>/dev/null | head -c 200)"
 echo '== a workload'
 kc apply -f - > /tmp/apply.log 2>&1 <<'EOF'
 apiVersion: v1
@@ -121,7 +130,7 @@ grep -q "server: https://$IP:6443" /tmp/kubeconfig && grep -q 'client-key-data' 
 
 echo '== settings: memory and ServiceLB'
 R=$(post settings -d memory=25 -d servicelb=1)
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && grep -q '^MEMORY=25$' $D/settings && grep -q '^SERVICELB=1$' $D/settings \
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && grep -q '^MEMORY=25$' $D/settings && grep -q '^SERVICELB=1$' $D/settings && grep -q '^NO_PIVOT=1$' $D/settings \
     && pass 'saved (and k3s restarted)' || fail "settings: $R"
 node_ready
 # (The node still shows its old memory until the restarted kubelet updates it)
