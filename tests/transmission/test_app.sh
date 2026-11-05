@@ -58,7 +58,11 @@ rpc -t $ID --move $DL/moved > /dev/null; sleep 3
 
 echo '== its page'
 page_up transmission
-ST=$(get status)
+LINES=$(wc -l < $D/transmission.log)
+ST=$(get status); get status > /dev/null
+REJECTED=$(tail -n +$((LINES + 1)) $D/transmission.log | grep -c 'failed authentication')
+[ "$REJECTED" = 0 ] && pass "the page's status logs in from its first request (no failed logins in Transmission's log)" \
+    || fail "failed logins logged by the page: $REJECTED"
 [ "$(echo "$ST" | j '$d["running"] && $d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"4.1.4"' ] && [ "$(echo "$ST" | j '$d["torrents"]')" = 1 ] \
     && echo "$ST" | j '$d["address"]' | grep -q ':9091/transmission/web/"$' && pass "status: running, 4.1.4, 1 torrent, $(echo "$ST" | j '$d["address"]')" \
     || fail "status: $(echo "$ST" | head -c 400)"

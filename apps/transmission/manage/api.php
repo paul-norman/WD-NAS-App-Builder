@@ -71,23 +71,56 @@ function tr_check_path($path): string
 }
 
 /**
- * Runs transmission-remote against the running Transmission, logged in with the app's password (given in its
- * environment, not on its command line).
+ * Calls Transmission's RPC on 127.0.0.1:9091, logged in with the app's password from the first request: not with
+ * transmission-remote, whose first try of each request goes without the login (to learn how to log in) - which
+ * Transmission logs as a failed login, every time the page refreshes.
  *
- * @param string       $app_path  The app's folder
- * @param string       $data_path The app's data folder
- * @param list<string> $args      Its arguments (e.g. -si)
+ * @param string               $data_path The app's data folder
+ * @param string               $method    The RPC method (e.g. session-get)
+ * @param array<string, mixed> $arguments Its arguments
  *
- * @return array{ 0: int, 1: string } [exit code, output]
+ * @return array<string, mixed>|null Its result's arguments, or null if it didn't answer or refused
  */
-function tr_remote(string $app_path, string $data_path, array $args): array
+function tr_rpc(string $data_path, string $method, array $arguments = []): ?array
 {
-    $password = trim((string)@file_get_contents($data_path.'/password'));
+    // Transmission's CSRF protection: its session ID, given back with a 409 when missing or old
+    static $session = '';
 
-    return manage_run(
-        array_merge([$app_path.'/binaries/bin/transmission-remote', '127.0.0.1:9091', '--authenv'], $args),
-        ['TR_AUTH' => 'admin:'.$password]
-    );
+    $password = trim((string)@file_get_contents($data_path.'/password'));
+    $body     = (string)json_encode(['method' => $method, 'arguments' => (object)$arguments]);
+
+    for ($try = 0; $try < 2; $try++) {
+        $socket = @fsockopen('127.0.0.1', 9091, $errno, $errstr, 3);
+
+        if ($socket === false) {
+            return null;
+        }
+
+        stream_set_timeout($socket, 10);
+        fwrite($socket, "POST /transmission/rpc HTTP/1.0\r\nHost: 127.0.0.1:9091\r\n"
+            .'Authorization: Basic '.base64_encode('admin:'.$password)."\r\n"
+            .'X-Transmission-Session-Id: '.$session."\r\n"
+            ."Content-Type: application/json\r\nContent-Length: ".strlen($body)."\r\n\r\n".$body);
+
+        $response = (string)stream_get_contents($socket);
+
+        fclose($socket);
+
+        list($head, $content) = array_pad(explode("\r\n\r\n", $response, 2), 2, '');
+        $status               = preg_match('#^HTTP/\S+ (\d+)#', $head, $m) ? (int)$m[1] : 0;
+
+        if ($status === 409 && preg_match('/^X-Transmission-Session-Id:\s*(\S+)/mi', $head, $m)) {
+            $session = $m[1];
+
+            continue;
+        }
+
+        $result = $status === 200 ? json_decode($content, true) : null;
+
+        return is_array($result) && ($result['result'] ?? '') === 'success' && is_array($result['arguments'] ?? null) ? $result['arguments'] : null;
+    }
+
+    return null;
 }
 
 /**
@@ -112,24 +145,23 @@ $action   = $_GET['action'] ?? 'status';
 if ($action === 'status') {
     $running = manage_pid_running('/var/run/transmission.pid');
 
-    list($code, $info) = $running ? tr_remote($app_path, $data_path, ['-si']) : [1, ''];
-    list(, $list)      = $code === 0 ? tr_remote($app_path, $data_path, ['-l']) : [1, ''];
-
-    // The list's rows (ID, done, have, ETA, up, down, ratio, status, name), then its Sum line
-    $torrents = max(0, count(array_filter(explode("\n", $list), function ($line) {
-        return preg_match('/^\s*\d+\*?\s/', $line) === 1;
-    })));
-    $sum     = preg_match('/^Sum:\s+\S+(?:\s+\S+)?\s+([\d.]+)\s+([\d.]+)\s*$/m', $list, $m) ? [$m[1], $m[2]] : ['0', '0'];
+    $session = $running ? tr_rpc($data_path, 'session-get', ['fields' => ['version']]) : null;
+    $stats   = $session !== null ? tr_rpc($data_path, 'session-stats') : null;
     $address = preg_match('/ src (\S+)/', manage_run(['ip', '-4', 'route', 'get', '1.1.1.1'])[1], $a) ? $a[1] : '';
     $log     = @file($data_path.'/transmission.log', FILE_IGNORE_NEW_LINES) ?: [];
 
+    // Speeds in kB/s (1000 bytes, as Transmission counts them); the version without its build ("4.1.4 (abc123)")
+    $speed = function (string $key) use ($stats): string {
+        return (string)round((int)($stats[$key] ?? 0) / 1000, 1);
+    };
+
     manage_json([
         'running'      => $running,
-        'answering'    => $code === 0,
-        'version'      => preg_match('/Daemon version:\s*(\S+)/', $info, $v) ? $v[1] : '',
-        'torrents'     => $torrents,
-        'upload'       => $sum[0],
-        'download'     => $sum[1],
+        'answering'    => $stats !== null,
+        'version'      => preg_match('/^(\S+)/', (string)($session['version'] ?? ''), $v) ? $v[1] : '',
+        'torrents'     => (int)($stats['torrentCount'] ?? 0),
+        'upload'       => $speed('uploadSpeed'),
+        'download'     => $speed('downloadSpeed'),
         'address'      => $address !== '' ? 'http://'.$address.':9091/transmission/web/' : '',
         'site'         => manage_nginx_site($apps_path, $target),
         'download_dir' => $settings['DOWNLOAD_DIR'],
