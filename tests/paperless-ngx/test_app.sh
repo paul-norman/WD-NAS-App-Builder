@@ -62,6 +62,9 @@ echo '== its login'
 [ "$(code -m 10 http://127.0.0.1:8040/api/documents/)" = 401 ] && pass 'nothing without a login (401)' || fail "no login: $(code -m 10 http://127.0.0.1:8040/api/documents/)"
 TOKEN=$(token "$(cat $D/admin_password)")
 [ -n "$TOKEN" ] && api /api/ui_settings/ | grep -q '"username":"admin"' && pass 'the admin user, with the generated password' || fail "admin: $TOKEN"
+# Its System Status (no documents yet): the search index made at the first start, as Paperless's own image does
+R=$(api /api/status/); [ -n "$(ls -A $D/data/index 2>/dev/null)" ] && echo "$R" | grep -q '"index_status":"OK"' \
+    && pass 'its search index made at the first start (System Status: OK, no documents yet)' || fail "index: $(ls -la $D/data/index 2>&1) $(echo "$R" | grep -o '"index[^,]*,"index[^,]*' )"
 
 echo '== a scanned page'
 page /tmp/scan.png 'Invoice 4711 from the NAS'

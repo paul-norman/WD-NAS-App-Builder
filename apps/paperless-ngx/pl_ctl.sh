@@ -154,8 +154,8 @@ setup() {
     chmod 1777 /dev/shm 2>/dev/null
 
     # Its data (database, search index, documents, its own log and temporary files) belongs to its user; the page's
-    # settings and the secrets to root
-    mkdir -p "${DATA_PATH}/data" "${DATA_PATH}/media" "${DATA_PATH}/tmp" "${DATA_PATH}/home" "${RUN_PATH}"
+    # settings and the secrets to root. The search index's folder must exist: Paperless empties it to build the index
+    mkdir -p "${DATA_PATH}/data/index" "${DATA_PATH}/media" "${DATA_PATH}/tmp" "${DATA_PATH}/home" "${RUN_PATH}"
     chmod 711 "${DATA_PATH}"
     chown -R "$1:$2" "${DATA_PATH}/data" "${DATA_PATH}/media" "${DATA_PATH}/tmp" "${DATA_PATH}/home"
     chmod 700 "${DATA_PATH}/data" "${DATA_PATH}/media" "${DATA_PATH}/tmp" "${DATA_PATH}/home"
@@ -287,6 +287,14 @@ launch() {
     # The admin user, the first time only (afterwards its password is changed in Paperless, or from the page)
     PAPERLESS_ADMIN_PASSWORD="$(cat "${PASSWORD_FILE}")" as_paperless "${PYTHON}" manage.py manage_superuser \
         >> "${PL_LOG}" 2>&1
+
+    # The search index, as Paperless's own image does at every start: made if missing (else its System Status shows an
+    # error until a first document is added), and rebuilt when a new version changes its format
+    echo 'checking its search index' > "${STATE_FILE}"
+
+    if ! as_paperless "${PYTHON}" manage.py document_index reindex --if-needed --no-progress-bar >> "${PL_LOG}" 2>&1; then
+        log "Its search index could not be checked (Paperless starts anyway), see: ${PL_LOG}"
+    fi
 
     start_service web "${PYTHON}" -m granian --interface asginl --ws --loop uvloop --host "$(listen_host)" \
         --port ${PORT} --workers 1 paperless.asgi:application
