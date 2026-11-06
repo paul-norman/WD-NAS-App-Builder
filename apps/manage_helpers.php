@@ -650,29 +650,185 @@ function manage_styles(string $id): void
 {
     $id = '#'.$id;
 
-    echo "<style>
-		{$id} { font-family: inherit; color: inherit; padding: 0.5rem 0; line-height: 1.5; white-space: normal; }
-		{$id} h2 { font-size: 1.3em; font-weight: bold; margin: 0 0 0.75rem; }
-		{$id} h3 { font-size: 1.05em; font-weight: bold; margin: 2rem 0 0.75rem; padding-top: 1.25rem; border-top: 1px solid rgba(127, 127, 127, 0.3); }
-		{$id} .mg-section { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid rgba(127, 127, 127, 0.3); }
-		{$id} p { margin: 0.6rem 0; }
-		{$id} table { border-collapse: collapse; }
-		{$id} td { padding: 0.15rem 1rem 0.15rem 0; vertical-align: top; }
-		{$id} code { background: rgba(127, 127, 127, 0.15); border-radius: 4px; padding: 0.1rem 0.35rem; word-break: break-all; }
-		{$id} input[type=text] { width: 22rem; max-width: 100%; padding: 0.3rem; }
-		{$id} input::placeholder { color: #b0b0b0; opacity: 1; }
-		{$id} select,
-		{$id} input[type=number] { box-sizing: border-box; height: 32px; padding: 0 6px; border: 1px solid #c8c8c8; border-radius: 0; outline: 0; background-color: #f0f0f0; color: #4b5a68; font: 14px Arial, Helvetica, sans-serif; vertical-align: middle; cursor: pointer; }
-		{$id} select:focus,
-		{$id} input[type=number]:focus { border-color: #0099ff; }
-		{$id} input[type=number] { cursor: text; }
-		{$id} button,
-		{$id} a.mg-button { display: inline-block; margin: 0.2rem 0.4rem 0.2rem 0; padding: 0.3rem 0.8rem; cursor: pointer; }
-		{$id} a.mg-button { text-decoration: none; color: #fafafa; border-top: 1px solid #15abff; border-bottom: 1px solid #0067a6; outline: 1px solid #0067a6; background-color: #018be3; background-image: linear-gradient(to bottom, #0099ff, #027dc8); background-origin: border-box; background-repeat: no-repeat; box-sizing: border-box; height: 32px; padding-top: 0; padding-bottom: 0; font: 14px Arial, Helvetica, sans-serif; line-height: 30px; }
-		{$id} a.mg-button:hover { background-image: linear-gradient(to bottom, #027dc8, #0099ff); }
-		{$id} [hidden] { display: none !important; }
-		{$id} .mg-ok { color: #2e7d32; }
-		{$id} .mg-bad { color: #c62828; }
-		{$id} .mg-note { opacity: 0.75; font-size: 0.9em; }
-	</style>\n";
+    echo "    <style>
+        {$id} {
+            font-family: inherit;
+            color:       inherit;
+            padding:     0.75rem 0;
+            line-height: 1.6;
+            white-space: normal;
+        }
+
+        {$id} h2 {
+            font-size:   1.3em;
+            font-weight: bold;
+            margin:      0 0 1rem;
+        }
+
+        {$id} h3 {
+            font-size:   1.05em;
+            font-weight: bold;
+            margin:      2.25rem 0 1rem;
+            padding-top: 1.5rem;
+            border-top:  1px solid rgba(127, 127, 127, 0.3);
+        }
+
+        {$id} .mg-section {
+            margin-top:  2.25rem;
+            padding-top: 1.5rem;
+            border-top:  1px solid rgba(127, 127, 127, 0.3);
+        }
+
+        {$id} .mg-section summary {
+            margin-bottom: 0.75rem;
+            cursor:        pointer;
+        }
+
+        {$id} p {
+            margin: 0.9rem 0;
+        }
+
+        /* Lists: the dashboard's own rules make them smaller and tighter than the page's text */
+        {$id} ul,
+        {$id} ol {
+            margin:       0.9rem 0;
+            padding-left: 1.5rem;
+            font-size:    inherit;
+            line-height:  inherit;
+        }
+
+        {$id} ul {
+            list-style: disc outside;
+        }
+
+        {$id} ol {
+            list-style: decimal outside;
+        }
+
+        {$id} li {
+            display:     list-item;
+            margin:      0.4rem 0;
+            font-size:   inherit;
+            line-height: inherit;
+        }
+
+        {$id} table {
+            margin:          0.75rem 0;
+            border-collapse: collapse;
+        }
+
+        {$id} td {
+            padding:        0.35rem 1.25rem 0.35rem 0;
+            vertical-align: top;
+        }
+
+        {$id} code {
+            background:    rgba(127, 127, 127, 0.15);
+            border-radius: 4px;
+            padding:       0.1rem 0.35rem;
+            word-break:    break-all;
+        }
+
+        {$id} pre {
+            margin:        0.75rem 0;
+            padding:       0.6rem 0.75rem;
+            background:    rgba(127, 127, 127, 0.1);
+            border-radius: 4px;
+            white-space:   pre-wrap;
+            word-break:    break-word;
+        }
+
+        {$id} label {
+            display: inline-block;
+            margin:  0.2rem 1rem 0.2rem 0;
+        }
+
+        {$id} input[type=text] {
+            width:     22rem;
+            max-width: 100%;
+            margin:    0.2rem 0.5rem 0.2rem 0;
+            padding:   0.3rem;
+        }
+
+        {$id} input::placeholder {
+            color:   #b0b0b0;
+            opacity: 1;
+        }
+
+        {$id} select,
+        {$id} input[type=number] {
+            box-sizing:       border-box;
+            height:           32px;
+            padding:          0 6px;
+            border:           1px solid #c8c8c8;
+            border-radius:    0;
+            outline:          0;
+            background-color: #f0f0f0;
+            color:            #4b5a68;
+            font:             14px Arial, Helvetica, sans-serif;
+            vertical-align:   middle;
+            cursor:           pointer;
+        }
+
+        {$id} select:focus,
+        {$id} input[type=number]:focus {
+            border-color: #0099ff;
+        }
+
+        {$id} input[type=number] {
+            cursor: text;
+        }
+
+        {$id} button,
+        {$id} a.mg-button {
+            display: inline-block;
+            margin:  0.3rem 0.5rem 0.3rem 0;
+            padding: 0.3rem 0.8rem;
+            cursor:  pointer;
+        }
+
+        {$id} a.mg-button {
+            text-decoration:   none;
+            color:             #fafafa;
+            border-top:        1px solid #15abff;
+            border-bottom:     1px solid #0067a6;
+            outline:           1px solid #0067a6;
+            background-color:  #018be3;
+            background-image:  linear-gradient(to bottom, #0099ff, #027dc8);
+            background-origin: border-box;
+            background-repeat: no-repeat;
+            box-sizing:        border-box;
+            height:            32px;
+            padding-top:       0;
+            padding-bottom:    0;
+            font:              14px Arial, Helvetica, sans-serif;
+            line-height:       30px;
+        }
+
+        {$id} a.mg-button:hover {
+            background-image: linear-gradient(to bottom, #027dc8, #0099ff);
+        }
+
+        {$id} [hidden] {
+            display: none !important;
+        }
+
+        {$id} .mg-ok {
+            color: #2e7d32;
+        }
+
+        {$id} .mg-bad {
+            color: #c62828;
+        }
+
+        {$id} .mg-note {
+            opacity:   0.75;
+            font-size: 0.9em;
+        }
+
+        /* A note right under the controls it explains stays close to them */
+        {$id} p + p.mg-note {
+            margin-top: 0.4rem;
+        }
+    </style>\n";
 }
