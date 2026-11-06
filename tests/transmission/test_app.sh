@@ -89,6 +89,14 @@ grep -q 'proxy_pass *http://127.0.0.1:9091' $P/_nginx/sites/60-app-torrents.conf
     && site /transmission/web/ -u "admin:$NEW" | grep -qi '<title>Transmission' && [ "$(site / -o /dev/null -w '%{redirect_url}')" = "https://torrents.$DOMAIN/transmission/web/" ] \
     && pass "its site https://torrents.$DOMAIN/ (its start page /transmission/web/)" || fail "site: $(ls $P/_nginx/sites; site /transmission/web/ -u "admin:$NEW" | head -c 200)"
 [ "$(get status | j '$d["site"]["url"]')" = "\"https://torrents.$DOMAIN/\"" ] && pass 'the page shows its site' || fail "site: $(get status | j '$d["site"]')"
+LINES=$(wc -l < $D/transmission.log)
+C1=$(site /transmission/web/ -o /dev/null -w '%{http_code}'); C2=$(site /transmission/rpc -u admin:wrong-password -o /dev/null -w '%{http_code}')
+grep -q "auth_basic_user_file $D/htpasswd" $P/_nginx/sites/60-app-torrents.conf && [ "$C1" = 401 ] && [ "$C2" = 401 ] \
+    && [ "$(stat -c '%u %a' $D/htpasswd)" = '0 640' ] && [ "$(tail -n +$((LINES + 1)) $D/transmission.log | grep -c 'failed authentication')" = 0 ] \
+    && pass "Nginx asks for the same login first: none or a wrong one refused there ($C1, $C2), nothing in Transmission's log" \
+    || fail "Nginx login: $C1 $C2 $(stat -c '%U %G %a' $D/htpasswd) $(tail -n +$((LINES + 1)) $D/transmission.log | tail -n 2)"
+[ "$(cat $D/config/queue.json 2>/dev/null)" != '' ] && ! grep -q 'queue.json' $D/transmission.log \
+    && pass "no queue.json error at its starts (an empty queue made for it until Transmission writes its own)" || fail "queue: $(grep queue $D/transmission.log | tail -n 1)"
 
 echo '== the network setting'
 [ "$(bound 9091)" = all ] && pass 'on the network by default' || fail "bound: $(bound 9091)"

@@ -5,7 +5,8 @@
 #   tr_ctl.sh start        - write its settings into Transmission's own, then start it (web interface on port 9091)
 #   tr_ctl.sh stop         - stop Transmission (it saves its torrents' progress first)
 #   tr_ctl.sh restart      - stop, then start
-#   tr_ctl.sh new-password - generate a new web interface password (applied when Transmission next starts)
+#   tr_ctl.sh new-password - generate a new web interface password (applied when Transmission next starts; at once for
+#                            the Nginx app's site, which asks for the same login before passing anything on)
 #   tr_ctl.sh daily        - the daily job: keeping its log small
 #   tr_ctl.sh nginx        - add / update Transmission's site in the Nginx app (and reload it)
 #
@@ -22,6 +23,9 @@ WEB="${APP_PATH}/binaries/share/transmission/public_html"
 CONFIG_DIR="${DATA_PATH}/config"
 SETTINGS_FILE="${DATA_PATH}/settings"
 PASSWORD_FILE="${DATA_PATH}/password"
+# The same login for the Nginx app's site (its nginx.json's auth_file): Nginx asks for it first, so visits without it
+# (e.g. a browser's first request, before it asks for the password) stop there rather than filling Transmission's log
+HTPASSWD="${DATA_PATH}/htpasswd"
 TR_LOG="${DATA_PATH}/transmission.log"
 PID_FILE=/var/run/transmission.pid
 PORT=9091
@@ -66,10 +70,46 @@ tr_ids() {
     awk -F: '$1 == "transmission" { print $3 " " $4 }' /etc/passwd
 }
 
+# The group Nginx's worker processes run as: nobody's own (nogroup on Debian - WD's NAS has none by that name: there it's
+# the share users' group), by its ID, as the Nginx app picks it.
+#
+# Prints the group ID
+nginx_gid() {
+    awk -F: '$1 == "nobody" { print $4 }' /etc/passwd
+}
+
+# Writes the htpasswd file for the Nginx app's site: user admin with the app's password, as SHA-512 crypt (Nginx checks
+# it on every request, so not a slow hash like bcrypt). Root's, readable by Nginx's workers (their group).
+#
+# Returns 0 once it's written
+write_htpasswd() {
+    local hash gid
+
+    gid="$(nginx_gid)"
+
+    if [ -z "${gid}" ]; then
+        log "No nobody user on the NAS: Nginx's workers couldn't read the password file"
+
+        return 1
+    fi
+
+    hash="$(php -n -r '$salt = substr(strtr(base64_encode(random_bytes(12)), "+", "."), 0, 16);
+        echo crypt(trim((string)file_get_contents($argv[1])), "\$6\$rounds=5000\$" . $salt . "\$");' "${PASSWORD_FILE}")"
+
+    case "${hash}" in
+        '$6$'*) ;;
+        *) log 'Could not hash the password for the Nginx site (is PHP working?)'; return 1 ;;
+    esac
+
+    printf 'admin:%s\n' "${hash}" > "${HTPASSWD}.tmp" && chgrp "${gid}" "${HTPASSWD}.tmp" && chmod 640 "${HTPASSWD}.tmp" \
+        && mv -f "${HTPASSWD}.tmp" "${HTPASSWD}"
+}
+
 new_password() {
     ( umask 077; tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20 > "${PASSWORD_FILE}.tmp" ) \
         && mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}"
     log 'generated a new web interface password'
+    write_htpasswd
 }
 
 # The downloads folder to start with: a Downloads share if the volume has one, else Public/Downloads.
@@ -122,6 +162,18 @@ setup() {
 
     chmod 600 "${SETTINGS_FILE}"
     [ -s "${PASSWORD_FILE}" ] || new_password
+
+    # The Nginx site's copy of the login (made again if the password is newer, e.g. from an earlier version of the app)
+    if [ ! -s "${HTPASSWD}" ] || [ "${PASSWORD_FILE}" -nt "${HTPASSWD}" ]; then
+        write_htpasswd
+    fi
+
+    # Its queue's order: Transmission only writes queue.json once torrents have been queued, and logs an error at every
+    # start while it's missing - an empty list is what it reads a missing file as
+    if [ ! -f "${CONFIG_DIR}/queue.json" ]; then
+        printf '[]\n' > "${CONFIG_DIR}/queue.json" && chown "$1:$2" "${CONFIG_DIR}/queue.json" \
+            && chmod 600 "${CONFIG_DIR}/queue.json"
+    fi
     touch "${TR_LOG}"
     chmod 600 "${TR_LOG}"
 

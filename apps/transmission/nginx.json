@@ -1,6 +1,7 @@
 {
-    "name":   "torrents",
-    "label":  "Transmission",
-    "target": "http://127.0.0.1:9091",
-    "start":  "/transmission/web/"
+    "name":      "torrents",
+    "label":     "Transmission",
+    "target":    "http://127.0.0.1:9091",
+    "start":     "/transmission/web/",
+    "auth_file": "_transmission/htpasswd"
 }
