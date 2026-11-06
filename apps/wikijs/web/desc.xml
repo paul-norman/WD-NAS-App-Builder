@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Wiki.js: a modern wiki - pages written together, live, in Markdown or a visual editor - kept in the PostgreSQL app.</en-US>
+	<fr-FR>Wiki.js : un wiki moderne - des pages écrites ensemble, en direct, en Markdown ou avec un éditeur visuel - conservées dans l'app PostgreSQL.</fr-FR>
+	<es-ES>Wiki.js: una wiki moderna - páginas escritas en equipo, en directo, en Markdown o con un editor visual - guardadas en la app PostgreSQL.</es-ES>
+	<de-DE>Wiki.js: ein modernes Wiki - Seiten gemeinsam und live geschrieben, in Markdown oder einem visuellen Editor - gespeichert in der PostgreSQL-App.</de-DE>
+</config>

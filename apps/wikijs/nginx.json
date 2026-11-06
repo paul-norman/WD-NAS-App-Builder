@@ -1,0 +1,7 @@
+{
+    "name":    "wikijs",
+    "label":   "Wiki.js",
+    "target":  "http://127.0.0.1:3010",
+    "uploads": true,
+    "stream":  true
+}

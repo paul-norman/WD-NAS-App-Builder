@@ -1,0 +1,23 @@
+Package:			wikijs
+Version:			3.1.0
+Packager:			PDN
+Email:
+Homepage:			https://js.wiki/
+Description:		Wiki.js: a modern wiki - pages written together, live, in Markdown or a visual editor - kept in the PostgreSQL app.
+Icon:				wikijs.svg
+AddonShowName:		Wiki.js
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:			postgresql
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

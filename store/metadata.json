@@ -9,6 +9,7 @@
     "apps": {
         "adminer":            { "categories": ["databases"], "license": "Apache-2.0", "data_folder": "_adminer", "keeps_data": true, "web": { "local_port": 8084, "nginx": { "name": "adminer" } } },
         "audiobookshelf":     { "categories": ["books", "music"], "license": "GPL-3.0-only", "data_folder": "_audiobookshelf", "keeps_data": true, "web": { "port": 13378, "nginx": { "name": "audiobooks" } } },
+        "bookstack":          { "categories": ["productivity"], "license": "MIT", "data_folder": "_bookstack", "keeps_data": true, "requires": { "apps": ["php"], "ram_mb": 512 }, "web": { "local_port": 6875, "nginx": { "name": "bookstack" } } },
         "bugsink":            { "categories": ["development", "monitoring"], "license": "PolyForm-Shield-1.0.0", "data_folder": "_bugsink", "keeps_data": true, "requires": { "ram_mb": 1024 }, "web": { "local_port": 8000, "nginx": { "name": "bugsink" } } },
         "calibre-web":        { "categories": ["books", "media"], "license": "GPL-3.0-only", "data_folder": "_calibre-web", "keeps_data": true, "web": { "port": 8083, "nginx": { "name": "books" } } },
         "copyparty":          { "categories": ["files", "photos"], "license": "MIT", "data_folder": "_copyparty", "keeps_data": true, "web": { "port": 3923, "nginx": { "name": "files" } } },
@@ -53,6 +54,7 @@
         "uptime-kuma":        { "categories": ["monitoring"], "license": "MIT", "data_folder": "_uptime-kuma", "keeps_data": true, "web": { "port": 3001, "nginx": { "name": "uptime-kuma" } } },
         "valkey":             { "categories": ["databases"], "license": "BSD-3-Clause", "data_folder": "_valkey", "keeps_data": true },
         "vaultwarden":        { "categories": ["security"], "license": "AGPL-3.0-only", "data_folder": "_vaultwarden", "keeps_data": true, "requires": { "apps": ["nginx"] }, "web": { "local_port": 8222, "nginx": { "name": "vaultwarden" } } },
+        "wikijs":             { "categories": ["productivity"], "license": "AGPL-3.0-only", "data_folder": "_wikijs", "keeps_data": true, "requires": { "apps": ["postgresql"], "ram_mb": 1024 }, "web": { "local_port": 3010, "nginx": { "name": "wikijs" } } },
         "wireguard":          { "categories": ["network", "security"], "license": "MIT AND GPL-2.0-only AND LGPL-2.1-or-later", "data_folder": "_wireguard", "keeps_data": true, "security": "Remote access to the NAS without exposing its apps to the internet" }
     },
     "external": {
