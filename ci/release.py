@@ -3,17 +3,21 @@ The release steps of the build-test-release workflow (see README.md), with
 gh (GH_TOKEN):
 
     python3 ci/release.py publish <dist folder>
-    python3 ci/release.py index --previous store.json --output released.json
+    python3 ci/release.py index --output released.json
     python3 ci/release.py cleanup --store store.json [--apply]
 
 publish: a release for each app in the folder (release-<app>/: its packages,
 its amd64 bundle and its version - ci/job.sh's output) whose version isn't
 released yet, tagged <app>-v<version>, with a SHA256SUMS file; the packages
-are then moved into packages/<app>/<version>/ for build_store.py.
+are then moved into packages/<app>/<version>/ for build_store.py. A version
+already released keeps its release, and this run's packages of it are left
+out: a rebuild isn't byte for byte the same, and store.json must list the
+files the release serves.
 
-index: the released packages of the apps that build_store.py can't find
-elsewhere (not in packages/, nor in the published store.json at that
-version), from their releases' SHA256SUMS - for its --released.
+index: the released packages of every app's current version that isn't in
+packages/, from its release (sizes, and SHA256SUMS) - for build_store.py's
+--released, which it prefers to the published store.json's entry (so an
+entry that no longer matches its release is put right).
 
 cleanup: deletes the releases no longer needed - each app keeps its newest
 two, and any whose replacement is less than 14 days old, and never one
@@ -173,64 +177,60 @@ def publish(dist):
         tag = f"{app}-v{version}"
         files = sorted(folder.glob(f"{app}_{version}_*"))
         packages = REPO / "packages" / app / version
-        packages.mkdir(parents=True, exist_ok=True)
 
         if release_exists(tag):
-            print(f"{tag}: already released")
-        elif not (folder / f"{app}_{version}_SOURCES.md").is_file():
-            # Its sources couldn't all be fetched (ci/sources.py release)
+            # Its packages stay the released ones (see the description)
+            print(f"{tag}: already released - this run's packages left out")
+
+            continue
+
+        if not (folder / f"{app}_{version}_SOURCES.md").is_file():
+            # Its sources couldn't all be fetched (ci/sources.py release): not
+            # listed either, as there's nothing to download
             print(f"::error::{tag}: not released - its sources are missing")
-        else:
-            (folder / "SHA256SUMS").write_text(
-                "".join(f"{sha256(file)}  {file.name}\n" for file in files)
+
+            continue
+
+        (folder / "SHA256SUMS").write_text(
+            "".join(f"{sha256(file)}  {file.name}\n" for file in files)
+        )
+
+        with tempfile.NamedTemporaryFile("w", suffix=".md") as notes:
+            notes.write(release_notes(app, version))
+            notes.flush()
+            gh(
+                "release", "create", tag,
+                *[str(file) for file in files],
+                str(folder / "SHA256SUMS"),
+                "--target", head,
+                "--title", f"{app} {version}",
+                "--notes-file", notes.name,
+                "--latest=false",
+                capture=False,
             )
 
-            with tempfile.NamedTemporaryFile("w", suffix=".md") as notes:
-                notes.write(release_notes(app, version))
-                notes.flush()
-                gh(
-                    "release", "create", tag,
-                    *[str(file) for file in files],
-                    str(folder / "SHA256SUMS"),
-                    "--target", head,
-                    "--title", f"{app} {version}",
-                    "--notes-file", notes.name,
-                    "--latest=false",
-                    capture=False,
-                )
-
-            print(f"{tag}: released")
+        print(f"{tag}: released")
+        packages.mkdir(parents=True, exist_ok=True)
 
         for file in files:
             if file.suffix == ".bin":
                 file.replace(packages / file.name)
 
 
-def index(previous_path, output):
+def index(output):
     """
-    Writes the index of the released packages build_store.py can't find
-    elsewhere (see the module's description).
+    Writes the index of the released packages of the apps' current versions
+    that aren't in packages/ (see the module's description).
 
-    :param str previous_path: The published store.json (may not exist)
-    :param str output:        Where to write the index
+    :param str output: Where to write the index
     """
-    previous = {}
-
-    if previous_path and pathlib.Path(previous_path).is_file():
-        previous = {
-            app["id"]: app["version"]
-            for app in json.loads(
-                pathlib.Path(previous_path).read_text(encoding="utf-8")
-            ).get("apps", [])
-        }
-
     found = {}
 
     for app in plan.apps():
         version = plan.app_version(app)
         local = REPO / "packages" / app / version
 
-        if list(local.glob("*.bin")) or previous.get(app) == version:
+        if list(local.glob("*.bin")):
             continue
 
         tag = f"{app}-v{version}"
@@ -374,7 +374,6 @@ def main():
     step = steps.add_parser("publish")
     step.add_argument("dist")
     step = steps.add_parser("index")
-    step.add_argument("--previous")
     step.add_argument("--output", required=True)
     step = steps.add_parser("cleanup")
     step.add_argument("--store", required=True)
@@ -384,7 +383,7 @@ def main():
     if args.step == "publish":
         publish(pathlib.Path(args.dist))
     elif args.step == "index":
-        index(args.previous, args.output)
+        index(args.output)
     else:
         cleanup(args.store, args.apply)
 

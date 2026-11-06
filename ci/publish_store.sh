@@ -22,7 +22,7 @@ mkdir -p "${TEMP}"
 git fetch -q origin main || exit 1
 git show origin/main:store.json > "${TEMP}/previous.json" 2>/dev/null || rm -f "${TEMP}/previous.json"
 
-python3 ci/release.py index --previous "${TEMP}/previous.json" --output "${TEMP}/released.json" || exit 1
+python3 ci/release.py index --output "${TEMP}/released.json" || exit 1
 python3 store/tools/build_store.py --output "${TEMP}/store.json" \
     --base-url "https://raw.githubusercontent.com/${SLUG}/${SHA}/" \
     --package-url "https://github.com/${SLUG}/releases/download/{id}-v{version}/{file}" \

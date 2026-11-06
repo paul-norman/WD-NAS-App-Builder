@@ -14,10 +14,10 @@ RELEASES=https://github.com/<owner>/<repo>/releases/download.
 
 Apps are listed with the packages found in packages/<id>/<version>/ (one .bin
 per model). In CI, where only the apps changed are built, an app without its
-packages here takes them from --previous (the store.json published before,
-if it lists that version) or --released (an index of the released packages:
+packages here takes them from --released (an index of the released packages:
 {"<id>": {"version": ..., "packages": [{"model", "file", "size", "sha256"}]}}
-- see ci/release.py); failing both, --previous's entry stays as it was (an
+- see ci/release.py) or else --previous (the store.json published before, if
+it lists that version); failing both, --previous's entry stays as it was (an
 older version, still offered), else the app is skipped, with a warning.
 
 With --external, apps published by others (metadata.json's "external": e.g.
@@ -124,9 +124,9 @@ def app_entry(app_dir, metadata, args, previous, released):
     published = previous.get(app_id)
     index = released.get(app_id, {})
 
-    if not packages and published and published["version"] == version:
-        packages = published["packages"]
-    elif not packages and index.get("version") == version:
+    # The release's own packages first: the published entry may list another
+    # build of the same version
+    if not packages and index.get("version") == version:
         packages = [
             {
                 "model": package["model"],
@@ -138,6 +138,8 @@ def app_entry(app_dir, metadata, args, previous, released):
             }
             for package in index["packages"]
         ]
+    elif not packages and published and published["version"] == version:
+        packages = published["packages"]
 
     if not packages and published:
         print(

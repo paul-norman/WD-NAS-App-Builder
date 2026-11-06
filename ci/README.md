@@ -66,7 +66,7 @@ The packages contain other people's software, much of it under licenses that ask
 
 ## store.json
 
-After the releases, [`publish_store.sh`](publish_store.sh) builds `store.json` for the commit ([`store/tools/build_store.py`](../store/tools/build_store.py)): apps built in this run with their new packages, the others as the `store.json` on `main` lists them *(or from their releases)*, an app whose new version failed still offering its previous one. It's signed with the repository's key *(`store.json.sig`)* and committed to `main` by the bot, only when something in it changed. Its `base_url` is the commit it was built from, so the icons and recipe files always match its checksums. One release job runs at a time *(two merges can't overwrite each other's `store.json`)*; a recipe that failed its tests holds back `store.json` until a run passes.
+After the releases, [`publish_store.sh`](publish_store.sh) builds `store.json` for the commit ([`store/tools/build_store.py`](../store/tools/build_store.py)): apps released in this run with their new packages, the others as their releases list them *(sizes and `SHA256SUMS` - a version already released keeps its release's files, even when a later run rebuilds it)*, an app whose new version failed still offering its previous one. It's signed with the repository's key *(`store.json.sig`)* and committed to `main` by the bot, only when something in it changed. Its `base_url` is the commit it was built from, so the icons and recipe files always match its checksums. One release job runs at a time *(two merges can't overwrite each other's `store.json`)*; a recipe that failed its tests holds back `store.json` until a run passes.
 
 ## The website
 
