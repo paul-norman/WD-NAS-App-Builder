@@ -1,0 +1,23 @@
+Package:			bookstack
+Version:			26.09.2
+Packager:			PDN
+Email:
+Homepage:			https://www.bookstackapp.com/
+Description:		BookStack: a simple wiki organised like a library - shelves, books, chapters and pages - kept in MariaDB.
+Icon:				bookstack.png
+AddonShowName:		BookStack
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:			php
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

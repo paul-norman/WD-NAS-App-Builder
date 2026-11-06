@@ -1,0 +1,6 @@
+{
+    "name":    "bookstack",
+    "label":   "BookStack",
+    "target":  "http://127.0.0.1:6875",
+    "uploads": true
+}

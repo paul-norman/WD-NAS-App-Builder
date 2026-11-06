@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>BookStack: a simple wiki organised like a library - shelves, books, chapters and pages - kept in MariaDB.</en-US>
+	<fr-FR>BookStack : un wiki simple organisé comme une bibliothèque - étagères, livres, chapitres et pages - conservé dans MariaDB.</fr-FR>
+	<es-ES>BookStack: una wiki sencilla organizada como una biblioteca - estanterías, libros, capítulos y páginas - guardada en MariaDB.</es-ES>
+	<de-DE>BookStack: ein einfaches Wiki, aufgebaut wie eine Bibliothek - Regale, Bücher, Kapitel und Seiten - gespeichert in MariaDB.</de-DE>
+</config>
