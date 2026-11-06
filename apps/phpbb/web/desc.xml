@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>phpBB: a discussion forum - boards, topics and posts, with users, groups and permissions - kept in MariaDB.</en-US>
+	<fr-FR>phpBB : un forum de discussion - forums, sujets et messages, avec utilisateurs, groupes et permissions - conservé dans MariaDB.</fr-FR>
+	<es-ES>phpBB: un foro de debate - foros, temas y mensajes, con usuarios, grupos y permisos - guardado en MariaDB.</es-ES>
+	<de-DE>phpBB: ein Diskussionsforum - Foren, Themen und Beiträge, mit Benutzern, Gruppen und Berechtigungen - gespeichert in MariaDB.</de-DE>
+</config>

@@ -1,0 +1,23 @@
+Package:			phpbb
+Version:			3.3.19
+Packager:			PDN
+Email:
+Homepage:			https://www.phpbb.com/
+Description:		phpBB: a discussion forum - boards, topics and posts, with users, groups and permissions - kept in MariaDB.
+Icon:				phpbb.svg
+AddonShowName:		phpBB
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:			php
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
