@@ -1,0 +1,32 @@
+# Removes the releases and build cache assets no longer needed (ci/release.py cleanup: each app keeps its newest two
+# releases, any whose replacement is less than 14 days old, and every one store.json lists) - daily, as releases are
+# only made when something changes; the release job also runs it after each release. Like it, it only lists what it
+# would delete unless the repository variable CLEANUP is apply. Can also be run by hand (Actions -> cleanup).
+name: cleanup
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: vars.RELEASES == 'on'
+    runs-on: ubuntu-24.04
+    # Never alongside a release run (which publishes store.json, then cleans up itself)
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # The whole history: the build cache's assets are named after the static builds' git trees
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Remove old releases (only lists them unless the repository variable CLEANUP is apply)
+        run: python3 ci/release.py cleanup --store store.json ${{ vars.CLEANUP == 'apply' && '--apply' || '' }}

@@ -84,6 +84,8 @@ jobs:
     permissions:
       # The build cache is a release
       contents: write
+      # Image downloads as this workflow (see "Log in to ghcr.io")
+      packages: read
     strategy:
       fail-fast: false
       matrix:
@@ -97,6 +99,11 @@ jobs:
 
       - name: Free disk space
         run: bash ci/free_disk.sh
+
+      # Image downloads as this workflow, for the tests: ghcr.io refuses anonymous ones in bursts
+      # ("toomanyrequests") from CI's shared addresses (the Store's suite hands the login to its stand-in NAS)
+      - name: Log in to ghcr.io
+        run: echo "${GH_TOKEN}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Build and test
         env:
@@ -142,6 +149,8 @@ jobs:
     timeout-minutes: 120
     permissions:
       contents: write
+      # Image downloads as this workflow (see "Log in to ghcr.io")
+      packages: read
     strategy:
       fail-fast: false
       matrix:
@@ -154,6 +163,11 @@ jobs:
 
       - name: Free disk space
         run: bash ci/free_disk.sh
+
+      # Image downloads as this workflow, for the tests: ghcr.io refuses anonymous ones in bursts
+      # ("toomanyrequests") from CI's shared addresses (the Store's suite hands the login to its stand-in NAS)
+      - name: Log in to ghcr.io
+        run: echo "${GH_TOKEN}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Test
         env:

@@ -36,9 +36,23 @@ Each app is a job of its own *(up to 20 at once)*, with a fresh runner's disk *(
 
 One release per app version, tagged `<app>-v<version>` *(e.g. `navidrome-v0.64.2`)*: a package per model, the amd64 bundle *(the packages' contents, which the tests use)*, its sources *(see Sources)* and `SHA256SUMS`. Its notes list the commits to the app since its previous release. Each app is released on its own, so one app's failed test doesn't hold the others back.
 
-**Old releases** are removed after each release run ([`release.py`](release.py) `cleanup`): an app keeps its newest two, and any whose replacement is less than 14 days old *(so a quick run of fixes doesn't remove the last version that ran for a while)*, and never one `store.json` still offers. Their git tags are kept, to rebuild from. Until the repository variable `CLEANUP` is `apply`, it only lists what it would remove *(in the release job's log)*.
+**Old releases** are removed after each release run, and daily by the [`cleanup`](../.github/workflows/cleanup.yml) workflow ([`release.py`](release.py) `cleanup`): an app keeps its newest two, and any whose replacement is less than 14 days old *(so a quick run of fixes doesn't remove the last version that ran for a while)*, and never one `store.json` still offers; the build cache's assets no static build uses any more go too. Their git tags are kept, to rebuild from. Only while the repository variable `CLEANUP` is `apply` - otherwise it lists what it would remove *(in the job's log)*.
 
 **The build cache**: static builds *(e.g. Jellyfin's, Calibre-Web's - some take an hour)* are kept as assets of the `build-cache` release, named after a hash of `static/<app>/`, `build_static.sh` and the survey's scripts, so a build only redoes them when they change. Each keeps its survey *(below)* with it. Nothing there is for installing. Assets no build uses any more are removed with old releases.
+
+## Updates
+
+The [`updates`](../.github/workflows/updates.yml) workflow *(twice a day, or by hand)* compares every app with its upstream releases - where they are is in [`updates.conf`](updates.conf) *(GitHub releases, git tags, PyPI, npm, a download folder's listing)*, with each app's line *(e.g. Forgejo's 15.x LTS, PostgreSQL 18)* - using [`updates.py`](updates.py):
+
+- **A pull request per update**, on the branch `update/<app>`, made with the bot's token *(so this workflow builds and tests it)*: the app's version in `apkg.rc` *(its packaging revision dropped)* and its static build, a new SHA256 for every download whose address uses it *(downloaded and hashed; a PyPI wheel's from PyPI)*, the old version in the app's test suite, and its lock file written again *(its static build is run)*. A newer release replaces the pull request's changes; an update pull request no longer needed *(the app updated by hand)* is closed.
+- **Merged by itself** - by a later run, once the pull request's **result** check has passed *(GitHub's auto-merge isn't used: the bot may bypass `main`'s rules)* - only if it's a patch or minor update, of an app tested beyond the shared package test *(a suite of its own, or one that installs it)*, not marked `manual=yes`, and its release is 24 hours old *(time for upstream to withdraw a bad one; a release without a date counts from its pull request)*. A **security fix** *(CVE / GHSA / "security" in its release notes)* doesn't wait. The merge starts the release run.
+- **Always reviewed by hand** *(labelled `review needed`)*: major versions, and the apps marked `manual=yes` - those that replace part of the NAS *(Docker, PHP, MariaDB, OpenSSH)*, front everything *(Nginx)*, hold data across major versions *(PostgreSQL)*, are very large *(Calibre-Web)* or need more than a version *(an image digest: Headlamp, Vaultwarden)*.
+- A feed that fails, or an update that can't be made, fails the run *(GitHub emails about it)*; the run's summary lists every update.
+
+```bash
+python3 ci/updates.py check [<app> ...]       # what's behind upstream, and what each update would be
+python3 ci/updates.py apply <app> <version>  # make one in the working tree (as the workflow does)
+```
 
 ## The source mirror
 
@@ -97,7 +111,7 @@ Once, for the repository owner. In the repository's **Settings**:
 
 1. **Secrets and variables → Actions**:
    - Repository secrets: `STORE_SIGNING_KEY` *(the Ed25519 key `store.json` is signed with: `openssl genpkey -algorithm ed25519 -out key.pem`, the whole file)* and `BOT_PRIVATE_KEY` *(the GitHub App's private key, the whole `.pem` file)*.
-   - Repository variables: `BOT_CLIENT_ID` *(the App's **Client ID**, on its settings page - not the App ID)*; later `CLEANUP` = `apply`, once the cleanup's listed removals look right.
+   - Repository variables: `BOT_CLIENT_ID` *(the App's **Client ID**, on its settings page - not the App ID)*; `CLEANUP` = `apply`, once the cleanup's listed removals look right *(set 2026-11-06)*.
 2. **General → Pull Requests**: tick *Allow auto-merge* and *Automatically delete head branches*.
 3. **Pages**: *Source* - **GitHub Actions** *(the `pages` job deploys the website)*.
 4. **Rules → Rulesets → New branch ruleset**, for the default branch: *Require a pull request before merging*, and *Require status checks to pass* with the check **result** *(it only appears once the workflow has run)*. In *Bypass list*, add the GitHub App *(it commits `store.json`)* and Repository admin *(you, to push directly)*.

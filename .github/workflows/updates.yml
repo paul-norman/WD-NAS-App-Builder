@@ -1,0 +1,64 @@
+# The daily update check (ci/updates.py, settings in ci/updates.conf - see ci/README.md, Updates): a pull request per
+# app with a newer upstream release, made with the bot's token so that build-test-release builds and tests it; those the
+# policy allows (patch or minor updates of tested apps, 24 hours after their release - at once for security fixes) are
+# merged by a later run once it has passed (twice a day: the bot may bypass main's rules, so it checks CI's result
+# itself rather than use GitHub's auto-merge; its merge starts the release run). Can also be run by hand (Actions ->
+# updates).
+name: updates
+
+on:
+  schedule:
+    - cron: '41 5,17 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'At most this many pull requests made or changed'
+        required: false
+        default: '10'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: updates
+  cancel-in-progress: false
+
+jobs:
+  updates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      # The bot's token: its pull requests run CI, and its merges the release run (the workflow's own token's don't)
+      - name: The bot's token
+        id: bot
+        uses: actions/create-github-app-token@v3.3.0
+        with:
+          client-id: ${{ vars.BOT_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ steps.bot.outputs.token }}
+
+      # An update that needs its lock file written again runs its static build (Docker)
+      - name: Free disk space
+        run: bash ci/free_disk.sh
+
+      - name: Pull requests for the updates
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          BOT_SLUG: ${{ steps.bot.outputs.app-slug }}
+        run: |
+          git config user.name "${BOT_SLUG}[bot]"
+          git config user.email "${BOT_SLUG}[bot]@users.noreply.github.com"
+          python3 ci/updates.py run --limit "${{ inputs.limit || '10' }}" | tee "${RUNNER_TEMP}/updates.log"
+          {
+              echo '## Updates'
+              python3 ci/updates.py check | sed 's/^/- /'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          # Problems (a feed that failed, an update that couldn't be made) fail the run: GitHub emails about it
+          if grep -q '^PROBLEM' "${RUNNER_TEMP}/updates.log"; then
+              exit 1
+          fi

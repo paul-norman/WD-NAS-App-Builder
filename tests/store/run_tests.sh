@@ -100,6 +100,15 @@ echo 'Building the Store app'
 (cd "${PROJ}" && MODEL_OVERRIDE=MyCloudPR4100 ./build.sh store > "${WORK}/build.log" 2>&1) || { echo "The Store didn't build - see ${WORK}/build.log"; exit 1; }
 
 failed=0
+# Registry logins of the machine running the suite (e.g. CI's to ghcr.io), for the Store's image downloads: anonymous
+# ones are refused in bursts ("toomanyrequests") on shared addresses such as CI's. Only logins kept in the file itself:
+# a credential helper (e.g. Docker Desktop's) isn't there in the stand-in NAS
+DOCKER_LOGIN=''
+DOCKER_CONFIG_FILE="${DOCKER_CONFIG:-${HOME}/.docker}/config.json"
+
+if [ -f "${DOCKER_CONFIG_FILE}" ] && ! grep -q '"credsStore"\|"credHelpers"' "${DOCKER_CONFIG_FILE}"; then
+    DOCKER_LOGIN="-v ${DOCKER_CONFIG_FILE}:/root/.docker/config.json:ro"
+fi
 
 for version in ${VERSIONS}; do
     for test in ${TESTS}; do
@@ -117,6 +126,7 @@ for version in ${VERSIONS}; do
         docker run --rm --network host -e STORE_TEST_VOLUME="${WORK}/vol/HD_a2" -e STORE_TEST_PROJECT="${PROJ}" \
             -v "${WORK}/vol:${WORK}/vol" -v "${HERE}/bin:/tbin:ro" -v "${WORK}/certs:/tcerts:ro" -v "${WORK}/fixtures:/tfix:ro" \
             -v "${WORK}/www:/www" -v "${PROJ}:${PROJ}:ro" -v /var/run/docker.sock:/var/run/docker.sock \
+            ${DOCKER_LOGIN} \
             "nas-test-php${version}" sh -c 'sh /tbin/prepare.sh && sh "$0"' "/tbin/test_${test}.sh" > "${log}" 2>&1 || true
         [ "${test}" = ui ] && continue
         grep -E '^(PASS|FAIL)' "${log}" | cut -c1-160 || true
