@@ -1,0 +1,10 @@
+{
+    "name":         "compass-web-nas",
+    "private":      true,
+    "dependencies": {
+        "compass-web": "0.5.2"
+    },
+    "overrides":    {
+        "@fastify/secure-session": "8.2.0"
+    }
+}

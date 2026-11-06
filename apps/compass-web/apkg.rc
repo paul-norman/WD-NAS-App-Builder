@@ -1,0 +1,23 @@
+Package:			compass-web
+Version:			0.5.2
+Packager:			PDN
+Email:
+Homepage:			https://github.com/haohanyang/compass-web
+Description:		Compass Web: MongoDB Compass in the browser - browse, query, edit, import and export the MongoDB app's documents.
+Icon:				compass-web.svg
+AddonShowName:		Compass Web
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:			mongodb
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

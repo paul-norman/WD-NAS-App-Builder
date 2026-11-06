@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>MongoDB: a document database (JSON-like documents), built for the NAS's processors - with its shell and backup tools.</en-US>
+	<fr-FR>MongoDB : une base de données de documents (documents de type JSON), compilée pour les processeurs du NAS - avec son shell et ses outils de sauvegarde.</fr-FR>
+	<es-ES>MongoDB: una base de datos de documentos (documentos tipo JSON), compilada para los procesadores del NAS - con su shell y sus herramientas de copia de seguridad.</es-ES>
+	<de-DE>MongoDB: eine Dokumentdatenbank (JSON-ähnliche Dokumente), für die Prozessoren des NAS gebaut - mit ihrer Shell und ihren Sicherungswerkzeugen.</de-DE>
+</config>

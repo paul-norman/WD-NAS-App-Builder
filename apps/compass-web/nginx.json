@@ -1,0 +1,7 @@
+{
+    "name":    "compass",
+    "label":   "Compass Web (MongoDB)",
+    "target":  "http://127.0.0.1:8087",
+    "uploads": true,
+    "stream":  true
+}

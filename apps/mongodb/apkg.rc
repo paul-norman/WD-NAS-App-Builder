@@ -1,0 +1,23 @@
+Package:			mongodb
+Version:			8.0.34
+Packager:			PDN
+Email:
+Homepage:			https://www.mongodb.com/
+Description:		MongoDB: a document database (JSON-like documents), built for the NAS's processors - with its shell and backup tools.
+Icon:				mongodb.svg
+AddonShowName:		MongoDB
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
