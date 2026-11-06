@@ -1,38 +1,94 @@
 #!/bin/bash
 
-# Prepares Prometheus for the NAS: its official static program (stripped of debugging symbols - promtool is left out, as
-# Prometheus checks its configuration itself, keeping the old one if a new one is broken), plus a fully static build of:
+# Prepares Prometheus for the NAS - for the Intel models and the ARM ones: its official static program for each
+# (stripped of debugging symbols - promtool is left out, as Prometheus checks its configuration itself, keeping the old
+# one if a new one is broken), plus a fully static build of:
 #  - prom_runas: switches to Prometheus' own user (the NAS has no su or similar) before running it
+
+# The ARM models' parts are built on this (Intel) machine: the helper cross-compiled with Zig for their ARMv7 processors
+# (hard-float), and every ARM program checked with QEMU's emulator.
 
 set -e
 set -o pipefail
 set -x
 
 VERSION=3.15.1
+# Each architecture's release, as its sha256sums.txt publishes it
 PROMETHEUS_SHA256=6a726885328ad9efebbf36e876ce2fb6225468a71fd1e7ce3ba666d5f4d97a84
-
-ARCH=$(uname -m)
-
-if [ ${ARCH} = 'x86_64' ]; then
-    ARCH='amd64'
-else
-    ARCH='armhf'
-fi
+PROMETHEUS_ARMHF_SHA256=237e87ca03537496675396e702fe2ac304103fc7d671a2c9ead30d1e639f242f
+# The architectures built (each into packages/static/prometheus/<version>/<arch>)
+ARCHES='amd64 armhf'
 
 BUILD_PATH=/build
-OUTPUT_PATH=/data/packages/static/prometheus/${VERSION}/${ARCH}
 
-function build_prometheus() {
-    cd ${BUILD_PATH}
-    sh /data/static/fetch.sh \
-        "https://github.com/prometheus/prometheus/releases/download/v${VERSION}/prometheus-${VERSION}.linux-amd64.tar.gz" \
-        prometheus.tar.gz "${PROMETHEUS_SHA256}"
-    tar -xzf prometheus.tar.gz
-    strip prometheus-${VERSION}.linux-amd64/prometheus
+# Compiles a fully static C program for an architecture (stripped): gcc for amd64, Zig for armhf.
+#
+# $1 arch The architecture (amd64 or armhf)
+# $@      The compiler's other arguments
+function cc_for() {
+    local arch="$1"
+    shift
+
+    if [ "${arch}" = armhf ]; then
+        zig cc -target arm-linux-musleabihf -mcpu=cortex_a9 -O2 -static -s "$@"
+    else
+        gcc -O2 -static -s "$@"
+    fi
 }
 
+# Strips a program built for an architecture of its debugging symbols.
+#
+# $1 arch The architecture (amd64 or armhf)
+# $2 file The program
+function strip_for() {
+    if [ "$1" = armhf ]; then
+        arm-none-eabi-strip "$2"
+    else
+        strip "$2"
+    fi
+}
+
+# Runs a program built for an architecture here (an ARM one with QEMU's emulator, as a Cortex-A9 - the ARM models'
+# processors' kind).
+#
+# $1 arch The architecture (amd64 or armhf)
+# $@      The program and its arguments
+function run_for() {
+    local arch="$1"
+    shift
+
+    if [ "${arch}" = armhf ]; then
+        qemu-arm -cpu cortex-a9 "$@"
+    else
+        "$@"
+    fi
+}
+
+# Downloads Prometheus's release for an architecture into the current folder, as ./prometheus.
+#
+# $1 arch The architecture (amd64 or armhf)
+function build_prometheus() {
+    if [ "$1" = armhf ]; then
+        sh /data/static/fetch.sh \
+            "https://github.com/prometheus/prometheus/releases/download/v${VERSION}/prometheus-${VERSION}.linux-armv7.tar.gz" \
+            prometheus.tar.gz "${PROMETHEUS_ARMHF_SHA256}"
+        tar -xzf prometheus.tar.gz
+        mv prometheus-${VERSION}.linux-armv7/prometheus prometheus
+        strip_for armhf prometheus
+    else
+        sh /data/static/fetch.sh \
+            "https://github.com/prometheus/prometheus/releases/download/v${VERSION}/prometheus-${VERSION}.linux-amd64.tar.gz" \
+            prometheus.tar.gz "${PROMETHEUS_SHA256}"
+        tar -xzf prometheus.tar.gz
+        mv prometheus-${VERSION}.linux-amd64/prometheus prometheus
+        strip_for amd64 prometheus
+    fi
+}
+
+# Builds the run-as helper for an architecture in the current folder.
+#
+# $1 arch The architecture (amd64 or armhf)
 function build_runas() {
-    cd ${BUILD_PATH}
     cat > prom_runas.c <<'C'
 #include <grp.h>
 #include <stdio.h>
@@ -56,29 +112,36 @@ int main(int argc, char **argv) {
 	return 127;
 }
 C
-    gcc -O2 -static -o prom_runas prom_runas.c
-    strip prom_runas
+    cc_for "$1" -o prom_runas prom_runas.c
 }
 
 function run() {
+    local arch output usage
+
     # Clean start
     if [ -d ${BUILD_PATH} ]; then
         rm -rf ${BUILD_PATH}
     fi
-    mkdir -p ${BUILD_PATH}
 
-    build_prometheus
-    build_runas
+    for arch in ${ARCHES}; do
+        mkdir -p ${BUILD_PATH}/${arch}
+        cd ${BUILD_PATH}/${arch}
+        build_prometheus ${arch}
+        build_runas ${arch}
 
-    rm -rf ${OUTPUT_PATH}
-    mkdir -p ${OUTPUT_PATH}
-    cp ${BUILD_PATH}/prometheus-${VERSION}.linux-amd64/prometheus ${BUILD_PATH}/prom_runas ${OUTPUT_PATH}/
-    ${OUTPUT_PATH}/prometheus --version
-    du -sh ${OUTPUT_PATH}
+        output=/data/packages/static/prometheus/${VERSION}/${arch}
+        rm -rf ${output}
+        mkdir -p ${output}
+        cp prometheus prom_runas ${output}/
+        run_for ${arch} ${output}/prometheus --version
+        # (no arguments: it says how to use it, and fails - showing that it runs)
+        usage="$(run_for ${arch} ${output}/prom_runas 2>&1 || true)"
+        echo "${usage}" | grep -q 'Usage: prom_runas'
+        du -sh ${output}
+    done
 
     # Create a latest release file for ease of use in packages
-    LATEST_PATH="$(dirname ${OUTPUT_PATH})"
-    LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
+    LATEST_PATH=/data/packages/static/prometheus/latest
     echo -e "\nCreating a latest release file: ${LATEST_PATH}"
     rm -f ${LATEST_PATH}
     printf '%s' "${VERSION}" > ${LATEST_PATH}

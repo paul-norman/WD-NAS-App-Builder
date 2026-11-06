@@ -19,6 +19,7 @@
   - `grafana.log` - its warnings and errors, kept under 1MB
 - It's Grafana's official static release, trimmed by `static/grafana` to what the NAS needs *(about 650MB instead of 1.4GB)*: without its documentation, API browser and the web interface's debugging files, and with only the data source plugins for **Prometheus**, **Loki** *(the logs app)*, **MySQL / MariaDB** and **PostgreSQL** *(the project's database apps)*. Other data sources *(e.g. InfluxDB, Tempo)* can be installed from Grafana's plugin catalogue *(Administration → Plugins)*.
 - Grafana doesn't update itself: updates come with new versions of the app, and the NAS shows an alert *(and sends an email, if set up)* when a new release is out, checked weekly.
+- For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)* - and it's heavy for them: workable with 1-2GB of memory *(e.g. an EX4100)*, too much for the 512MB single-drive My Cloud.
 
 ## Management page
 

@@ -8,6 +8,7 @@
 - It runs as its own `ntfy` user *(created by the app, ID 76)*, not as root.
 - Its data is kept next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_ntfy`, and survives reinstalls and removal: the messages, users and attachments in `data/` *(with the generated `server.yml`)*, the admin password and token *(root only)*, the page's settings, and `ntfy.log` *(warnings only, kept under 1MB)*.
 - It's the official static program *(prepared by `static/ntfy`)*. ntfy doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release is out, checked weekly.
+- For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)*.
 
 ## Phones
 

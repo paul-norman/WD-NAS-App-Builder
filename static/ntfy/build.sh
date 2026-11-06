@@ -1,36 +1,78 @@
 #!/bin/bash
 
-# Prepares ntfy for the NAS: its official static program, plus a fully static build of:
+# Prepares ntfy for the NAS - for the Intel models and the ARM ones: its official static program for each, plus a fully
+# static build of:
 #  - ntfy_runas: switches to ntfy's own user (the NAS has no su or similar) before running it
+# The ARM models' parts are built on this (Intel) machine: the helper cross-compiled with Zig for their ARMv7 processors
+# (hard-float), and every ARM program checked with QEMU's emulator.
 
 set -e
 set -o pipefail
 set -x
 
 VERSION=2.37.0
+# Each architecture's release, as its checksums.txt publishes it
 NTFY_SHA256=0021a911f71ac20a757675b7160cd1fad3b615b0dce1ac8d8c70c8711277051f
-
-ARCH=$(uname -m)
-
-if [ ${ARCH} = 'x86_64' ]; then
-    ARCH='amd64'
-else
-    ARCH='armhf'
-fi
+NTFY_ARMHF_SHA256=07262646722dd0deae6d8ef0c372d998425cfad76f8d18a2ec9c0801488f4928
+# The architectures built (each into packages/static/ntfy/<version>/<arch>)
+ARCHES='amd64 armhf'
 
 BUILD_PATH=/build
-OUTPUT_PATH=/data/packages/static/ntfy/${VERSION}/${ARCH}
 
-function build_ntfy() {
-    cd ${BUILD_PATH}
-    sh /data/static/fetch.sh \
-        "https://github.com/binwiederhier/ntfy/releases/download/v${VERSION}/ntfy_${VERSION}_linux_amd64.tar.gz" \
-        ntfy.tar.gz "${NTFY_SHA256}"
-    tar -xzf ntfy.tar.gz
+# Compiles a fully static C program for an architecture (stripped): gcc for amd64, Zig for armhf.
+#
+# $1 arch The architecture (amd64 or armhf)
+# $@      The compiler's other arguments
+function cc_for() {
+    local arch="$1"
+    shift
+
+    if [ "${arch}" = armhf ]; then
+        zig cc -target arm-linux-musleabihf -mcpu=cortex_a9 -O2 -static -s "$@"
+    else
+        gcc -O2 -static -s "$@"
+    fi
 }
 
+# Runs a program built for an architecture here (an ARM one with QEMU's emulator, as a Cortex-A9 - the ARM models'
+# processors' kind).
+#
+# $1 arch The architecture (amd64 or armhf)
+# $@      The program and its arguments
+function run_for() {
+    local arch="$1"
+    shift
+
+    if [ "${arch}" = armhf ]; then
+        qemu-arm -cpu cortex-a9 "$@"
+    else
+        "$@"
+    fi
+}
+
+# Downloads ntfy's release for an architecture into the current folder.
+#
+# $1 arch The architecture (amd64 or armhf)
+function build_ntfy() {
+    if [ "$1" = armhf ]; then
+        sh /data/static/fetch.sh \
+            "https://github.com/binwiederhier/ntfy/releases/download/v${VERSION}/ntfy_${VERSION}_linux_armv7.tar.gz" \
+            ntfy.tar.gz "${NTFY_ARMHF_SHA256}"
+        tar -xzf ntfy.tar.gz
+        mv ntfy_${VERSION}_linux_armv7/ntfy ntfy
+    else
+        sh /data/static/fetch.sh \
+            "https://github.com/binwiederhier/ntfy/releases/download/v${VERSION}/ntfy_${VERSION}_linux_amd64.tar.gz" \
+            ntfy.tar.gz "${NTFY_SHA256}"
+        tar -xzf ntfy.tar.gz
+        mv ntfy_${VERSION}_linux_amd64/ntfy ntfy
+    fi
+}
+
+# Builds the run-as helper for an architecture in the current folder.
+#
+# $1 arch The architecture (amd64 or armhf)
 function build_runas() {
-    cd ${BUILD_PATH}
     cat > ntfy_runas.c <<'C'
 #include <grp.h>
 #include <stdio.h>
@@ -54,29 +96,36 @@ int main(int argc, char **argv) {
 	return 127;
 }
 C
-    gcc -O2 -static -o ntfy_runas ntfy_runas.c
-    strip ntfy_runas
+    cc_for "$1" -o ntfy_runas ntfy_runas.c
 }
 
 function run() {
+    local arch output usage
+
     # Clean start
     if [ -d ${BUILD_PATH} ]; then
         rm -rf ${BUILD_PATH}
     fi
-    mkdir -p ${BUILD_PATH}
 
-    build_ntfy
-    build_runas
+    for arch in ${ARCHES}; do
+        mkdir -p ${BUILD_PATH}/${arch}
+        cd ${BUILD_PATH}/${arch}
+        build_ntfy ${arch}
+        build_runas ${arch}
 
-    rm -rf ${OUTPUT_PATH}
-    mkdir -p ${OUTPUT_PATH}
-    cp ${BUILD_PATH}/ntfy_${VERSION}_linux_amd64/ntfy ${BUILD_PATH}/ntfy_runas ${OUTPUT_PATH}/
-    ${OUTPUT_PATH}/ntfy --help > /dev/null
-    du -sh ${OUTPUT_PATH}
+        output=/data/packages/static/ntfy/${VERSION}/${arch}
+        rm -rf ${output}
+        mkdir -p ${output}
+        cp ntfy ntfy_runas ${output}/
+        run_for ${arch} ${output}/ntfy --help > /dev/null
+        # (no arguments: it says how to use it, and fails - showing that it runs)
+        usage="$(run_for ${arch} ${output}/ntfy_runas 2>&1 || true)"
+        echo "${usage}" | grep -q 'Usage: ntfy_runas'
+        du -sh ${output}
+    done
 
     # Create a latest release file for ease of use in packages
-    LATEST_PATH="$(dirname ${OUTPUT_PATH})"
-    LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
+    LATEST_PATH=/data/packages/static/ntfy/latest
     echo -e "\nCreating a latest release file: ${LATEST_PATH}"
     rm -f ${LATEST_PATH}
     printf '%s' "${VERSION}" > ${LATEST_PATH}

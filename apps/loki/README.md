@@ -20,6 +20,7 @@ Every line also has a `host` label *(the NAS's name)*. When it first starts, Vec
 - Loki is reachable **on the NAS itself only** *(`127.0.0.1:3100` - it has no login)*. It runs as its own `loki` user *(created by the app, ID 75)*. Vector runs as root, as many logs are readable by root only - it only reads them, and sends them to Loki.
 - Its data is kept next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_loki`, and survives reinstalls and removal: Loki's database `data/`, Vector's place in each file `vector/`, the generated `loki.yaml` and `vector.yaml`, the page's `settings`, and the two programs' own logs *(warnings only, kept under 1MB - not collected, so that the app never reads what it writes about itself)*.
 - Both are official static programs *(prepared by `static/loki`)*. Neither updates itself: updates come with new versions of the app, and the NAS shows an alert when a new Loki release is out, checked weekly.
+- For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)* - and it's heavy for them: workable with 1-2GB of memory *(e.g. an EX4100)*, too much for the 512MB single-drive My Cloud.
 
 ## Management page
 

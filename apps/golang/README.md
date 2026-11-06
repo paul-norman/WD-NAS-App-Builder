@@ -6,6 +6,8 @@ The app's page in the NAS dashboard *(Apps → GoLang)* shows the Go version and
 
 Go's telemetry is turned off for `root` when the app starts *(Go only records usage statistics locally by default, and only uploads them after `go telemetry on`)*, and anything already recorded is deleted.
 
+For the Intel and ARM models *(the ARM ones' packages haven't yet been tried on an ARM NAS)*.
+
 ## Building the GoLang app
 
 From the project root directory:

@@ -38,6 +38,8 @@ If the configuration test, the trial or the start fails, WD's sshd is put back a
 
 Tested on a stand-in for WD's SSH server *(Debian 11's OpenSSH 8.4p1, set out as WD has it)*: see [`tests/openssh`](../../tests/common/README.md).
 
+For the Intel and ARM models. The ARM build is checked under emulation when it's built *(a real login, its ssh into its sshd)*, but hasn't yet been tried on an ARM NAS - which is expected to set out WD's SSH server as the Intel models do. If it doesn't, the trial or the check above fails and WD's sshd stays in charge.
+
 ## Building the OpenSSH app
 
 From the project root directory:

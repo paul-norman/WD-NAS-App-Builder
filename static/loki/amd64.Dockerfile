@@ -1,7 +1,8 @@
 FROM alpine:3.22
 
 # Loki and Vector are official static programs; the run-as helper built alongside them is fully static (musl) too
-RUN apk add --no-cache bash build-base unzip wget
+# Zig (cross-compiles the helpers), ARM binutils (strip) and QEMU (checks the programs) are for the ARM models
+RUN apk add --no-cache bash binutils binutils-arm-none-eabi build-base qemu-arm unzip wget zig
 
 # Volume that will point to the whole repository
 VOLUME /data

@@ -47,7 +47,7 @@ static_key() {
         "$(git hash-object ci/survey.sh)" "$(git hash-object ci/survey_inside.sh)" | sha256sum | cut -c1-16
 }
 
-# Restores the app's static build (amd64) from the build cache, unless it's already there.
+# Restores the app's static build (amd64, and armhf if it has one) from the build cache, unless it's already there.
 #
 # Returns 0 if it was restored, 1 if not
 restore_static() {
@@ -77,7 +77,7 @@ restore_static() {
     return 0
 }
 
-# Adds the app's static build (amd64) to the build cache.
+# Adds the app's static build (amd64, and armhf if it has one) to the build cache.
 #
 # Prints what it did; returns 0 (a failed upload only costs a rebuild later)
 save_static() {
@@ -90,8 +90,14 @@ save_static() {
         return 0
     fi
 
+    # (with the ARM models' parts, and the sources, of builds that make them)
     local parts='amd64'
-    [ -d "packages/static/${APP}/${version}/amd64.sources" ] && parts='amd64 amd64.sources'
+    local part
+
+    for part in armhf amd64.sources; do
+        [ -d "packages/static/${APP}/${version}/${part}" ] && parts="${parts} ${part}"
+    done
+
     # shellcheck disable=SC2086
     tar -I 'zstd -T0 -12' -cf "${TEMP}/${asset}" -C "packages/static/${APP}/${version}" ${parts} || return 0
 

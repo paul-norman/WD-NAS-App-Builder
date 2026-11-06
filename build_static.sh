@@ -70,8 +70,15 @@ fi
 
 # (unless the build script checks for its own existing outputs, e.g. when it builds several independent parts)
 OUTPUT_PATH="packages/static/${APP_NAME}/${VERSION}/${ARCH}"
+# A build that also makes the ARM models' parts declares them (ARCHES='amd64 armhf'): it's built once all of them are
+BUILT=yes
+for BUILT_ARCH in ${ARCH} $(sed -n "s/^ARCHES='\(.*\)'$/\1/p" "static/${APP_NAME}/build.sh"); do
+    if [ -z "$(ls -A "packages/static/${APP_NAME}/${VERSION}/${BUILT_ARCH}" 2>/dev/null)" ]; then
+        BUILT=no
+    fi
+done
 
-if ! grep -q '^CHECKS_OWN_OUTPUTS=yes' "static/${APP_NAME}/build.sh" && [ -n "$(ls -A "${OUTPUT_PATH}" 2>/dev/null)" ]; then
+if ! grep -q '^CHECKS_OWN_OUTPUTS=yes' "static/${APP_NAME}/build.sh" && [ "${BUILT}" = yes ]; then
     echo "Static ${APP_NAME} ${VERSION} (${ARCH}) is already built: ${OUTPUT_PATH}"
     printf '%s' "${VERSION}" > "packages/static/${APP_NAME}/latest"
 

@@ -1,5 +1,5 @@
 Package:			mysqld_exporter
-Version:			0.21.0
+Version:			0.21.0-1
 Packager:			PDN
 Email:
 Homepage:			https://github.com/prometheus/mysqld_exporter

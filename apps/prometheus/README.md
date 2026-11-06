@@ -11,6 +11,7 @@
 - Its data is kept next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_prometheus` *(the database in `data/`, its settings, your own files, and `prometheus.log` - warnings only, kept under 1MB)*, and survives reinstalls and removal.
 - Prometheus writes to its database continuously, so the NAS's disks won't sleep while it runs.
 - The official static program is used *(prepared by `static/prometheus`, without `promtool`)*. Prometheus doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release is out, checked weekly.
+- For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)* - and it's heavy for them: workable with 1-2GB of memory *(e.g. an EX4100)*, too much for the 512MB single-drive My Cloud.
 
 ## Management page
 

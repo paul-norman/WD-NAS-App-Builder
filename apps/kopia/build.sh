@@ -2,9 +2,10 @@
 . '../build_helpers.sh'
 
 # Kopia is an official static binary, downloaded from its releases (checked against their published checksums) - for the
-# Intel models only
+# Intel and ARM models
 declare -A MODELS
 MODELS[amd64]='MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100'
+MODELS[armhf]='WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra'
 
 RELEASE_URL="https://github.com/kopia/kopia/releases/download/v${APP_UPSTREAM_VERSION}"
 
@@ -12,7 +13,10 @@ for ARCH in "${!MODELS[@]}"; do
     # Skip architectures without a wanted model (MODEL_OVERRIDE)
     models_wanted ${MODELS[${ARCH}]} || continue
 
-    KOPIA_NAME="kopia-${APP_UPSTREAM_VERSION}-linux-x64"
+    # Kopia's names for them
+    KOPIA_ARCH='x64'
+    [ "${ARCH}" = 'armhf' ] && KOPIA_ARCH='arm'
+    KOPIA_NAME="kopia-${APP_UPSTREAM_VERSION}-linux-${KOPIA_ARCH}"
     mkdir -p binaries
     cd binaries
 

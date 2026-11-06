@@ -9,7 +9,7 @@
 - A **read only** setting on the page stops queries changing anything.
 - It runs as its own user *(`pgweb`, ID 86)*, with no SSH tunnels to other machines. Its settings, password and saved queries are kept in `Nas_Prog/_pgweb`, across reinstalls and removal.
 - It's the official static program. Its release publishes no checksums, so the build checks it against the SHA256 pinned in `static/pgweb/build.sh`. The NAS shows an alert when a new release is out *(checked weekly)*.
-- Intel models only *(as the PostgreSQL app)*.
+- For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)*. The PostgreSQL app is for the Intel models only, so on an ARM NAS pgweb is for PostgreSQL servers elsewhere on the network.
 
 ## Building the pgweb app
 

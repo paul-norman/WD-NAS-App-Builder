@@ -8,6 +8,7 @@
 - Its configuration is kept next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_kopia` *(root only)*, and survives reinstalls and removal: `repository.config` *(where the repository is, and its saved password)*, a cache *(for speed - it can be deleted)*, Kopia's own logs in `logs/`, the server's output `kopia.log`, the web interface's password and the page's settings.
 - Kopia schedules the snapshots itself, from the policies set in its interface. Its own update checks are off: updates come with new versions of the app, and the NAS shows an alert when a new release is out, checked weekly.
 - It's the official static program *(downloaded and checked against the release's checksums by the app's build)*.
+- For the Intel and ARM models *(the ARM ones' packages haven't yet been tried on an ARM NAS)*.
 
 ## First steps
 

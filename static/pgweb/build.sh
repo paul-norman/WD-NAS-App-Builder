@@ -1,37 +1,79 @@
 #!/bin/bash
 
-# Prepares pgweb for the NAS: its official static program (its release publishes no checksums, so the archive's SHA256
-# is pinned here), plus a fully static build of:
+# Prepares pgweb for the NAS - for the Intel models and the ARM ones: its official static program for each (its release
+# publishes no checksums, so the archive's SHA256 is pinned here), plus a fully static build of:
 #  - pgweb_runas: switches to pgweb's own user (the NAS has no su or similar) before running it
+
+# The ARM models' parts are built on this (Intel) machine: the helper cross-compiled with Zig for their ARMv7 processors
+# (hard-float), and every ARM program checked with QEMU's emulator.
 
 set -e
 set -o pipefail
 set -x
 
 VERSION=0.17.0
+# Each architecture's release (it publishes no checksums: these are GitHub's, of each archive)
 PGWEB_SHA256=042b70755a0ad0443ff91fe1116b89472da3b841122064942d8024297d4af9ad
-
-ARCH=$(uname -m)
-
-if [ ${ARCH} = 'x86_64' ]; then
-    ARCH='amd64'
-else
-    ARCH='armhf'
-fi
+PGWEB_ARMHF_SHA256=e2951e02d9248cf44c687b919d8ba9865f2b3aa7051b2cb40fadd67867e1d79e
+# The architectures built (each into packages/static/pgweb/<version>/<arch>)
+ARCHES='amd64 armhf'
 
 BUILD_PATH=/build
-OUTPUT_PATH=/data/packages/static/pgweb/${VERSION}/${ARCH}
 
-function build_pgweb() {
-    cd ${BUILD_PATH}
-    sh /data/static/fetch.sh "https://github.com/sosedoff/pgweb/releases/download/v${VERSION}/pgweb_linux_amd64.zip" \
-        pgweb.zip "${PGWEB_SHA256}"
-    unzip -q pgweb.zip
-    mv pgweb_linux_amd64 pgweb
+# Compiles a fully static C program for an architecture (stripped): gcc for amd64, Zig for armhf.
+#
+# $1 arch The architecture (amd64 or armhf)
+# $@      The compiler's other arguments
+function cc_for() {
+    local arch="$1"
+    shift
+
+    if [ "${arch}" = armhf ]; then
+        zig cc -target arm-linux-musleabihf -mcpu=cortex_a9 -O2 -static -s "$@"
+    else
+        gcc -O2 -static -s "$@"
+    fi
 }
 
+# Runs a program built for an architecture here (an ARM one with QEMU's emulator, as a Cortex-A9 - the ARM models'
+# processors' kind).
+#
+# $1 arch The architecture (amd64 or armhf)
+# $@      The program and its arguments
+function run_for() {
+    local arch="$1"
+    shift
+
+    if [ "${arch}" = armhf ]; then
+        qemu-arm -cpu cortex-a9 "$@"
+    else
+        "$@"
+    fi
+}
+
+# Downloads pgweb's release for an architecture into the current folder, as ./pgweb.
+#
+# $1 arch The architecture (amd64 or armhf)
+function build_pgweb() {
+    if [ "$1" = armhf ]; then
+        sh /data/static/fetch.sh \
+            "https://github.com/sosedoff/pgweb/releases/download/v${VERSION}/pgweb_linux_arm_v5.zip" \
+            pgweb.zip "${PGWEB_ARMHF_SHA256}"
+        unzip -q pgweb.zip
+        mv pgweb_linux_arm_v5 pgweb
+    else
+        sh /data/static/fetch.sh \
+            "https://github.com/sosedoff/pgweb/releases/download/v${VERSION}/pgweb_linux_amd64.zip" \
+            pgweb.zip "${PGWEB_SHA256}"
+        unzip -q pgweb.zip
+        mv pgweb_linux_amd64 pgweb
+    fi
+}
+
+# Builds the run-as helper for an architecture in the current folder.
+#
+# $1 arch The architecture (amd64 or armhf)
 function build_runas() {
-    cd ${BUILD_PATH}
     cat > pgweb_runas.c <<'C'
 #include <grp.h>
 #include <stdio.h>
@@ -55,29 +97,36 @@ int main(int argc, char **argv) {
 	return 127;
 }
 C
-    gcc -O2 -static -o pgweb_runas pgweb_runas.c
-    strip pgweb_runas
+    cc_for "$1" -o pgweb_runas pgweb_runas.c
 }
 
 function run() {
+    local arch output usage
+
     # Clean start
     if [ -d ${BUILD_PATH} ]; then
         rm -rf ${BUILD_PATH}
     fi
-    mkdir -p ${BUILD_PATH}
 
-    build_pgweb
-    build_runas
+    for arch in ${ARCHES}; do
+        mkdir -p ${BUILD_PATH}/${arch}
+        cd ${BUILD_PATH}/${arch}
+        build_pgweb ${arch}
+        build_runas ${arch}
 
-    rm -rf ${OUTPUT_PATH}
-    mkdir -p ${OUTPUT_PATH}
-    cp ${BUILD_PATH}/pgweb ${BUILD_PATH}/pgweb_runas ${OUTPUT_PATH}/
-    ${OUTPUT_PATH}/pgweb --version
-    du -sh ${OUTPUT_PATH}
+        output=/data/packages/static/pgweb/${VERSION}/${arch}
+        rm -rf ${output}
+        mkdir -p ${output}
+        cp pgweb pgweb_runas ${output}/
+        run_for ${arch} ${output}/pgweb --version
+        # (no arguments: it says how to use it, and fails - showing that it runs)
+        usage="$(run_for ${arch} ${output}/pgweb_runas 2>&1 || true)"
+        echo "${usage}" | grep -q 'Usage: pgweb_runas'
+        du -sh ${output}
+    done
 
     # Create a latest release file for ease of use in packages
-    LATEST_PATH="$(dirname ${OUTPUT_PATH})"
-    LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
+    LATEST_PATH=/data/packages/static/pgweb/latest
     echo -e "\nCreating a latest release file: ${LATEST_PATH}"
     rm -f ${LATEST_PATH}
     printf '%s' "${VERSION}" > ${LATEST_PATH}

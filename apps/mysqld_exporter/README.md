@@ -7,7 +7,7 @@
 - **Its page** shows whether it reaches MariaDB, whether Prometheus collects its metrics, and links to its dashboard. **Set up its login again** makes a new password *(e.g. after switching between WD's MariaDB and the MariaDB app's)*.
 - Its scrape job is `prometheus/mysql.yml` and its dashboard `dashboards/mariadb.json`: the Prometheus and Grafana apps pick up every app's *(see their READMEs)*, and drop them when the app is removed.
 - The dashboard is mysqld_exporter's own dashboard (mysqld-mixin/dashboards/mysql-overview.json, Apache-2.0), unchanged apart from its title, a `nas` tag, and two settings MariaDB no longer has taken out of its memory panel *(InnoDB's additional memory pool, TokuDB's cache)*. Its process states panels use the process list collector, which the app turns on.
-- It's the official static program, checked against the SHA256 its release publishes *(pinned in `static/mysqld_exporter/build.sh`)*. Intel models only.
+- It's the official static program, checked against the SHA256 its release publishes *(pinned in `static/mysqld_exporter/build.sh`)*. For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)* - on an ARM NAS it watches WD's own MariaDB, if it has one (the MariaDB app is for the Intel models only).
 
 ## Building the MariaDB Exporter app
 
