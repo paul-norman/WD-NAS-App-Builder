@@ -2,15 +2,17 @@
 
 This is a repository to provide apps for the WD NAS machines running OS5 *(FW > 5.27.157 - Debian Bullseye)*. It will also provide a base for others to build their own apps.
 
-To make this process as simple as possible for non-expert users, a [Store](apps/store/README.md) app has been created that will replace the now end-of-life *(EOL)* WD Store *(those apps will still be available)*. This will offer native apps and Docker "Recipes" to provide up-to-date software for this NAS.
+## Installation
+
+To make this process as simple as possible for non-expert users, a [Store](https://paul-norman.github.io/WD-NAS-App-Builder/) app has been created that will replace the now end-of-life *(EOL)*. This will offer new native apps and Docker "Recipes" to provide up-to-date software for this NAS. The original WD Store app are still available in one of the tabs, but are very out of date.
 
 **Much of the underlying Linux system is now badly out of date**, so a few replacement apps are **strongly recommended to be installed initially** for security reasons:
 
-- [OpenSSH](apps/openssh/README.md)
-- [Python](apps/python/README.md)
-- [PHP](apps/php/README.md)
+- [OpenSSH](https://paul-norman.github.io/WD-NAS-App-Builder/openssh/)
+- [Python](https://paul-norman.github.io/WD-NAS-App-Builder/python/)
+- [PHP](https://paul-norman.github.io/WD-NAS-App-Builder/php/)
 
-In addition, the [Nginx](apps/nginx/README.md) app will allow access to all web-based apps via friendly URLs and offer SSL security.
+In addition, the [Nginx](https://paul-norman.github.io/WD-NAS-App-Builder/nginx/) app will allow access to all web-based apps via friendly URLs and offer SSL security.
 
 ## Building an existing app
 
