@@ -119,6 +119,12 @@ jobs:
           retention-days: 7
           compression-level: 0
 
+      # The stand-in NAS leaves folders only root can read (e.g. the Nginx app's acme/), where the log upload would stop:
+      # all made readable first (a throwaway runner - and the apps' own logs in there are worth having too)
+      - name: Let the test logs be read
+        if: failure()
+        run: sudo chmod -R a+rX "${RUNNER_TEMP}/tmp" 2>/dev/null || true
+
       - name: Keep the test logs
         if: failure()
         uses: actions/upload-artifact@v7.0.2
@@ -156,6 +162,12 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/tmp"
           export TMPDIR="${RUNNER_TEMP}/tmp"
           bash ci/job.sh recipe "${RECIPE}"
+
+      # The stand-in NAS leaves folders only root can read (e.g. the Nginx app's acme/), where the log upload would stop:
+      # all made readable first (a throwaway runner - and the apps' own logs in there are worth having too)
+      - name: Let the test logs be read
+        if: failure()
+        run: sudo chmod -R a+rX "${RUNNER_TEMP}/tmp" 2>/dev/null || true
 
       - name: Keep the test logs
         if: failure()

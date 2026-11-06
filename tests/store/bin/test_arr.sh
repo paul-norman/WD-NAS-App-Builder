@@ -158,10 +158,12 @@ chmod 755 "$V/Locked/Books"
 CHG='{"DATA_ROOT":"'$M'","ADMIN_USER":"admin","ADMIN_PASSWORD":"New-pass-456","LIDARR":false,"BOOKS":true,"SABNZBD":true,"FLARESOLVERR":false,"TORRENT_PORT":6881,"TZ":"Europe/London","TV_FOLDERS":["'$V'/Me/TV","'$V'/Me/Anime"],"MOVIES_FOLDERS":["'$V'/Me/Films"],"BOOKS_FOLDERS":["'$V'/Locked/Books"],"AFTER_IMPORT":"limit","SEED_RATIO":"1","SEED_DAYS":7,"RENAME":false,"FLAT_FILMS":false,"SEARCH":"manual","NTFY_TOPIC":"arr","MEDIA_SERVER":"jellyfin","MEDIA_SERVER_KEY":"jf-key-1","MEDIA_SERVER_URL":"http://host.docker.internal:18096/","RECYCLARR":true,"QUALITY":"2160p"}'
 post start -d job=recipe_change -d id=arr --data-urlencode "answers=$CHG" >/dev/null; job_wait
 get job >/dev/null; LOG=$(j '$d["log"]')
-mounts() { docker inspect $1 --format '{{range .Mounts}}{{.Destination}} {{end}}'; }
-[ "$JOB_STATE" = '"done"' ] && mounts sonarr | grep -q "/media/Me/TV /media/Me/Anime\|/media/Me/Anime /media/Me/TV\|/media/Me/TV .*/media/Me/Anime" && mounts bazarr | grep -q '/media/Me/Films' \
+# A container's mounts (Docker lists them in no particular order: one per line, each checked on its own)
+mounts() { docker inspect $1 --format '{{range .Mounts}}{{.Destination}}{{"\n"}}{{end}}'; }
+[ "$JOB_STATE" = '"done"' ] && mounts sonarr | grep -qx '/media/Me/TV' && mounts sonarr | grep -qx '/media/Me/Anime' && mounts bazarr | grep -q '/media/Me/Films' \
     && mounts bazarr | grep -q '/media/Me/TV' && mounts radarr | grep -q '/media/Me/Films' && ! mounts radarr | grep -q '/media/Me/TV' \
-    && pass "the folders mounted where they're needed: TV in Sonarr and Bazarr, films in Radarr and Bazarr ($(mounts bazarr))" || fail "mounts: sonarr $(mounts sonarr) / bazarr $(mounts bazarr)"
+    && pass "the folders mounted where they're needed: TV in Sonarr and Bazarr, films in Radarr and Bazarr ($(mounts bazarr | tr '\n' ' '))" \
+    || fail "mounts: sonarr $(mounts sonarr | tr '\n' ' ') / bazarr $(mounts bazarr | tr '\n' ' ')"
 roots() { arr $1 $2 $3 /rootfolder | php -r 'echo implode(",", array_map(function($r){return $r["path"].($r["accessible"] ? "" : "(!)");}, json_decode(stream_get_contents(STDIN),true)));'; }
 R=$(roots 8989 v3 $SONARR_API_KEY)
 echo "$R" | grep -q '/media/Me/TV' && echo "$R" | grep -q '/media/Me/Anime' && ! echo "$R" | grep -q "(!)" && roots 7878 v3 $RADARR_API_KEY | grep -q '/media/Me/Films' \
