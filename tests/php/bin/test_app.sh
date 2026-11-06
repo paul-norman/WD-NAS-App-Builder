@@ -32,6 +32,9 @@ wait_serving 60 $APPFPM && pass "php-fpm is now the app's PHP 8.5 ($(serving))" 
 wait $POLLER; set -- $(cat /tmp/polls)
 [ "$2" = 0 ] && [ "$1" -gt 50 ] && pass "no failed request during the switch ($1 requests, 0 failed - a graceful reload, not a restart)" || fail "$2 of $1 requests failed during the switch"
 [ "$(/usr/bin/php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')" = 8.5 ] && pass "the NAS's /usr/bin/php is PHP 8.5 too" || fail "cli: $(/usr/bin/php -v | head -n 1)"
+# mbstring's regular expressions (mbregex - Oniguruma), which Laravel's mb_split() calls need
+[ "$($P/php/binaries/php -n -r 'echo implode("|", mb_split("\s+", "héllo  wörld")), "|", mb_ereg_replace("ö", "o", "wörld");')" = 'héllo|wörld|world' ] \
+    && pass "mbstring's regular expressions (mb_split, mb_ereg_replace) work" || fail "mbregex: $($P/php/binaries/php -n -r 'var_dump(function_exists("mb_split"));')"
 
 echo "== WD's pages patched"
 page cgi_api.php 'a=2' | grep -q '^PHP 8.5.* cgi_api ok query=a=2 ip=127.0.0.1' && page restSDK/cloudAccess.php | grep -q '^PHP 8.5.* cloudAccess ok' \

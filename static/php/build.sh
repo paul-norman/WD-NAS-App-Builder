@@ -3,7 +3,8 @@
 # Builds PHP's CLI and FPM as fully static binaries with static-php-cli, with every extension built in: those of the
 # NAS's own PHP 7.4 (so that it can replace it), plus opcache, intl, redis (for ValKey), sodium, zip, sockets and pcntl,
 # and the other extensions popular PHP apps ask for (WordPress, Nextcloud, Laravel, Drupal...): PostgreSQL drivers, gmp,
-# ldap, igbinary (also used by redis), xsl, soap, calendar, ftp, shared memory / semaphores, tidy and yaml.
+# ldap, igbinary (also used by redis), xsl, soap, calendar, ftp, shared memory / semaphores, tidy, yaml, and mbstring's
+# regular expressions (mbregex, with the Oniguruma library: mb_split(), mb_ereg()... - Laravel uses mb_split()).
 # Static binaries can't load extensions from .so files, so none are needed (or possible)
 
 set -e
@@ -21,6 +22,7 @@ SPC_SHA256=523ba4279c54c7a377156c0dd3a36adf92ee64b01e9a7f5e9e2ec084b8e458e5
 EXTENSIONS='apcu,bcmath,bz2,ctype,curl,dom,exif,fileinfo,filter,gd,gettext,iconv,mbstring,mysqli,mysqlnd,openssl,pdo,pdo_mysql,pdo_sqlite,posix,readline,session,simplexml,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zlib'
 EXTENSIONS="${EXTENSIONS},opcache,intl,redis,sodium,zip,sockets,pcntl"
 EXTENSIONS="${EXTENSIONS},pgsql,pdo_pgsql,gmp,ldap,igbinary,xsl,soap,calendar,ftp,shmop,sysvsem,sysvshm,sysvmsg,tidy,yaml"
+EXTENSIONS="${EXTENSIONS},mbregex"
 # Image formats for gd
 LIBS='freetype,libjpeg,libpng,libwebp'
 
