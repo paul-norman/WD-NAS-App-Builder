@@ -12,7 +12,7 @@
       -d wikijs --clean --if-exists --no-owner --role=wikijs /path/to/wikijs-<date>.dump
   ```
 
-- It runs as its own user *(`wikijs`, ID 95)*. Its other data is kept in `Nas_Prog/_wikijs`, across reinstalls and removal: `data/` is Wiki.js's own *(its cache)*; its configuration *(`conf/config.yml`, written by the app at every start)*, passwords, settings and backups are root's. Its database stays in PostgreSQL when the app is removed *(drop it there to start afresh: `DROP DATABASE wikijs; DROP ROLE wikijs;`, and delete `Nas_Prog/_wikijs`)*.
+- It runs as its own user *(`wikijs`, ID 99)*. Its other data is kept in `Nas_Prog/_wikijs`, across reinstalls and removal: `data/` is Wiki.js's own *(its cache)*; its configuration *(`conf/config.yml`, written by the app at every start)*, passwords, settings and backups are root's. Its database stays in PostgreSQL when the app is removed *(drop it there to start afresh: `DROP DATABASE wikijs; DROP ROLE wikijs;`, and delete `Nas_Prog/_wikijs`)*.
 - Wiki.js fetches the icons it's asked for from Iconify's service *(once - then kept in its database)* and checks for new versions; the app also checks weekly for a new release *(a NAS alert)*.
 - Not included: PDF export and page images through a browser *(Puppeteer - Wiki.js would download Chromium)*, and Pandoc. Git storage *(Administration, Storage)* needs a `git` program: the [Forgejo app](../forgejo/README.md) provides one.
 - It's the official release *(its server with its packages, and its web interface - checked by its SHA256)* with Node.js 26. Wiki.js is AGPL-3.0 licensed. Intel models only.

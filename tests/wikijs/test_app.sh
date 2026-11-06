@@ -40,7 +40,7 @@ install_app
 wait_port 3010 30 && [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3010/_ready)" = 200 ] && pass 'answering on 3010 (ready)' \
     || { fail "not answering: $(tail -n 10 /tmp/start.log; tail -n 10 /tmp/debug_apkg; tail -n 20 $D/wikijs.log)"; exit 1; }
 PID=$(cat /var/run/wikijs.pid)
-[ "$(awk '/^Uid:/ { print $2 }' /proc/$PID/status)" = 95 ] && pass 'runs as its own user (95)' || fail "user: $(awk '/^Uid:/' /proc/$PID/status)"
+[ "$(awk '/^Uid:/ { print $2 }' /proc/$PID/status)" = 99 ] && pass 'runs as its own user (99)' || fail "user: $(awk '/^Uid:/' /proc/$PID/status)"
 listens_beyond && fail 'listens beyond the NAS' || pass 'listens only on the NAS itself (127.0.0.1), the Nginx app being there'
 [ "$(stat -c '%U %G %a' $D/conf/config.yml)" = 'root wikijs 640' ] && [ "$(stat -c '%U %a' $D/data)" = 'wikijs 700' ] && [ "$(stat -c '%u %a' $D/password)" = '0 600' ] \
     && [ "$(stat -c '%u %a' $D/db_password)" = '0 600' ] && ! tr '\0' ' ' < /proc/$PID/cmdline | grep -q "$(cat $D/db_password)" \

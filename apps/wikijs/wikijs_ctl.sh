@@ -40,7 +40,7 @@ ADMIN_EMAIL=admin@nas.local
 # Its database and login in PostgreSQL
 DB=wikijs
 # Its own user and group (created if missing): the IDs used when creating them
-WIKI_ID=95
+WIKI_ID=99
 LOG=/tmp/debug_apkg
 
 # The PostgreSQL app's server: its client and tools, its superuser's password (root's)
