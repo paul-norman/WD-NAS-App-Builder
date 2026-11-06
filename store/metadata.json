@@ -50,7 +50,7 @@
         "syncthing":          { "categories": ["files", "backup"], "license": "MPL-2.0", "data_folder": "_syncthing", "keeps_data": true, "web": { "local_port": 8384, "nginx": { "name": "syncthing" } } },
         "tailscale":          { "categories": ["network"], "license": "BSD-3-Clause", "data_folder": "_tailscale", "keeps_data": true, "security": "Remote access to the NAS without opening ports on your router" },
         "tautulli":           { "categories": ["media", "monitoring"], "license": "GPL-3.0-or-later", "data_folder": "_tautulli", "keeps_data": true, "web": { "local_port": 8181, "nginx": { "name": "tautulli" } } },
-        "transmission":       { "categories": ["media", "files"], "license": "GPL-2.0-only OR GPL-3.0-only", "data_folder": "_transmission", "keeps_data": true, "web": { "port": 9091, "nginx": { "name": "torrents" } } },
+        "transmission":       { "categories": ["media", "files"], "license": "GPL-2.0-only OR GPL-3.0-only", "data_folder": "_transmission", "keeps_data": true, "web": { "port": 9091, "nginx": { "name": "transmission" } } },
         "uptime-kuma":        { "categories": ["monitoring"], "license": "MIT", "data_folder": "_uptime-kuma", "keeps_data": true, "web": { "port": 3001, "nginx": { "name": "uptime-kuma" } } },
         "valkey":             { "categories": ["databases"], "license": "BSD-3-Clause", "data_folder": "_valkey", "keeps_data": true },
         "vaultwarden":        { "categories": ["security"], "license": "AGPL-3.0-only", "data_folder": "_vaultwarden", "keeps_data": true, "requires": { "apps": ["nginx"] }, "web": { "local_port": 8222, "nginx": { "name": "vaultwarden" } } },

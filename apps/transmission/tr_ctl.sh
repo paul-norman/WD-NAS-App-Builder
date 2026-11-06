@@ -288,7 +288,7 @@ rotate_log() {
     fi
 }
 
-# The Nginx app finds Transmission by its folder and serves it at https://torrents.<its domain>: rewrite its sites.
+# The Nginx app finds Transmission by its folder and serves it at https://transmission.<its domain>: rewrite its sites.
 #
 # Prints nothing
 nginx_site() {

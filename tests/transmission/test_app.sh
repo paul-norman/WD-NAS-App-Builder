@@ -10,7 +10,7 @@ command -v /sbin/ip > /dev/null || ln -sf /t/bb/busybox /sbin/ip
 R=$P/transmission/binaries/bin/transmission-remote
 # Transmission's RPC with the app's login (in its environment): rpc <arguments>
 rpc() { TR_AUTH="admin:$(cat $D/password)" $R 127.0.0.1:9091 --authenv "$@" 2>&1; }
-site() { p=$1; shift; curl -sk -m 10 --resolve "torrents.$DOMAIN:443:127.0.0.1" "$@" "https://torrents.$DOMAIN$p"; }
+site() { p=$1; shift; curl -sk -m 10 --resolve "transmission.$DOMAIN:443:127.0.0.1" "$@" "https://transmission.$DOMAIN$p"; }
 # Where something listens on a TCP port: all (0.0.0.0 / [::]) or local (127.0.0.1 only)
 bound() {
     awk -v port="$(printf '%04X' "$1")" 'FNR > 1 { split($2, l, ":"); if (l[2] == port && $4 == "0A") print l[1] }' /proc/net/tcp /proc/net/tcp6 \
@@ -85,13 +85,13 @@ S=$(rpc -si)
 rpc -l | grep -q 'test-file.bin' && pass 'the torrent kept across the restarts' || fail "torrent gone: $(rpc -l)"
 
 echo '== its site through Nginx'
-grep -q 'proxy_pass *http://127.0.0.1:9091' $P/_nginx/sites/60-app-torrents.conf 2>/dev/null \
-    && site /transmission/web/ -u "admin:$NEW" | grep -qi '<title>Transmission' && [ "$(site / -o /dev/null -w '%{redirect_url}')" = "https://torrents.$DOMAIN/transmission/web/" ] \
-    && pass "its site https://torrents.$DOMAIN/ (its start page /transmission/web/)" || fail "site: $(ls $P/_nginx/sites; site /transmission/web/ -u "admin:$NEW" | head -c 200)"
-[ "$(get status | j '$d["site"]["url"]')" = "\"https://torrents.$DOMAIN/\"" ] && pass 'the page shows its site' || fail "site: $(get status | j '$d["site"]')"
+grep -q 'proxy_pass *http://127.0.0.1:9091' $P/_nginx/sites/60-app-transmission.conf 2>/dev/null \
+    && site /transmission/web/ -u "admin:$NEW" | grep -qi '<title>Transmission' && [ "$(site / -o /dev/null -w '%{redirect_url}')" = "https://transmission.$DOMAIN/transmission/web/" ] \
+    && pass "its site https://transmission.$DOMAIN/ (its start page /transmission/web/)" || fail "site: $(ls $P/_nginx/sites; site /transmission/web/ -u "admin:$NEW" | head -c 200)"
+[ "$(get status | j '$d["site"]["url"]')" = "\"https://transmission.$DOMAIN/\"" ] && pass 'the page shows its site' || fail "site: $(get status | j '$d["site"]')"
 LINES=$(wc -l < $D/transmission.log)
 C1=$(site /transmission/web/ -o /dev/null -w '%{http_code}'); C2=$(site /transmission/rpc -u admin:wrong-password -o /dev/null -w '%{http_code}')
-grep -q "auth_basic_user_file $D/htpasswd" $P/_nginx/sites/60-app-torrents.conf && [ "$C1" = 401 ] && [ "$C2" = 401 ] \
+grep -q "auth_basic_user_file $D/htpasswd" $P/_nginx/sites/60-app-transmission.conf && [ "$C1" = 401 ] && [ "$C2" = 401 ] \
     && [ "$(stat -c '%u %a' $D/htpasswd)" = '0 640' ] && [ "$(tail -n +$((LINES + 1)) $D/transmission.log | grep -c 'failed authentication')" = 0 ] \
     && pass "Nginx asks for the same login first: none or a wrong one refused there ($C1, $C2), nothing in Transmission's log" \
     || fail "Nginx login: $C1 $C2 $(stat -c '%U %G %a' $D/htpasswd) $(tail -n +$((LINES + 1)) $D/transmission.log | tail -n 2)"
@@ -106,5 +106,5 @@ post settings -d download_dir=$V/Public/Torrents -d peer_port=51500 -d down_limi
 
 echo '== removal'
 finish_app
-[ ! -f $P/_nginx/sites/60-app-torrents.conf ] && [ -f $DL/moved/test-file.bin ] && pass 'its Nginx site gone, the downloads kept' || fail "removal: $(ls $P/_nginx/sites)"
+[ ! -f $P/_nginx/sites/60-app-transmission.conf ] && [ -f $DL/moved/test-file.bin ] && pass 'its Nginx site gone, the downloads kept' || fail "removal: $(ls $P/_nginx/sites)"
 finish_app nginx

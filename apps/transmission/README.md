@@ -2,7 +2,7 @@
 
 [Transmission](https://transmissionbt.com/) is a lightweight BitTorrent client. The app runs its daemon natively on the NAS *(no Docker)*, with its web interface, downloading straight into the NAS's shares.
 
-- Its web interface is at `https://torrents.<domain>` through the [Nginx app](../nginx/README.md), if installed *(added automatically)*, and at `http://<nas-ip>:9091/transmission/web/` on the local network unless limited to the Nginx app on the management page.
+- Its web interface is at `https://transmission.<domain>` through the [Nginx app](../nginx/README.md), if installed *(added automatically)*, and at `http://<nas-ip>:9091/transmission/web/` on the local network unless limited to the Nginx app on the management page.
 - **It asks for a login**: user name `admin` and a generated password, which the management page shows, copies or replaces. The same login works for remote apps *(e.g. Transmission Remote GUI, phone apps, or Sonarr / Radarr)* on port 9091. Through the Nginx app, Nginx asks for the same login first *(its own copy, `htpasswd`, kept in step with the page)*, so visits without it stop there.
 - Downloads go to a **Downloads** share if the NAS has one, else to `Public/Downloads` *(created on first start)* - any folder in the shares can be chosen on the management page. Transmission runs as its own `transmission` user *(created by the app, ID 97)* in the NAS's share group, keeping its files group-writable, so the NAS's users can move, rename or delete them over SMB.
 - Other computers reach it on its **peer port** *(51413 by default, TCP and UDP)*: Transmission asks the router to forward it *(UPnP / NAT-PMP)*; if the router doesn't, forward it by hand for faster downloads.

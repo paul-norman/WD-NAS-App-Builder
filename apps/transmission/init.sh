@@ -49,5 +49,5 @@ if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
         && log "added the daily log check and weekly update check to: ${CRONTAB}"
 fi
 
-# Its site in the Nginx app (https://torrents.<the Nginx app's domain>)
+# Its site in the Nginx app (https://transmission.<the Nginx app's domain>)
 sh "${APP_PATH}/tr_ctl.sh" nginx >> ${LOG} 2>&1

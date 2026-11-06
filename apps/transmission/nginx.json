@@ -1,5 +1,5 @@
 {
-    "name":      "torrents",
+    "name":      "transmission",
     "label":     "Transmission",
     "target":    "http://127.0.0.1:9091",
     "start":     "/transmission/web/",
