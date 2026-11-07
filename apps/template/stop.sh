@@ -24,3 +24,6 @@
 # Stops the app from running
 #  - When no index page is defined in apkg.rc, the disable button is greyed out
 # -----------------------------------------------------------------------------
+
+log 'stopping app...'
+sh "${APP_PATH}/template_ctl.sh" stop >> ${LOG} 2>&1

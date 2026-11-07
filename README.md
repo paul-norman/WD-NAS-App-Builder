@@ -30,15 +30,11 @@ If you don't have docker installed, see the [guide](docker/README.md) in the `do
 
 # Creating a new app
 
-- Copy the `apps/template` app directory and create a new app directory from it in the same parent directory.
-  - e.g. `cp -R apps/template apps/new_app`
-- Edit the `apps/<new_app>/apkg.rc` file to have a `Package` value which exactly matches the new directory name.
-  - e.g. `sed -i 's/Package:.*/Package:\t\t\tnew_app/' apps/new_app/apkg.rc`
-  - Other options `apkg.rc` are explained in the [guide](guides/README.md).
-- Edit `web/desc.xml` with the app's description in each language *(shown in the NAS web UI; the template has English, French, Spanish and German)*, and use the English text for `Description` in `apkg.rc` too.
-- The `apps/<new_app>/build.sh` script runs locally from Docker to package your app. Customise it to your app's needs *(e.g. if you need to package downloaded binaries)* - see [guide](apps/README.md).
-  - If you're downloading the application files on the WD NAS device itself, you can leave this file alone.
-- All other shell scripts (`apps/<new_app>/*.sh`) run on the WD NAS device itself to perform the actions that are required. See [overview](guides/README.md) and [guide](apps/README.md).
+Start from the [template app](apps/template/README.md): a small, working app built the way the project's simpler apps are *(one static program run as its own user, a management page, a site in the Nginx app, update alerts and a test suite)*. Its README says how to copy and rename it, what to change, and where to register the new app.
+
+- `apkg.rc`'s options are explained in the [guide](guides/README.md).
+- The app's `build.sh` runs locally from Docker to package it - see the [guide](apps/README.md).
+- All the other shell scripts (`apps/<new_app>/*.sh`) run on the WD NAS device itself. See the [overview](guides/README.md) and the [guide](apps/README.md).
 
 ## Building statically linked apps
 

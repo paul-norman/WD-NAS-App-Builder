@@ -17,10 +17,11 @@
     #    6. $INSTALL_PATH/init.sh $INSTALL_PATH
     # -> 7. $INSTALL_PATH/start.sh $INSTALL_PATH
 
-# ----------------------------------------------------------------------------
-# Starts the app when enabled (e.g. on boot)
-#  - When no index page is defined in apkg.rc, the enable button is greyed out
-# ----------------------------------------------------------------------------
-
 # Load all the useful variables
 . "$1/helpers.sh" "$0" "$1"
+
+# ----------------------------------------------------------------------------
+# Starts the app's program, as its own user (see template_ctl.sh)
+# ----------------------------------------------------------------------------
+
+sh "${APP_PATH}/template_ctl.sh" start >> ${LOG} 2>&1

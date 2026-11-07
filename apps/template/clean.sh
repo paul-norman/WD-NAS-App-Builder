@@ -22,5 +22,13 @@
 # --------------------------------------------------------------------
 
 # Remove the web path
-log "removing web path: ${APP_WEB_PATH}"
-rm -rf ${APP_WEB_PATH}
+log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
+rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
+
+# Remove the daily log check and the update check
+CRONTAB='/var/spool/cron/crontabs/root'
+
+if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-" "${CRONTAB}"; then
+    grep -v "${APP_NAME}-daily\|${APP_NAME}-update-check" "${CRONTAB}" > "${CRONTAB}.tmp"
+    mv "${CRONTAB}.tmp" "${CRONTAB}"
+fi

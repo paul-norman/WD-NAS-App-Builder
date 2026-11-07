@@ -66,6 +66,7 @@ parameters:
         - apps/scrutiny/manage/api.php
         - apps/syncthing/manage/api.php
         - apps/tailscale/manage/api.php
+        - apps/template/manage/api.php
         - apps/uptime-kuma/manage/api.php
         - apps/valkey/manage/api.php
         - apps/vaultwarden/manage/api.php

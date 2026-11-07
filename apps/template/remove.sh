@@ -19,8 +19,14 @@
 
 # ----------------------------------------------------------------------------
 # Removes all the app completely.
-#  - Remember to make backups of configuration / data here to support upgrades
+#  - Its settings and data are kept in the persistent path (Nas_Prog/_template)
 # ----------------------------------------------------------------------------
 
 log "Removing all files from: ${APP_PATH}"
 rm -rf "${APP_PATH}"
+
+# Without the app's folder (and its nginx.json), the Nginx app no longer serves the app: rewrite its sites
+if [ -f "${APPS_PATH}/nginx/lib/sites.php" ] && [ -d "${APPS_PATH}/_nginx/sites" ]; then
+    php "${APPS_PATH}/nginx/lib/sites.php" generate "${APPS_PATH}/_nginx" \
+        && sh "${APPS_PATH}/nginx/nginx_ctl.sh" reload > /dev/null 2>&1
+fi

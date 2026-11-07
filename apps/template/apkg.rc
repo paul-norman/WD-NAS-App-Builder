@@ -1,9 +1,9 @@
 Package:			template
-Version:			0.0.1
+Version:			0.35.0
 Packager:			PDN
 Email:
-Homepage:
-Description:		A blank template app from which to begin developing new apps.
+Homepage:			https://github.com/svenstaro/miniserve
+Description:		A template app from which to begin new apps: miniserve shares a folder in a web browser (through the Nginx app).
 Icon:				logo.svg
 AddonShowName:		Template
 AddonIndexPage:		index.php
@@ -15,8 +15,8 @@ InstDepend:
 InstConflict:
 StartDepend:
 StartConflict:
-CenterType:			0
-UserControl:		0
+CenterType:			1
+UserControl:		1
 MinFWVer:			5.27.157
 MaxFWVer:
 IndividualFlag:		1
