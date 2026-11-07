@@ -233,10 +233,16 @@ def source_urls(app):
         ["bash", "-c", script], check=True, capture_output=True, text=True
     ).stdout.splitlines()
 
-    return [
-        (item["component"], item["license"], url)
-        for item, url in zip(wanted, expanded)
-    ]
+    # Once each (a component downloaded for each architecture has one source)
+    sources = []
+
+    for item, url in zip(wanted, expanded):
+        source = (item["component"], item["license"], url)
+
+        if source not in sources:
+            sources.append(source)
+
+    return sources
 
 
 def download(url, path):
