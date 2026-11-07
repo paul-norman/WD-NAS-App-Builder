@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Miniflux: a minimalist feed reader (RSS, Atom, JSON Feed), kept in the PostgreSQL app.</en-US>
+	<fr-FR>Miniflux : un lecteur de flux minimaliste (RSS, Atom, JSON Feed), conservé dans l'app PostgreSQL.</fr-FR>
+	<es-ES>Miniflux: un lector de feeds minimalista (RSS, Atom, JSON Feed), guardado en la app PostgreSQL.</es-ES>
+	<de-DE>Miniflux: ein minimalistischer Feedreader (RSS, Atom, JSON Feed), gespeichert in der PostgreSQL-App.</de-DE>
+</config>

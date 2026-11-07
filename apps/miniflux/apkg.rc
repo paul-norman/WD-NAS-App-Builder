@@ -1,0 +1,23 @@
+Package:			miniflux
+Version:			2.3.5
+Packager:			PDN
+Email:
+Homepage:			https://miniflux.app/
+Description:		Miniflux: a minimalist feed reader (RSS, Atom, JSON Feed), kept in the PostgreSQL app.
+Icon:				miniflux.svg
+AddonShowName:		Miniflux
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:			postgresql
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

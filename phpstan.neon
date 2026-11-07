@@ -47,6 +47,7 @@ parameters:
         - apps/loki/manage/api.php
         - apps/mailpit/manage/api.php
         - apps/mariadb/manage/api.php
+        - apps/miniflux/manage/api.php
         - apps/music-assistant/manage/api.php
         - apps/navidrome/manage/api.php
         - apps/nextcloud/manage/api.php
