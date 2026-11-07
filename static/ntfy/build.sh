@@ -10,10 +10,10 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=2.37.0
+VERSION=2.37.2
 # Each architecture's release, as its checksums.txt publishes it
-NTFY_SHA256=0021a911f71ac20a757675b7160cd1fad3b615b0dce1ac8d8c70c8711277051f
-NTFY_ARMHF_SHA256=07262646722dd0deae6d8ef0c372d998425cfad76f8d18a2ec9c0801488f4928
+NTFY_SHA256=e67f53d7fbed529b83faf3993b584110921ef3567b0ac0b033c6910879a4ffd1
+NTFY_ARMHF_SHA256=51d59c18f2dc2976f6a446a9dbf4aebc814a31de299210c4757400a80d52576b
 # The architectures built (each into packages/static/ntfy/<version>/<arch>)
 ARCHES='amd64 armhf'
 
