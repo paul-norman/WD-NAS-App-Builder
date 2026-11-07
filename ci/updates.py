@@ -35,6 +35,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import time
 import urllib.request
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
@@ -843,9 +844,18 @@ def run(limit):
             if hours_since(parse_date(pr["createdAt"])) >= WAIT_HOURS:
                 decision = "yes"
 
-        if decision == "yes" and ci_passed(pr["number"]):
+        if decision != "yes":
+            print(f"{name} {version}: not merged ({reason})")
+            continue
+
+        passed, why = ci_passed(pr["number"])
+
+        if passed:
             gh("pr", "merge", str(pr["number"]), "--squash",
                "--delete-branch")
+            print(f"{name} {version}: merged (#{pr['number']})")
+        else:
+            print(f"{name} {version}: not merged yet (#{pr['number']}: {why})")
 
     return problems
 
@@ -855,23 +865,37 @@ def ci_passed(number):
     Whether a pull request's required check (build-test-release's result
     job) has passed on its latest changes. The bot may bypass the branch's
     rules, so GitHub's own auto-merge isn't used: it merges itself, only
-    then.
+    then. GitHub works out whether a pull request can be merged only when
+    it's asked (UNKNOWN until then - e.g. the first time after main has
+    changed), so an UNKNOWN answer is asked again, for up to a minute.
 
     :param int number: The pull request
 
-    :return: True if it has
+    :return: (passed, why not): passed is True if it has
     """
-    checks = json.loads(gh(
-        "pr", "view", str(number), "--json", "statusCheckRollup,mergeable"
-    ))
+    for _ in range(12):
+        checks = json.loads(gh(
+            "pr", "view", str(number), "--json", "statusCheckRollup,mergeable"
+        ))
+
+        if checks.get("mergeable") != "UNKNOWN":
+            break
+
+        time.sleep(5)
 
     if checks.get("mergeable") != "MERGEABLE":
-        return False
+        return False, f"GitHub says: {checks.get('mergeable')}"
 
-    return any(
-        check.get("name") == "result" and check.get("conclusion") == "SUCCESS"
+    result = [
+        check.get("conclusion") or check.get("status") or "?"
         for check in checks["statusCheckRollup"]
-    )
+        if check.get("name") == "result"
+    ]
+
+    if "SUCCESS" in result:
+        return True, ""
+
+    return False, f"CI's result: {', '.join(result) or 'not run yet'}"
 
 
 def main():
