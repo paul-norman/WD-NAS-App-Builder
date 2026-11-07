@@ -46,10 +46,14 @@ for app in "${APPS[@]}"; do
     data="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['apps'].get(sys.argv[2], {}).get('data_folder', ''))" "${PROJ}/store/metadata.json" "${app}")"
     echo "== ${app} ${version}"
     log="${WORK}/${app}.log"
-    # A TUN device for the VPNs
+    # A TUN device for the VPNs; no rseq for MongoDB, as on the NAS's kernel (MongoDB refuses to start on newer kernels
+    # when its allocator can use rseq - tests/common/seccomp-no-rseq.json)
     extra=()
 
-    case "${app}" in wireguard|tailscale) extra=(--cap-add NET_ADMIN --device /dev/net/tun) ;; esac
+    case "${app}" in
+        wireguard|tailscale) extra=(--cap-add NET_ADMIN --device /dev/net/tun) ;;
+        mongodb) extra=(--security-opt "seccomp=${PROJ}/tests/common/seccomp-no-rseq.json") ;;
+    esac
     docker run --rm --init "${extra[@]}" -e DATA_FOLDER="${data}" -v "${HERE}/bin:/t/bin:ro" -v "${WORK}/bb:/t/bb:ro" \
         -v "${package}:/pkg/package.tar.gz:ro" nas-test-php74 sh /t/bin/lifecycle.sh "${app}" "${check}" > "${log}" 2>&1
     grep -E '^(PASS|FAIL)' "${log}" | sed 's/^/  /' | cut -c1-170
