@@ -25,8 +25,8 @@ wait_port 8084 30 && curl -s -m 5 $U/ | grep -q '<title>Login - Adminer</title>'
     && pass "Adminer's login page on the NAS's own PHP ($(php -r 'echo PHP_VERSION;')), with its php.ini" || { fail "nas php: $(tail -n 5 /tmp/debug_apkg; tail -n 5 $D/adminer.log)"; exit 1; }
 page_up adminer
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["version"]')" = '"6.2.0"' ] && [ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["php"]')" = '"nas"' ] \
-    && pass "the page: Adminer 6.2.0 answering, on the NAS's own PHP" || fail "status: $(echo "$ST" | head -c 300)"
+[ "$(echo "$ST" | j '$d["version"]')" = '"6.3.0"' ] && [ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["php"]')" = '"nas"' ] \
+    && pass "the page: Adminer 6.3.0 answering, on the NAS's own PHP" || fail "status: $(echo "$ST" | head -c 300)"
 
 echo "== Valkey, with its Redis driver plugin (on the NAS's own PHP)"
 install_app valkey
