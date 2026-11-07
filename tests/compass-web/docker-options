@@ -1,0 +1,1 @@
+--security-opt seccomp={project}/tests/common/seccomp-no-rseq.json

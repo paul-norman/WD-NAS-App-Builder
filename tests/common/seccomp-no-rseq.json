@@ -1,0 +1,11 @@
+{
+    "comment": "Docker's own system call rules aside, everything allowed but rseq, which says it isn't there (ENOSYS) - as on the NAS, whose kernel (4.14) predates it. MongoDB refuses to start on the CI runners' newer kernels (6.19 to 7.0.13: MongoDB's SERVER-121912) when its allocator (tcmalloc) can use rseq for per-CPU caches, which it can with the NAS's old glibc (2.31). Used by the MongoDB and Compass Web suites (their docker-options).",
+    "defaultAction": "SCMP_ACT_ALLOW",
+    "syscalls": [
+        {
+            "names": ["rseq"],
+            "action": "SCMP_ACT_ERRNO",
+            "errnoRet": 38
+        }
+    ]
+}

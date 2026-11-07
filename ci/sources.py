@@ -23,9 +23,10 @@ What a release's sources hold:
   releases of programs included as their makers release them)
 - python/, npm/: the copyleft Python and npm packages in its bundle, from
   PyPI and npm (checked against their published digests)
-- debian/, alpine/: the copyleft distribution packages its static build
-  may have linked in or bundles (ci/survey.sh), from Debian's archives and
-  Alpine's aports (checked against their own checksums)
+- debian/, ubuntu/, alpine/: the copyleft distribution packages its static
+  build may have linked in or bundles (ci/survey.sh), from Debian's archives,
+  Ubuntu's (Launchpad) and Alpine's aports (checked against their own
+  checksums)
 - what its static build kept itself (e.g. PHP's libraries' sources)
 - build-files.tar.gz: this repository's files that built it
 
@@ -606,6 +607,66 @@ def distro_packages(survey):
     return sorted(key + value for key, value in found.items())
 
 
+def dsc_files(base, source, bare):
+    """
+    A source package's files, from its .dsc in a folder that has them all.
+
+    :param str base:   The folder's address
+    :param str source: The source package
+    :param str bare:   Its version, without any epoch
+
+    :return: (name, URL, algorithm, digest) for each file, or None if the
+             .dsc isn't there
+    """
+    try:
+        request = urllib.request.Request(
+            f"{base}/{source}_{bare}.dsc",
+            headers={"User-Agent": USER_AGENT},
+        )
+
+        with urllib.request.urlopen(request, timeout=60) as response:
+            dsc = response.read().decode("utf-8", "replace")
+    except OSError:
+        return None
+
+    sums = re.search(r"^Checksums-Sha256:\n((?: .+\n)+)", dsc, re.MULTILINE)
+    files = [(f"{source}_{bare}.dsc", f"{base}/{source}_{bare}.dsc", None,
+              None)]
+
+    for digest, _, name in re.findall(
+        r"^ (\w{64}) (\d+) (\S+)$", sums.group(1), re.MULTILINE
+    ):
+        files.append((name, f"{base}/{name}", "sha256", digest))
+
+    return files
+
+
+def ubuntu_files(source, version):
+    """
+    Where an Ubuntu source package's files are: Launchpad, which keeps every
+    version published (Ubuntu's pools drop superseded ones).
+
+    :param str source:  The source package
+    :param str version: Its version (with any epoch: Launchpad's addresses
+                        keep it)
+
+    :return: (name, URL, algorithm, digest) for each file
+
+    :raises OSError: When it can't be found
+    """
+    files = dsc_files(
+        "https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/"
+        f"{source}/{urllib.parse.quote(version, safe=':~+')}",
+        source,
+        version.split(":", 1)[-1],
+    )
+
+    if not files:
+        raise OSError(f"Ubuntu's source of {source} {version} wasn't found")
+
+    return files
+
+
 def debian_files(source, version):
     """
     Where a Debian source package's files are: its .dsc in Debian's pools
@@ -622,31 +683,10 @@ def debian_files(source, version):
     prefix = source[:4] if source.startswith("lib") else source[0]
 
     for pool in DEBIAN_POOLS:
-        base = f"{pool}/{prefix}/{source}"
+        files = dsc_files(f"{pool}/{prefix}/{source}", source, bare)
 
-        try:
-            request = urllib.request.Request(
-                f"{base}/{source}_{bare}.dsc",
-                headers={"User-Agent": USER_AGENT},
-            )
-
-            with urllib.request.urlopen(request, timeout=60) as response:
-                dsc = response.read().decode("utf-8", "replace")
-        except OSError:
-            continue
-
-        sums = re.search(
-            r"^Checksums-Sha256:\n((?: .+\n)+)", dsc, re.MULTILINE
-        )
-        files = [(f"{source}_{bare}.dsc", f"{base}/{source}_{bare}.dsc",
-                  None, None)]
-
-        for digest, _, name in re.findall(
-            r"^ (\w{64}) (\d+) (\S+)$", sums.group(1), re.MULTILINE
-        ):
-            files.append((name, f"{base}/{name}", "sha256", digest))
-
-        return files
+        if files:
+            return files
 
     snapshot = "https://snapshot.debian.org"
     info = json_url(
@@ -847,8 +887,8 @@ def alpine_files(origin, version, commit, folder):
 def fetch_distro(survey, folder):
     """
     Downloads the sources of the distribution packages a static build's
-    survey recorded, that need them, into <folder>/debian/ and
-    <folder>/alpine/.
+    survey recorded, that need them, into <folder>/debian/,
+    <folder>/ubuntu/ and <folder>/alpine/.
 
     :param pathlib.Path survey: The survey (distro.tsv)
     :param pathlib.Path folder: Where to put them
@@ -872,10 +912,16 @@ def fetch_distro(survey, folder):
             ))
             continue
 
-        target = folder / "debian" / f"{source}-{version.replace(':', '_')}"
+        # Ubuntu's (e.g. MongoDB's build on Ubuntu 20.04) or Debian's
+        ubuntu = os_id == "ubuntu"
+        target = (
+            folder / ("ubuntu" if ubuntu else "debian")
+            / f"{source}-{version.replace(':', '_')}"
+        )
         target.mkdir(parents=True, exist_ok=True)
+        where = ubuntu_files if ubuntu else debian_files
 
-        for name, url, algorithm, digest in debian_files(source, version):
+        for name, url, algorithm, digest in where(source, version):
             path = target / name
             download(url, path)
 
@@ -886,7 +932,9 @@ def fetch_distro(survey, folder):
 
         rows.append((
             f"{source} {version}", "see its debian/copyright",
-            f"debian/{target.name}/", "Debian's archive", "-",
+            f"{target.parent.name}/{target.name}/",
+            "Ubuntu's archive (Launchpad)" if ubuntu else "Debian's archive",
+            "-",
         ))
 
     return rows

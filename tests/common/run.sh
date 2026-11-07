@@ -5,9 +5,9 @@
 #     tests/common/run.sh <app> [--php 7.4|8.5|both]
 #
 # Extra options for its container, if it needs them (e.g. --privileged, to change the kernel settings the app changes on
-# the NAS): tests/<app>/docker-options, one line. The other apps a suite installs (apps that work together): their names
-# in tests/<app>/with (built too; mounted at /pkg/<name>.tar.gz). A stand-in of its own (e.g. WD's MariaDB, for the
-# MariaDB app): tests/<app>/image.Dockerfile, used in place of the PHP images.
+# the NAS): tests/<app>/docker-options, one line ({project}: the repository's folder). The other apps a suite installs
+# (apps that work together): their names in tests/<app>/with (built too; mounted at /pkg/<name>.tar.gz). A stand-in of
+# its own (e.g. WD's MariaDB, for the MariaDB app): tests/<app>/image.Dockerfile, used in place of the PHP images.
 #
 # Default: PHP 7.4 (WD's - the page runs on whichever PHP the NAS has; the app itself always sees the NAS's glibc).
 # Needs Docker and the app built for the PR4100 (MODEL_OVERRIDE=MyCloudPR4100 ./build.sh <app>). Logs go in
@@ -63,6 +63,7 @@ done
 
 OPTIONS=''
 [ -f "${PROJ}/tests/${APP}/docker-options" ] && OPTIONS="$(head -n 1 "${PROJ}/tests/${APP}/docker-options")"
+OPTIONS="${OPTIONS//\{project\}/${PROJ}}"
 
 failed=0
 

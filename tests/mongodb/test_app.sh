@@ -33,6 +33,10 @@ R=$(sh_anon 'print(JSON.stringify(db.adminCommand({ listDatabases: 1 })))')
 echo "$R" | grep -qi 'requires authentication\|Unauthorized' && pass 'nothing without a login' || fail "no login: $R"
 R=$(sh_as admin "$PW" admin 'print(db.adminCommand({ listDatabases: 1 }).ok)')
 [ "$R" = 1 ] && pass "its administrator (admin) logs in with the app's password" || fail "admin: $R"
+# (the suite's seccomp profile hides rseq, as the NAS's kernel lacks it: MongoDB refuses to start on newer kernels when its
+# allocator uses rseq - tests/common/seccomp-no-rseq.json)
+R=$(sh_as admin "$PW" admin 'print(db.serverStatus({ tcmalloc: 1 }).tcmalloc.usingPerCPUCaches)')
+[ "$R" = false ] && pass "its allocator without per-CPU caches, as on the NAS (no rseq)" || fail "per-CPU caches: $R"
 R=$(sh_as admin wrong-password-1 admin 'print("x")')
 echo "$R" | grep -qi 'Authentication failed' && pass 'a wrong password refused' || fail "wrong password: $R"
 R=$(sh_as admin "$PW" admin "const t = db.getSiblingDB('family').recipes; t.insertMany([{ name: 'Soup', mins: 30 }, { name: 'Cake', mins: 75 }, { name: 'Tea', mins: 5 }]);
