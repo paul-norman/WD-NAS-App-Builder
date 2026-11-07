@@ -654,7 +654,9 @@ function sites_write(string $file, string $contents): bool
 
 /**
  * One app's site: a proxy to its target, with its options - a password, streaming (no buffering) and uploads (no size
- * limit), with longer timeouts for either - under its path, or everything with / going to its start page.
+ * limit), with longer timeouts for either - under its path, or everything with / going to its start page. The NAS's
+ * dashboard's site also gets the script that opens an app's page from the start page's Configure links (see
+ * dashboard.js): added to its pages, and served by Nginx itself.
  *
  * @param array<string, mixed> $app         The app
  * @param string               $server_name Its name: <name>.<domain>, or the domain for the home app
@@ -663,6 +665,8 @@ function sites_write(string $file, string $contents): bool
  */
 function sites_app_conf(array $app, string $server_name): string
 {
+    $dashboard = ($app['app'] ?? '') === 'gui';
+
     $host = $app['host'] !== '' ? $app['host'] : '$host';
 
     // An app that asks for a password through Nginx: see sites_declaration
@@ -670,6 +674,13 @@ function sites_app_conf(array $app, string $server_name): string
        ."        include          server.d/proxy.conf;\n"
        ."        proxy_set_header Host {$host};\n"
        ."        proxy_pass       {$app['target']};\n";
+
+    // The dashboard's pages, uncompressed (for Nginx to add the script before </head>)
+    if ($dashboard) {
+        $proxy .= "        proxy_set_header Accept-Encoding \"\";\n"
+           ."        sub_filter       '</head>' '<script src=\"/nginx-app-dashboard.js\"></script></head>';\n"
+           ."        sub_filter_once  on;\n";
+    }
 
     // Its options (see sites_declared) - both can be on, so each directive is written once
     if (!empty($app['stream'])) {
@@ -689,7 +700,8 @@ function sites_app_conf(array $app, string $server_name): string
     // Under a path, only it is passed on (e.g. phpMyAdmin's, on the NAS's own web server); a start page is only where /
     // goes, with every path passed on (e.g. Pi-hole's /admin/, whose pages call its /api)
     $start     = $app['path'] !== '' ? $app['path'] : $app['start'];
-    $locations = ($start !== '' && $start !== '/' ? "    location = / {\n        return 302 {$start};\n    }\n\n" : '')
+    $locations = ($dashboard ? "    location = /nginx-app-dashboard.js {\n        alias ".__DIR__."/dashboard.js;\n    }\n\n" : '')
+       .($start !== '' && $start !== '/' ? "    location = / {\n        return 302 {$start};\n    }\n\n" : '')
        .'    location '.($app['path'] !== '' ? $app['path'] : '/')." {\n{$proxy}    }\n";
 
     return SITES_MARKER."\n# {$app['label']}\n\nserver {\n"
@@ -752,61 +764,448 @@ function sites_start_conf(string $domain, string $data_path, bool $at_domain): s
 }
 
 /**
- * The start page, listing every app and site that's switched on.
+ * An installed app's own page in the NAS dashboard (its Configure page): its index page, when its apkg.rc shows one
+ * there (CenterType 1). Recipes, the dashboard itself and apps packaged without one have none.
  *
- * @param array<string, mixed> $settings The settings (see sites_load())
+ * @param string $apps_path Nas_Prog
+ * @param mixed  $id        The app's id (its folder in Nas_Prog)
  *
- * @return string The page's HTML
+ * @return string Its index page (e.g. index.php), or ''
  */
-function sites_start_html(array $settings): string
+function sites_configure_page(string $apps_path, $id): string
 {
-    $h = function ($text) {
-        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-    };
-    $links = '';
+    if (!is_string($id) || !preg_match('/^[A-Za-z0-9._-]+$/', $id) || $id === 'gui' || $id[0] === '.') {
+        return '';
+    }
 
-    foreach (sites_sorted(array_merge($settings['apps'], $settings['sites'])) as $app) {
-        if ($app['enabled'] && $settings['domain'] !== '') {
-            $url = 'https://'.sites_host($settings, $app).'/';
-            $links .= "\t\t<li><a href=\"".$h($url).'"><strong>'.$h($app['label'] !== '' ? $app['label'] : $app['name']).'</strong><span>'.$h($url)."</span></a></li>\n";
+    $rc = (string)@file_get_contents($apps_path.'/'.$id.'/apkg.rc');
+
+    if (!preg_match('/^CenterType:[ \t]*1[ \t]*$/m', $rc) || !preg_match('/^AddonIndexPage:[ \t]*([A-Za-z0-9._-]+)[ \t]*$/m', $rc, $m)) {
+        return '';
+    }
+
+    return $m[1];
+}
+
+/**
+ * The recipe a site belongs to, for one installed by the Store: its folder in Nas_Prog (a recipe's sites' ids are
+ * <folder> or <folder>:<site>), with its install record (.store/installed.json: its id in the Store) and its name.
+ *
+ * @param string $apps_path Nas_Prog
+ * @param mixed  $id        The site's app id
+ *
+ * @return array{folder: string, id: string, name: string}|null The recipe, or null for an app's site
+ */
+function sites_recipe(string $apps_path, $id): ?array
+{
+    $folder = is_string($id) ? explode(':', $id)[0] : '';
+
+    if (!preg_match('/^[A-Za-z0-9_-][A-Za-z0-9._-]*$/', $folder) || !is_dir($apps_path.'/'.$folder.'/.store')) {
+        return null;
+    }
+
+    $installed = json_decode((string)@file_get_contents($apps_path.'/'.$folder.'/.store/installed.json'), true);
+    $recipe    = json_decode((string)@file_get_contents($apps_path.'/'.$folder.'/.store/recipe/recipe.json'), true);
+    $store_id  = is_array($installed) && isset($installed['id']) && is_string($installed['id']) ? $installed['id'] : '';
+
+    return [
+        'folder' => $folder,
+        'id'     => preg_match('/^[A-Za-z0-9_-][A-Za-z0-9._-]*$/', $store_id) ? $store_id : '',
+        'name'   => is_array($recipe) && isset($recipe['name']) && is_string($recipe['name']) && $recipe['name'] !== '' ? $recipe['name'] : $folder,
+    ];
+}
+
+/**
+ * An app's Configure link on the start page: its own page in the NAS dashboard (see sites_configure_page()) - the
+ * dashboard's address with #configure=<id>/<page>, which the script added to the dashboard's pages opens (see
+ * dashboard.js). A recipe's link (#recipe=<id>, its page in the Store) is its section's, on the start page.
+ *
+ * @param string $apps_path Nas_Prog
+ * @param mixed  $id        The app's id (its folder in Nas_Prog)
+ * @param string $dashboard The dashboard's address (its site's), or '' while it has none
+ *
+ * @return string The link, or '' for none
+ */
+function sites_configure_link(string $apps_path, $id, string $dashboard): string
+{
+    $page = $dashboard !== '' && is_string($id) ? sites_configure_page($apps_path, $id) : '';
+
+    return $page !== '' ? $dashboard.'#configure='.rawurlencode((string)$id).'/'.rawurlencode($page) : '';
+}
+
+/**
+ * Copies the apps' icons (from their packages: apkg.rc's Icon, in their web folder) next to the start page, as
+ * icons/<id>.<type>, removing those of apps no longer listed. Only SVG, PNG, JPEG, GIF and WebP icons up to 256KB.
+ *
+ * @param string                     $data_path The Nginx app's data folder
+ * @param list<array<string, mixed>> $apps      The apps listed
+ *
+ * @return array<string, string> Id => its icon's file, in icons/
+ */
+function sites_start_icons(string $data_path, array $apps): array
+{
+    $apps_path = dirname($data_path);
+    $dir       = $data_path.'/www/start/icons';
+    $icons     = [];
+
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
+        return [];
+    }
+
+    foreach ($apps as $app) {
+        $id = isset($app['app']) && is_string($app['app']) ? $app['app'] : '';
+
+        if (!preg_match('/^[A-Za-z0-9_-][A-Za-z0-9._-]*$/', $id)) {
+            continue;
+        }
+
+        $rc = (string)@file_get_contents($apps_path.'/'.$id.'/apkg.rc');
+
+        if (!preg_match('/^Icon:[ \t]*([A-Za-z0-9._-]+\.(svg|png|jpe?g|gif|webp))[ \t]*$/mi', $rc, $m)) {
+            continue;
+        }
+
+        $source = $apps_path.'/'.$id.'/web/'.$m[1];
+        $file   = $id.'.'.strtolower($m[2]);
+
+        if (is_file($source) && filesize($source) <= 262144 && @copy($source, $dir.'/'.$file)) {
+            @chmod($dir.'/'.$file, 0644);
+            $icons[$id] = $file;
         }
     }
 
-    if ($links === '') {
-        $links = "\t\t<li class=\"none\">No apps or sites yet: add them on the Nginx app's page in the NAS dashboard.</li>\n";
+    foreach (glob($dir.'/*') ?: [] as $file) {
+        if (!in_array(basename($file), $icons, true)) {
+            @unlink($file);
+        }
     }
 
-    return <<<HTML
-<!doctype html>
-<html lang="en">
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Apps</title>
-	<style>
-		:root { --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #69707d; --accent: #2f6fdb; }
-		@media (prefers-color-scheme: dark) { :root { --bg: #15181e; --card: #1f242c; --text: #e6e8eb; --muted: #9aa1ac; --accent: #6ea0ff; } }
-		body { margin: 0; padding: 2rem 1rem; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
-		main { max-width: 52rem; margin: 0 auto; }
-		h1 { font-size: 1.4rem; margin: 0 0 1rem; }
-		ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
-		@media (max-width: 34rem) { ul { grid-template-columns: minmax(0, 1fr); } }
-		a { display: block; height: 100%; box-sizing: border-box; padding: 0.8rem 1rem; background: var(--card); border-radius: 8px; color: inherit; text-decoration: none; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
-		a:hover strong { color: var(--accent); }
-		span { display: block; color: var(--muted); font-size: 0.85rem; word-break: break-all; }
-		.none { grid-column: 1 / -1; color: var(--muted); }
-	</style>
-</head>
-<body>
-	<main>
-		<h1>Apps</h1>
-		<ul>
-{$links}		</ul>
-	</main>
-</body>
-</html>
+    return $icons;
+}
 
-HTML;
+/**
+ * The start page, listing every app and site that's switched on: each app with its icon, its address (Open) and, for
+ * an app with its own page in the NAS dashboard or a recipe, a Configure link (see sites_configure_link()). The NAS's
+ * dashboard is a link in its header. Configure links need the dashboard's own site to be on.
+ *
+ * @param array<string, mixed> $settings  The settings (see sites_load())
+ * @param string               $data_path The Nginx app's data folder
+ *
+ * @return string The page's HTML
+ */
+function sites_start_html(array $settings, string $data_path): string
+{
+    $h = function ($text): string {
+        return htmlspecialchars((string)$text, ENT_QUOTES, 'UTF-8');
+    };
+
+    $apps      = [];
+    $dashboard = '';
+
+    if ($settings['domain'] !== '') {
+        foreach ($settings['apps'] as $app) {
+            if ($app['enabled'] && sites_check_app($app) === '') {
+                // The dashboard: the header's link, not a card
+                if (($app['app'] ?? '') === 'gui') {
+                    $dashboard = 'https://'.sites_host($settings, $app).'/';
+                } else {
+                    $apps[] = $app;
+                }
+            }
+        }
+    }
+
+    $icons = sites_start_icons($data_path, $apps);
+
+    // One card: its icon (or its initial), its name and address (Open), and its Configure link
+    $card = function (array $app, string $url, string $configure) use ($h, $icons): string {
+        $label   = $app['label'] !== '' ? $app['label'] : $app['name'];
+        $id      = isset($app['app']) && is_string($app['app']) ? $app['app'] : '';
+        $initial = preg_match('/^./u', (string)$label, $m) ? strtoupper($m[0]) : '?';
+        $icon    = isset($icons[$id]) ? '<img src="icons/'.$h(rawurlencode($icons[$id])).'" alt="">' : $h($initial);
+        $address = preg_replace('#^https://|/$#', '', $url);
+        $html    = "            <li class=\"card\">\n"
+            .'                <a class="open" href="'.$h($url).'"><span class="icon">'.$icon.'</span>'
+            .'<span class="text"><strong>'.$h($label).'</strong><span class="address">'.$h($address)."</span></span></a>\n";
+
+        if ($configure !== '') {
+            $html .= '                <a class="configure" href="'.$h($configure).'" title="Its settings, in the NAS dashboard">Configure</a>'."\n";
+        }
+
+        return $html."            </li>\n";
+    };
+
+    // Apps, and each recipe's sites together under its name (with its Configure link: its page in the Store)
+    $app_cards = '';
+    $recipes   = [];
+
+    foreach (sites_sorted($apps) as $app) {
+        $url    = 'https://'.sites_host($settings, $app).($app['path'] !== '' ? $app['path'] : '/');
+        $recipe = sites_recipe(dirname($data_path), $app['app'] ?? '');
+
+        if ($recipe === null) {
+            $app_cards .= $card($app, $url, sites_configure_link(dirname($data_path), $app['app'] ?? '', $dashboard));
+        } else {
+            // Its main site is labelled with the recipe's name, which is now its section's: its own name instead
+            if ($app['label'] === $recipe['name']) {
+                $app['label'] = ucfirst((string)$app['name']);
+            }
+
+            $recipes[$recipe['folder']]['recipe'] = $recipe;
+            $recipes[$recipe['folder']]['cards']  = ($recipes[$recipe['folder']]['cards'] ?? '').$card($app, $url, '');
+        }
+    }
+
+    $recipe_sections = '';
+
+    uasort($recipes, function (array $a, array $b): int {
+        return strnatcasecmp($a['recipe']['name'], $b['recipe']['name']);
+    });
+
+    foreach ($recipes as $group) {
+        $link = $dashboard !== '' && $group['recipe']['id'] !== ''
+            ? ' <a class="configure" href="'.$h($dashboard.'#recipe='.$group['recipe']['id']).'" title="Its settings, in the Store">Configure</a>'
+            : '';
+        $recipe_sections .= '        <h2>'.$h($group['recipe']['name'])."{$link}</h2>\n        <ul class=\"cards\">\n{$group['cards']}        </ul>\n";
+    }
+
+    $site_cards = '';
+
+    foreach (sites_sorted($settings['sites']) as $site) {
+        if ($site['enabled'] && $settings['domain'] !== '') {
+            $site_cards .= $card($site, 'https://'.sites_host($settings, $site).'/', '');
+        }
+    }
+
+    if ($app_cards === '' && $recipe_sections === '' && $site_cards === '') {
+        $body = $settings['domain'] === ''
+            ? "        <p class=\"none\">Set a domain on the Nginx app's page in the NAS dashboard: the apps are reached as <em>name.domain</em>.</p>\n"
+            : "        <p class=\"none\">No apps or sites switched on yet: choose them on the Nginx app's page in the NAS dashboard.</p>\n";
+    } else {
+        $body = ($app_cards !== '' ? "        <h2>Apps</h2>\n        <ul class=\"cards\">\n{$app_cards}        </ul>\n" : '')
+            .$recipe_sections
+            .($site_cards !== '' ? "        <h2>Sites</h2>\n        <ul class=\"cards\">\n{$site_cards}        </ul>\n" : '');
+    }
+
+    $domain = $settings['domain'] !== '' ? '<p class="domain">'.$h($settings['domain']).'</p>' : '';
+    $nas    = $dashboard !== '' ? '<a class="dashboard" href="'.$h($dashboard).'">NAS dashboard <span aria-hidden="true">&rarr;</span></a>' : '';
+
+    return <<<HTML
+    <!doctype html>
+    <html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="color-scheme" content="light dark">
+        <title>Apps</title>
+        <style>
+            :root {
+                --bg:     #f3f5f8;
+                --card:   #ffffff;
+                --border: #dfe3ea;
+                --text:   #1d2330;
+                --muted:  #646c79;
+                --accent: #0a7cd8;
+                --tile:   #e7eef8;
+                --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+            }
+
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg:     #121519;
+                    --card:   #1c2027;
+                    --border: #2b313b;
+                    --text:   #e6e8eb;
+                    --muted:  #9aa1ac;
+                    --accent: #5aa9ff;
+                    --tile:   #262c35;
+                    --shadow: none;
+                }
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin:     0;
+                padding:    2.5rem 1rem 3rem;
+                background: var(--bg);
+                color:      var(--text);
+                font:       16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            }
+
+            main {
+                max-width: 64rem;
+                margin:    0 auto;
+            }
+
+            header {
+                display:       flex;
+                align-items:   baseline;
+                flex-wrap:     wrap;
+                gap:           0.25rem 0.75rem;
+                margin-bottom: 1.5rem;
+            }
+
+            h1 {
+                margin:    0;
+                font-size: 1.75rem;
+            }
+
+            .domain {
+                margin: 0;
+                color:  var(--muted);
+            }
+
+            .dashboard {
+                margin-left:     auto;
+                padding:         0.4rem 0.85rem;
+                border:          1px solid var(--border);
+                border-radius:   8px;
+                background:      var(--card);
+                color:           var(--accent);
+                font-size:       0.9rem;
+                text-decoration: none;
+                white-space:     nowrap;
+            }
+
+            .dashboard:hover,
+            .dashboard:focus-visible {
+                border-color: var(--accent);
+            }
+
+            h2 {
+                display:        flex;
+                align-items:    center;
+                gap:            0.75rem;
+                margin:         2rem 0 0.75rem;
+                color:          var(--muted);
+                font-size:      0.8rem;
+                font-weight:    600;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+            }
+
+            .cards {
+                display:               grid;
+                grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+                gap:                   0.75rem;
+                margin:                0;
+                padding:               0;
+                list-style:            none;
+            }
+
+            .card {
+                display:       flex;
+                align-items:   center;
+                background:    var(--card);
+                border:        1px solid var(--border);
+                border-radius: 12px;
+                box-shadow:    var(--shadow);
+                transition:    border-color 0.15s;
+            }
+
+            .card:hover,
+            .card:focus-within {
+                border-color: var(--accent);
+            }
+
+            .open {
+                display:         flex;
+                flex:            1;
+                align-items:     center;
+                gap:             0.85rem;
+                min-width:       0;
+                padding:         0.85rem 1rem;
+                color:           inherit;
+                text-decoration: none;
+            }
+
+            .icon {
+                display:         flex;
+                flex:            none;
+                align-items:     center;
+                justify-content: center;
+                width:           2.75rem;
+                height:          2.75rem;
+                border-radius:   10px;
+                background:      var(--tile);
+                color:           var(--accent);
+                font-weight:     700;
+                font-size:       1.2rem;
+                overflow:        hidden;
+            }
+
+            .icon img {
+                width:      2.25rem;
+                height:     2.25rem;
+                object-fit: contain;
+            }
+
+            .text {
+                min-width: 0;
+            }
+
+            strong {
+                display:       block;
+                overflow:      hidden;
+                text-overflow: ellipsis;
+                white-space:   nowrap;
+            }
+
+            .open:hover strong {
+                color: var(--accent);
+            }
+
+            .address {
+                display:       block;
+                overflow:      hidden;
+                color:         var(--muted);
+                font-size:     0.85rem;
+                text-overflow: ellipsis;
+                white-space:   nowrap;
+            }
+
+            .configure {
+                flex:            none;
+                margin-right:    0.85rem;
+                padding:         0.3rem 0.7rem;
+                border:          1px solid var(--border);
+                border-radius:   8px;
+                color:           var(--muted);
+                font-size:       0.85rem;
+                text-decoration: none;
+            }
+
+            h2 .configure {
+                margin:         0;
+                padding:        0.15rem 0.55rem;
+                font-size:      0.75rem;
+                font-weight:    400;
+                letter-spacing: normal;
+                text-transform: none;
+            }
+
+            .configure:hover,
+            .configure:focus-visible {
+                border-color: var(--accent);
+                color:        var(--accent);
+            }
+
+            .none {
+                color: var(--muted);
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <header><h1>Apps</h1>{$domain}{$nas}</header>
+    {$body}    </main>
+    </body>
+    </html>
+
+    HTML;
 }
 
 /**
@@ -893,7 +1292,7 @@ function sites_generate(string $data_path): string
         }
     }
 
-    return sites_write($data_path.'/www/start/index.html', sites_start_html($settings)) ? '' : 'Could not write the start page';
+    return sites_write($data_path.'/www/start/index.html', sites_start_html($settings, $data_path)) ? '' : 'Could not write the start page';
 }
 
 /**

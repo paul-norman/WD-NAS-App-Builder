@@ -2276,9 +2276,11 @@ header('Cache-Control: no-store');
         showTab(back ? back.tab : (recall('tab') || 'installed'));
 
         loadCatalogue().then(function () {
+            // After an app's Configure page, or asked for by the Nginx app's start page (a recipe's Configure link)
             if (back && state.catalogue) {
+                let kind = back.kind === 'recipes' ? 'recipes' : 'apps';
                 let item = installedItems().filter(function (installedItem) {
-                    return installedItem.id === back.id && installedItem.kind === 'apps';
+                    return installedItem.id === back.id && installedItem.kind === kind;
                 })[0];
 
                 if (item) {

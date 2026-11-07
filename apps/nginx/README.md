@@ -42,7 +42,7 @@ If the domain has a wildcard CNAME *(e.g. `*.example.com → example.com`)*, leg
 - **Sites** - your own websites, each a folder on the NAS *(e.g. `/mnt/HD/HD_a2/Web/blog`)* reached at `https://<app_name>.<domain>`, with or without PHP *(see below)*.
 - **Quick links** - every app and site, once the certificate is trusted.
 - **Local DNS** - the records to add *(e.g. to Pi-hole or a router)* so that devices find the NAS under those names.
-- **Start page** - `https://apps.<domain>` lists every app and site *(`apps` is kept for it - apps and sites can't use that name)*. It also answers for any name without a site of its own.
+- **Start page** - `https://apps.<domain>` lists every app and site that's switched on *(`apps` is kept for it - apps and sites can't use that name)*, each with its icon and its address, and the NAS's dashboard as a link at the top. A recipe's sites are together under its name *(e.g. the Arr stack's)*. Apps with their own page in the NAS dashboard get a **Configure** link, as does each recipe *(its page in the Store)*: it opens the dashboard *(its own site, which must be on - its login first, if it asks)*, then that page. That works because the Nginx app adds a small script to the dashboard's pages, on the dashboard's site only *(`lib/dashboard.js`)*: the NAS only shows apps' pages inside the dashboard. The start page also answers for any name without a site of its own.
 
 ## How apps bring their own site
 

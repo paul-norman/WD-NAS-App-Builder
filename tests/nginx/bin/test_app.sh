@@ -12,6 +12,9 @@ export PATH=/tmp/bb:$PATH
 mkdir -p $P/_install/nginx /mnt/HD/HD_a2/Public /var/spool/cron/crontabs /var/www/apps && touch /var/spool/cron/crontabs/root
 # Apps for it to find (their folders), and the PHP app's php-fpm (its binaries only: WD's own PHP isn't swapped here)
 mkdir -p $P/navidrome $P/calibre-web $P/php/binaries
+# Navidrome with its own page in the dashboard (CenterType 1) and an icon: a Configure link and its icon on the start page
+mkdir -p $P/navidrome/web && printf 'Package:\t\tnavidrome\nIcon:\t\t\tnavidrome.svg\nAddonIndexPage:\tindex.php\nCenterType:\t\t1\n' > $P/navidrome/apkg.rc
+printf '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1"/></svg>' > $P/navidrome/web/navidrome.svg
 tar -xzf /pkg/php.tar.gz -C /tmp ./binaries/php-fpm && mv /tmp/binaries/php-fpm $P/php/binaries/
 # Stand-ins for the apps: each answers with its name, then what it received (method, path, headers, body size)
 cat > /tmp/backend.py <<'EOF'
@@ -19,6 +22,12 @@ import http.server, json, sys
 name, port = sys.argv[1], int(sys.argv[2])
 class Handler(http.server.BaseHTTPRequestHandler):
     def answer(self):
+        # The dashboard's pages are HTML (the Nginx app adds its script to them)
+        if name == "dashboard" and self.path.endswith(".html"):
+            body = b"<!doctype html><html><head><title>NAS</title></head><body>dashboard</body></html>"
+            self.send_response(200); self.send_header("Content-Type", "text/html"); self.send_header("Content-Length", str(len(body)))
+            self.end_headers(); self.wfile.write(body)
+            return
         size = int(self.headers.get("Content-Length") or 0)
         received = 0
         while received < size:
@@ -73,6 +82,17 @@ M=$(site navidrome.$DOMAIN)
 [ "$(site $DOMAIN | j '$d["app"]')" = '"dashboard"' ] && pass "$DOMAIN itself shows the home app (the NAS's dashboard)" || fail "home: $(site $DOMAIN | head -c 200)"
 site apps.$DOMAIN | grep -q "navidrome.$DOMAIN" && site unknown.$DOMAIN | grep -q "navidrome.$DOMAIN" \
     && pass "the start page (apps.$DOMAIN) lists the apps; any other name gets it too, never an app" || fail "start page: $(site apps.$DOMAIN | head -c 300)"
+S=$(site apps.$DOMAIN)
+echo "$S" | grep -q "href=\"https://$DOMAIN/#configure=navidrome/index.php\"" && echo "$S" | grep -q 'src="icons/navidrome.svg"' \
+    && [ "$(site_path apps.$DOMAIN /icons/navidrome.svg -o /dev/null -w '%{http_code}')" = 200 ] && ! echo "$S" | grep -q 'configure=calibre-web' \
+    && echo "$S" | grep -q "class=\"dashboard\" href=\"https://$DOMAIN/\"" && ! echo "$S" | grep -q '<strong>NAS dashboard</strong>' \
+    && pass "the start page: Navidrome's icon, and its Configure link (the dashboard's address, #configure=navidrome/index.php) - none for an app without a page of its own; the dashboard in its header, not a card" \
+    || fail "start page links: $(echo "$S" | grep -o 'href="[^"]*"\|src="[^"]*"' | tr '\n' ' ')"
+H=$(site_path $DOMAIN /home.html --compressed); E=$(site $DOMAIN --compressed | j '$d["headers"]["Accept-Encoding"] ?? "none"')
+echo "$H" | grep -q '<script src="/nginx-app-dashboard.js"></script></head>' && [ "$E" = '"none"' ] \
+    && site_path $DOMAIN /nginx-app-dashboard.js | grep -q 'configure=' && ! grep -q sub_filter $D/sites/60-app-navidrome.conf \
+    && pass "the dashboard's pages get the script that opens Configure links (pages asked for uncompressed; only the dashboard's site)" \
+    || fail "dashboard script: $H / Accept-Encoding $E / $(site_path $DOMAIN /nginx-app-dashboard.js | head -c 100)"
 [ "$(curl -sk --http2 -o /dev/null -w '%{http_version}' --resolve navidrome.$DOMAIN:443:127.0.0.1 https://navidrome.$DOMAIN/)" = 2 ] && pass 'HTTP/2' || fail 'no HTTP/2'
 grep -q 'client_max_body_size    0' $D/sites/60-app-books.conf && grep -q 'proxy_buffering         off' $D/sites/60-app-navidrome.conf \
     && [ "$(head -c 64000000 /dev/zero | site books.$DOMAIN -X POST --data-binary @- -H 'Content-Type: application/octet-stream' | j '$d["received"]')" = 64000000 ] \
@@ -110,8 +130,12 @@ php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1 && sh $P/nginx/nginx_ctl
     && [ "$(site rcp-two.$DOMAIN | j '$d["app"]')" = '"hello"' ] && [ ! -f $D/sites/60-app-rcp-opt.conf ] \
     && pass "an app's nginx.json and a recipe's web block each give it its site, with their options (a recipe opens at its path, every path passed on); a recipe's other sites too, an optional one only when switched on" \
     || fail "declared: $(ls $D/sites | tr '\n' ' ') $(site_path rcp.$DOMAIN /api/auth | head -c 200)"
-echo '{"values": {"OPTIONAL": true}}' > $P/_recipe/.store/installed.json; php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1 && sh $P/nginx/nginx_ctl.sh reload > /dev/null 2>&1
+echo '{"id": "my-recipe", "values": {"OPTIONAL": true}}' > $P/_recipe/.store/installed.json; php $P/nginx/lib/sites.php generate $D > /dev/null 2>&1 && sh $P/nginx/nginx_ctl.sh reload > /dev/null 2>&1
 [ "$(site rcp-opt.$DOMAIN | j '$d["app"]')" = '"hello"' ] && pass 'the optional one once its setting is on' || fail "optional recipe site: $(ls $D/sites | tr '\n' ' ')"
+S=$(site apps.$DOMAIN)
+echo "$S" | grep -q "<h2>Recipe <a class=\"configure\" href=\"https://$DOMAIN/#recipe=my-recipe\"" && [ "$(echo "$S" | grep -c '#recipe=')" = 1 ] \
+    && echo "$S" | grep -q '<strong>Rcp</strong>' && echo "$S" | grep -q '<strong>Its second app</strong>' \
+    && pass "the start page: the recipe's sites together under its name, with one Configure link to its page in the Store (#recipe=my-recipe)" || fail "recipe links: $(site apps.$DOMAIN | grep -o 'href="[^"]*recipe[^"]*"')"
 APPS=$(get status | j '$d["apps"]' | php -r '$a=json_decode(stream_get_contents(STDIN),true); foreach ($a as &$x) { if (isset($x["app"]) && $x["app"]==="hello") { $x["name"]="hey"; $x["label"]="Hey"; $x["target"]="http://127.0.0.1:9"; $x["uploads"]=false; } } echo json_encode($a);')
 R=$(post save_apps --data-urlencode "apps=$APPS" -d home=gui)
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(site hey.$DOMAIN | j '$d["app"]')" = '"hello"' ] && grep -q 'client_max_body_size    0' $D/sites/60-app-hey.conf && [ ! -f $D/sites/60-app-hi.conf ] \
