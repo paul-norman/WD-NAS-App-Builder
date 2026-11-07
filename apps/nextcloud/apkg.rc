@@ -1,0 +1,23 @@
+Package:			nextcloud
+Version:			35.0.2
+Packager:			PDN
+Email:
+Homepage:			https://nextcloud.com/
+Description:		Nextcloud: your files, calendars and contacts on the NAS, synced with your computers and phones.
+Icon:				nextcloud.svg
+AddonShowName:		Nextcloud
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:			postgresql
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

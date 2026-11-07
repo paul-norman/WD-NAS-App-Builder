@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stands in for a browser opener on rclone's PATH (see rclone_ctl.sh, start): rclone's remote control server opens its
+# web interface in a browser when it starts, and the NAS has none - this does nothing, so it logs no error
+exit 0

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>rclone: copies and syncs the NAS's shares with cloud storage (Google Drive, OneDrive, S3, B2 and more).</en-US>
+	<fr-FR>rclone : copie et synchronise les partages du NAS avec le stockage cloud (Google Drive, OneDrive, S3, B2 et plus).</fr-FR>
+	<es-ES>rclone: copia y sincroniza las carpetas compartidas del NAS con el almacenamiento en la nube (Google Drive, OneDrive, S3, B2 y más).</es-ES>
+	<de-DE>rclone: kopiert und synchronisiert die Freigaben des NAS mit Cloud-Speicher (Google Drive, OneDrive, S3, B2 und mehr).</de-DE>
+</config>

@@ -1,0 +1,23 @@
+Package:			qbittorrent
+Version:			5.3.0
+Packager:			PDN
+Email:
+Homepage:			https://www.qbittorrent.org/
+Description:		qBittorrent: a BitTorrent client with a web interface, downloading into the NAS's shares.
+Icon:				qbittorrent.svg
+AddonShowName:		qBittorrent
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

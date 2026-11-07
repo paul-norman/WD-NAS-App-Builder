@@ -58,6 +58,7 @@ import urllib.request
 REPO = pathlib.Path(__file__).resolve().parents[1]
 CONF = REPO / "ci" / "sources"
 URL = re.compile(r"https?://[^\s\"')]+")
+LOCAL = re.compile(r"https?://(127\.0\.0\.1|localhost)[:/]")
 # The licenses whose source must be offered with the program
 COPYLEFT = re.compile(r"GPL|MPL|EUPL|CDDL|EPL|OSL|SSPL", re.IGNORECASE)
 USER_AGENT = "WD-NAS-App-Builder-CI"
@@ -104,14 +105,16 @@ def downloads(app):
 
     :param str app: The app's id
 
-    :return: The URLs, as written there
+    :return: The URLs, as written there (but those of the build machine
+             itself)
     """
     found = set()
 
     for path in build_files(app):
         found |= set(URL.findall(path.read_text(encoding="utf-8")))
 
-    return found
+    # Not the build's own servers (e.g. one it checks, or saves pages from)
+    return {url for url in found if not LOCAL.match(url)}
 
 
 def read_conf(app):

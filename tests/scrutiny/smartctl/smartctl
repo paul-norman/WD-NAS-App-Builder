@@ -1,0 +1,11 @@
+#!/bin/sh
+# Stands in for smartctl in the suite (no disks in its container): one SATA disk, /dev/sda, a WD Red - Scrutiny's own
+# example of smartctl's JSON (smart-ata.json, from Scrutiny's tests) for both its details and its SMART data, read now
+# (its time is 2021's: InfluxDB would refuse a reading older than Scrutiny keeps)
+DIR="$(dirname "$0")"
+echo "$*" >> /tmp/smartctl-calls
+
+case "$*" in
+    *--scan*) cat "${DIR}/scan.json" ;;
+    *) sed "s/\"time_t\": [0-9]*/\"time_t\": $(date +%s)/" "${DIR}/smart-ata.json" ;;
+esac

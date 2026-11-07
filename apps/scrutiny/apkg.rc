@@ -1,0 +1,23 @@
+Package:			scrutiny
+Version:			0.10.0
+Packager:			PDN
+Email:
+Homepage:			https://github.com/AnalogJ/scrutiny
+Description:		Scrutiny: the health of the NAS's disks (their SMART data), with its history and alerts before they fail.
+Icon:				scrutiny.svg
+AddonShowName:		Scrutiny
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

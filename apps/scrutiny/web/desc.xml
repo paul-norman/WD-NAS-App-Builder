@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Scrutiny: the health of the NAS's disks (their SMART data), with its history and alerts before they fail.</en-US>
+	<fr-FR>Scrutiny : la santé des disques du NAS (leurs données SMART), avec leur historique et des alertes avant qu'ils ne lâchent.</fr-FR>
+	<es-ES>Scrutiny: la salud de los discos del NAS (sus datos SMART), con su historial y alertas antes de que fallen.</es-ES>
+	<de-DE>Scrutiny: der Zustand der Festplatten des NAS (ihre SMART-Daten), mit Verlauf und Warnungen, bevor sie ausfallen.</de-DE>
+</config>

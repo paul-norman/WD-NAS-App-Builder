@@ -21,9 +21,12 @@ parameters:
         - apps/kvweb/lib
         - apps/music-assistant/lib
         - apps/navidrome/lib
+        - apps/nextcloud/lib
         - apps/ntfy/lib
         - apps/openssh/lib
         - apps/pgweb/lib
+        - apps/qbittorrent/lib
+        - apps/rclone/lib
         - apps/uptime-kuma/lib
         - apps/vaultwarden/lib
         - apps/wireguard/lib
@@ -46,6 +49,7 @@ parameters:
         - apps/mariadb/manage/api.php
         - apps/music-assistant/manage/api.php
         - apps/navidrome/manage/api.php
+        - apps/nextcloud/manage/api.php
         - apps/node_exporter/manage/api.php
         - apps/nodejs/manage/api.php
         - apps/ntfy/manage/api.php
@@ -56,6 +60,9 @@ parameters:
         - apps/postgresql/manage/api.php
         - apps/prometheus/manage/api.php
         - apps/python/manage/api.php
+        - apps/qbittorrent/manage/api.php
+        - apps/rclone/manage/api.php
+        - apps/scrutiny/manage/api.php
         - apps/syncthing/manage/api.php
         - apps/tailscale/manage/api.php
         - apps/uptime-kuma/manage/api.php

@@ -1,0 +1,23 @@
+Package:			rclone
+Version:			1.76.0
+Packager:			PDN
+Email:
+Homepage:			https://rclone.org/
+Description:		rclone: copies and syncs the NAS's shares with cloud storage (Google Drive, OneDrive, S3, B2 and more).
+Icon:				rclone.svg
+AddonShowName:		rclone
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
