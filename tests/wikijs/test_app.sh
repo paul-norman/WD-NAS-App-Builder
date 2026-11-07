@@ -68,9 +68,9 @@ grep -q 'proxy_pass *http://127.0.0.1:3010' $P/_nginx/sites/60-app-wikijs.conf 2
 echo '== its page'
 page_up wikijs
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"3.1.0"' ] && [ "$(echo "$ST" | j '$d["db"]["state"]')" = '"ok"' ] \
+[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"3.1.1"' ] && [ "$(echo "$ST" | j '$d["db"]["state"]')" = '"ok"' ] \
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://wikijs.$DOMAIN/\"" ] \
-    && pass "the page: Wiki.js 3.1.0 answering, its database set up, its address https://wikijs.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
+    && pass "the page: Wiki.js 3.1.1 answering, its database set up, its address https://wikijs.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password | j '$d["password"]')" = "\"$PW\"" ] && pass 'the page shows the password' || fail 'password not shown'
 R=$(post set_password -d password=short)
 [ "$(echo "$R" | j '$d["ok"]')" = false ] && pass 'a short password refused' || fail "short password: $R"
