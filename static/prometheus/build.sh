@@ -12,10 +12,10 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=3.15.1
+VERSION=3.16.0
 # Each architecture's release, as its sha256sums.txt publishes it
-PROMETHEUS_SHA256=6a726885328ad9efebbf36e876ce2fb6225468a71fd1e7ce3ba666d5f4d97a84
-PROMETHEUS_ARMHF_SHA256=237e87ca03537496675396e702fe2ac304103fc7d671a2c9ead30d1e639f242f
+PROMETHEUS_SHA256=68727009472a2c02e1ff7f062fd5b3e637285bffc8fc2d340c76fb449d6e0f34
+PROMETHEUS_ARMHF_SHA256=428cc25a679c2ba9d40197d11cfee78a88bfdb0eed71b2cd02307a8518bb4199
 # The architectures built (each into packages/static/prometheus/<version>/<arch>)
 ARCHES='amd64 armhf'
 
