@@ -53,7 +53,8 @@ OUTPUT_PATH=/data/packages/static/calibre-web/${VERSION}/amd64
 LOCK=/data/static/calibre-web/requirements.txt
 
 # Downloads a file and checks it: $1 address, $2 file name, $3 checksum, $4 sha256 (default) or sha512. SHA256 ones go
-# through the shared helper (with the mirror to fall back on); Calibre's (it publishes SHA512s) straight from GitHub
+# through the shared helper (with the mirror to fall back on); Calibre's (it publishes SHA512s) straight from its own
+# download site, which keeps every version (its GitHub releases lose their files once a newer one is out)
 function fetch() {
     cd ${BUILD_PATH}
 
@@ -66,7 +67,7 @@ function fetch() {
 }
 
 function get_calibre() {
-    fetch "https://github.com/kovidgoyal/calibre/releases/download/v${CALIBRE_VERSION}/calibre-${CALIBRE_VERSION}-x86_64.txz" \
+    fetch "https://download.calibre-ebook.com/${CALIBRE_VERSION}/calibre-${CALIBRE_VERSION}-x86_64.txz" \
         calibre.txz ${CALIBRE_SHA512} sha512
     mkdir -p ${APP}/calibre
     tar -xJf calibre.txz -C ${APP}/calibre

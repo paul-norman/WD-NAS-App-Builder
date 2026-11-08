@@ -302,11 +302,12 @@ stop() {
 
 # Reads the disks' SMART data with the collector (as root) and sends it to Scrutiny. Each of the NAS's disks is read as a
 # SATA disk (smartctl's scan lists them as SCSI ones, whose SMART data is less complete), and one that's asleep is left
-# asleep: not read at all this time (-n standby). One run at a time. (SMARTCTL in the environment: another smartctl - the tests' stand-in.)
+# asleep: not read at all this time (-n standby). One run at a time. (For the tests' stand-ins, in the environment:
+# SMARTCTL - another smartctl; SYS_BLOCK - another folder of disks than /sys/block.)
 #
 # Returns the collector's exit code
 collect() {
-    local disk code smartctl="${SMARTCTL:-${BIN}/smartctl}"
+    local disk code smartctl="${SMARTCTL:-${BIN}/smartctl}" sys_block="${SYS_BLOCK:-/sys/block}"
 
     if ! mkdir /var/run/scrutiny-collect 2>/dev/null; then
         log 'the disks are already being read'
@@ -329,7 +330,7 @@ collect() {
         echo "  id: '$(hostname)'"
         echo 'devices:'
 
-        for disk in /sys/block/sd*; do
+        for disk in "${sys_block}"/sd*; do
             [ -e "${disk}/device" ] || continue
             disk="$(basename "${disk}")"
             "${smartctl}" -n standby -i "/dev/${disk}" > /dev/null 2>&1

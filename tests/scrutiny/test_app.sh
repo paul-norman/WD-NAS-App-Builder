@@ -37,13 +37,17 @@ grep -q 'scrutiny-collect' /var/spool/cron/crontabs/root && pass 'its disks read
 echo '== a disk'
 collected
 rm -f /tmp/smartctl-calls
+# The NAS's disks, as the app finds them (/sys/block/sd*, each with its device): a stand-in, as the machine running the
+# tests may have none (e.g. NVMe disks only) or others
+mkdir -p /tmp/fake/block/sda/device
+export SYS_BLOCK=/tmp/fake/block
 SMARTCTL=/tmp/fake/smartctl sh $P/scrutiny/scrutiny_ctl.sh collect > /tmp/collect.log 2>&1
 SUM=$(curl -s $S/api/summary)
 echo "$SUM" | grep -q 'WDC WD140EDFZ-11A0VA0' && [ "$(sed -n 2p $D/last_collect)" = 0 ] && grep -q -- '--xall --json -T permissive -n standby' /tmp/smartctl-calls \
     && pass "a disk's SMART data read by its collector (sleeping disks left asleep: -n standby) and in Scrutiny" \
     || fail "collect: $(cat /tmp/collect.log; tail -n 8 $D/collector.log; cat /tmp/smartctl-calls; echo "$SUM" | head -c 300)"
 grep -q "metrics_smartctl_bin: '/tmp/fake/smartctl'" $D/collector.yaml && grep -A1 -- '- device: /dev/sda$' $D/collector.yaml | grep -q "type: 'sat'" \
-    && grep -c -- '- device: /dev/sd' $D/collector.yaml | grep -qx "$(ls -d /sys/block/sd* | wc -l)" && [ "$(stat -c '%u %a' $D/collector.yaml)" = '0 600' ] \
+    && grep -c -- '- device: /dev/sd' $D/collector.yaml | grep -qx 1 && [ "$(stat -c '%u %a' $D/collector.yaml)" = '0 600' ] \
     && pass "the collector's settings written for each run (each disk read as SATA, those asleep left out)" || fail "collector.yaml: $(cat $D/collector.yaml)"
 SMARTCTL=/tmp/fake/smartctl sh $P/scrutiny/scrutiny_ctl.sh collect > /dev/null 2>&1
 mv /tmp/fake/smartctl /tmp/fake/smartctl.real && printf '#!/bin/sh\ncase "$*" in *"-n standby -i"*) exit 2 ;; esac\nexec /tmp/fake/smartctl.real "$@"\n' > /tmp/fake/smartctl && chmod 755 /tmp/fake/smartctl
@@ -51,6 +55,7 @@ rm -f /tmp/smartctl-calls; SMARTCTL=/tmp/fake/smartctl sh $P/scrutiny/scrutiny_c
 grep -A1 -- '- device: /dev/sda$' $D/collector.yaml | grep -q 'ignore: true' && ! grep -q -- '--xall' /tmp/smartctl-calls \
     && pass 'a disk asleep is left out (not read at all)' || fail "asleep: $(cat $D/collector.yaml; cat /tmp/smartctl-calls)"
 mv -f /tmp/fake/smartctl.real /tmp/fake/smartctl
+unset SYS_BLOCK
 
 echo '== its page'
 page_up scrutiny
