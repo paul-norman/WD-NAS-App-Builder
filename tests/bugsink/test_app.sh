@@ -67,8 +67,8 @@ i=0; until [ "$(issues)" = 1 ] || [ $i -ge 60 ]; do sleep 3; i=$((i + 3)); done
 echo '== its page'
 page_up bugsink
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["worker"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"2.6.2"' ] \
-    && [ "$(echo "$ST" | j '$d["base_url"]')" = "\"https://bugsink.$DOMAIN\"" ] && pass "the page: Bugsink 2.6.2 answering, its worker running, its address" || fail "status: $(echo "$ST" | head -c 400)"
+[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["worker"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"2.6.3"' ] \
+    && [ "$(echo "$ST" | j '$d["base_url"]')" = "\"https://bugsink.$DOMAIN\"" ] && pass "the page: Bugsink 2.6.3 answering, its worker running, its address" || fail "status: $(echo "$ST" | head -c 400)"
 OLD=$(cat $D/password)
 [ "$(post password | j '$d["password"]')" = "\"$OLD\"" ] && pass 'the page shows the password' || fail 'password not shown'
 R=$(post set_password -d password=Brand.New-Password_1)
