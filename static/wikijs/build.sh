@@ -8,8 +8,8 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=3.1.1
-WIKIJS_SHA256=dc9200f078ba959dadb7b59417a902f8c7c6fdc7991119c69d15716db4e8cfcc
+VERSION=3.3.0
+WIKIJS_SHA256=c6f18bcb12ce50b7e12284b79be4e8eed1679de979f99479676cdd08016f8f0f
 NODE_VERSION=26.13.0
 NODE_SHA256=d28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997
 # The newest glibc / libstdc++ symbol versions the NAS has (OS5: glibc 2.31, GLIBCXX 3.4.28)
