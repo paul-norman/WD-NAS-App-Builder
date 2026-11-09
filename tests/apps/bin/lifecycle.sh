@@ -6,8 +6,10 @@ A="$1"; CHECK="$2"
 P=/mnt/HD/HD_a2/Nas_Prog
 pass() { echo "PASS $A: $1"; }
 fail() { echo "FAIL $A: $1"; }
-# WD's NAS: BusyBox's sh and user tools first, the share group, /dev/urandom readable by root only, root's crontab
+# WD's NAS: BusyBox's sh and user tools first, the share group, /dev/urandom readable by root only, root's crontab, WD's
+# settings database (a stand-in xmldbc: its cron jobs)
 mkdir -p /tmp/bb && for tool in sh adduser addgroup ps ip; do ln -sf /t/bb/busybox /tmp/bb/$tool; done
+ln -sf /t/xmldbc /tmp/bb/xmldbc
 export PATH=/tmp/bb:$PATH
 grep -q '^share:' /etc/group || echo 'share:x:1000:' >> /etc/group
 chmod 600 /dev/urandom /dev/random
@@ -39,6 +41,14 @@ if [ -d $P/$A/manage ]; then
 fi
 CRON="$(grep -c "$A" /var/spool/cron/crontabs/root)"
 
+# Its cron jobs are in WD's own list too, so they're still there when the firmware writes root's crontab afresh (every
+# night)
+if [ "${CRON}" -gt 0 ]; then
+    REBUILT="$(xmldbc --crontab | grep -c "# $A-")"
+    [ "${REBUILT}" = "${CRON}" ] && pass "its ${CRON} cron job(s) are in WD's list (kept when WD rewrites the crontab)" \
+        || fail "WD's list has ${REBUILT} of its ${CRON} cron job(s): $(xmldbc --crontab)"
+fi
+
 case "${CHECK}" in
     port:*)
         port="${CHECK#port:}"
@@ -68,7 +78,8 @@ case "${CHECK}" in
 esac
 sh $P/$A/clean.sh $P/$A > /tmp/clean.log 2>&1
 [ ! -e /var/www/apps/$A ] && [ ! -e /var/www/$A ] && ! grep -q "$A" /var/spool/cron/crontabs/root \
-    && pass "cleaned: its pages and its ${CRON} cron job(s) gone" || fail "clean: $(ls -d /var/www/apps/$A /var/www/$A 2>&1); $(grep "$A" /var/spool/cron/crontabs/root)"
+    && ! xmldbc --crontab | grep -q "# $A-" \
+    && pass "cleaned: its pages and its ${CRON} cron job(s) gone" || fail "clean: $(ls -d /var/www/apps/$A /var/www/$A 2>&1); $(grep "$A" /var/spool/cron/crontabs/root); $(xmldbc --crontab)"
 sh $P/$A/remove.sh $P/$A > /tmp/remove.log 2>&1
 
 if [ ! -d $P/$A ]; then

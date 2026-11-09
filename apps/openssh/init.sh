@@ -37,13 +37,5 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 mkdir -p "${APP_PERSISTENT_DATA_PATH}"
 chmod 700 "${APP_PERSISTENT_DATA_PATH}"
 
-# A weekly check for a new OpenSSH release (shown as a NAS alert). OS5 regenerates root's crontab on every boot, so it's
-# added here (init.sh runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-update-check" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "0 6 * * 1 ${APP_PATH}/check_update.sh # ${APP_NAME}-update-check" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the weekly update check to: ${CRONTAB}"
-fi
+# A weekly check for a new OpenSSH release (shown as a NAS alert)
+cron_add '0 6 * * 1' "${APP_PATH}/check_update.sh" "${APP_NAME}-update-check"

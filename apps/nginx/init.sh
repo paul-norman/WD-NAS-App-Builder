@@ -38,14 +38,5 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 log "setting up the configuration in: ${APP_PERSISTENT_DATA_PATH}"
 sh "${APP_PATH}/nginx_ctl.sh" setup >> ${LOG} 2>&1
 
-# Daily certificate renewal (lego only renews when it's due). OS5 regenerates root's crontab on every boot, so it is
-# added here (init.sh runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-CRON_TAG="${APP_NAME}-cert-renew"
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${CRON_TAG}" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "41 3 * * * ${APP_PATH}/cert.sh renew # ${CRON_TAG}" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the daily certificate renewal to: ${CRONTAB}"
-fi
+# Daily certificate renewal (lego only renews when it's due)
+cron_add '41 3 * * *' "${APP_PATH}/cert.sh renew" "${APP_NAME}-cert-renew"

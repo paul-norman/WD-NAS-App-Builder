@@ -36,16 +36,8 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 # Its own user, folders, settings and first password (kept across reinstalls, in Nas_Prog/_tautulli)
 sh "${APP_PATH}/tautulli_ctl.sh" setup >> ${LOG} 2>&1
 
-# Keeping its output log small every day. OS5 regenerates root's crontab on every boot, so it's added here (init.sh
-# runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "15 3 * * * ${APP_PATH}/tautulli_ctl.sh daily # ${APP_NAME}-daily" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the daily log check to: ${CRONTAB}"
-fi
+# Keeping its output log small every day
+cron_add '15 3 * * *' "${APP_PATH}/tautulli_ctl.sh daily" "${APP_NAME}-daily"
 
 # Its site in the Nginx app (https://tautulli.<the Nginx app's domain>, from its nginx.json)
 sh "${APP_PATH}/tautulli_ctl.sh" nginx >> ${LOG} 2>&1

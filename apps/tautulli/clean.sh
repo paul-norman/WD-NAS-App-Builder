@@ -26,9 +26,4 @@ log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
 rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
 
 # Remove the daily log check
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    grep -v "${APP_NAME}-daily" "${CRONTAB}" > "${CRONTAB}.tmp"
-    mv "${CRONTAB}.tmp" "${CRONTAB}"
-fi
+cron_remove "${APP_NAME}-daily"

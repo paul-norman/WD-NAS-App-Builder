@@ -37,18 +37,10 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 sh "${APP_PATH}/scrutiny_ctl.sh" setup >> ${LOG} 2>&1
 
 # Reading the disks' SMART data hourly (sleeping disks are left asleep), keeping its logs small every day, and a weekly
-# check for a new Scrutiny release (shown as a NAS alert). OS5 regenerates root's crontab on every boot, so they're added
-# here (init.sh runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "20 * * * * ${APP_PATH}/scrutiny_ctl.sh collect # ${APP_NAME}-collect" >> "${CRONTAB}.tmp" \
-        && echo "35 4 * * * ${APP_PATH}/scrutiny_ctl.sh daily # ${APP_NAME}-daily" >> "${CRONTAB}.tmp" \
-        && echo "0 6 * * 1 ${APP_PATH}/check_update.sh # ${APP_NAME}-update-check" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the hourly disk check, the daily log check and the weekly update check to: ${CRONTAB}"
-fi
+# check for a new Scrutiny release (shown as a NAS alert)
+cron_add '20 * * * *' "${APP_PATH}/scrutiny_ctl.sh collect" "${APP_NAME}-collect"
+cron_add '35 4 * * *' "${APP_PATH}/scrutiny_ctl.sh daily" "${APP_NAME}-daily"
+cron_add '0 6 * * 1' "${APP_PATH}/check_update.sh" "${APP_NAME}-update-check"
 
 # Its site in the Nginx app (https://scrutiny.<the Nginx app's domain>)
 sh "${APP_PATH}/scrutiny_ctl.sh" nginx >> ${LOG} 2>&1

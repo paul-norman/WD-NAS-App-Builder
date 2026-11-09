@@ -76,14 +76,5 @@ if ! grep -q "${PROFILE_MARK}" /etc/profile 2>/dev/null; then
     echo "alias ll='ls -l' ${PROFILE_MARK}" >> /etc/profile
 fi
 
-# Weekly check for Entware package updates, shown as a NAS alert. OS5 regenerates root's crontab on every boot, so it
-# is added here (init.sh runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-CRON_TAG="${APP_NAME}-update-check"
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${CRON_TAG}" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "0 6 * * 1 ${APP_PATH}/check_update.sh # ${CRON_TAG}" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the weekly update check to: ${CRONTAB}"
-fi
+# Weekly check for Entware package updates, shown as a NAS alert
+cron_add '0 6 * * 1' "${APP_PATH}/check_update.sh" "${APP_NAME}-update-check"

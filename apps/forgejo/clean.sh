@@ -26,12 +26,7 @@ log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
 rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
 
 # Remove the daily job (backups, log) and the update check
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-" "${CRONTAB}"; then
-    grep -v "${APP_NAME}-daily\|${APP_NAME}-update-check" "${CRONTAB}" > "${CRONTAB}.tmp"
-    mv "${CRONTAB}.tmp" "${CRONTAB}"
-fi
+cron_remove "${APP_NAME}-daily" "${APP_NAME}-update-check"
 
 # Remove its git link (if it's still the app's)
 if [ "$(readlink /usr/bin/git)" = "${APP_PATH}/binaries/git/bin/git" ]; then

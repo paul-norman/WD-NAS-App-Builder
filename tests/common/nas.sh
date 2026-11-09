@@ -8,12 +8,14 @@
 # tests/<app>/with) and switches the page helpers between them (page_up <other>).
 #
 # The stand-in: BusyBox's sh, adduser, addgroup, ps and ip first in the PATH (as the NAS's), the share group, WD's ftp
-# user (ID 95), /dev/urandom and /dev/random readable by root only (as WD has them), root's crontab, a Public share
+# user (ID 95), /dev/urandom and /dev/random readable by root only (as WD has them), root's crontab, a Public share,
+# WD's settings database (a stand-in xmldbc: its cron jobs)
 APP="$1"; SUITE="$1"
 P=/mnt/HD/HD_a2/Nas_Prog; D=$P/_$APP; V=/mnt/HD/HD_a2
 pass() { echo "PASS $1"; }
 fail() { echo "FAIL $1"; }
 mkdir -p /tmp/bb && for tool in sh adduser addgroup ps ip; do ln -sf /t/bb/busybox /tmp/bb/$tool; done
+ln -sf /t/common/xmldbc /tmp/bb/xmldbc
 export PATH=/tmp/bb:$PATH
 grep -q '^share:' /etc/group || echo 'share:x:1000:' >> /etc/group
 # WD's own users with low IDs (an app's user must not take one): ftp is 95 on the NAS

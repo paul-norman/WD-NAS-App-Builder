@@ -37,14 +37,5 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 # The error log lives in the persistent path (kept across reboots and reinstalls)
 mkdir -p "${APP_PERSISTENT_DATA_PATH}"
 
-# Daily check that the error log isn't too big. OS5 regenerates root's crontab on every boot, so it is added here
-# (init.sh runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-CRON_TAG="${APP_NAME}-log-rotate"
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${CRON_TAG}" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "15 4 * * * ${APP_PATH}/php_swap.sh rotate # ${CRON_TAG}" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the daily error log rotation to: ${CRONTAB}"
-fi
+# Daily check that the error log isn't too big
+cron_add '15 4 * * *' "${APP_PATH}/php_swap.sh rotate" "${APP_NAME}-log-rotate"

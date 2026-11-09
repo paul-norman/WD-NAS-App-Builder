@@ -42,26 +42,6 @@ chmod 700 "${APP_PERSISTENT_DATA_PATH}"
 
 # A daily check of the repositories for new versions at 04:25 (the page also checks when it opens, if it's been over an
 # hour), then the automatic updates at 04:30 (of the apps and recipes ticked "Update automatically" - nothing runs if
-# none are). OS5 regenerates root's crontab on every boot, so they're added here (init.sh runs on every boot) - via a
-# temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-# Adds a line to root's crontab, unless it's there (found by the tag at its end).
-#
-# $1 schedule The schedule (e.g. 25 4 * * *)
-# $2 script   The PHP script in lib/ that it runs
-# $3 tag      The tag it's found by (after a #)
-#
-# Prints nothing; returns 0 once it's there
-add_cron() {
-    [ -f "${CRONTAB}" ] || return 1
-    grep -q "# $3\$" "${CRONTAB}" && return 0
-
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "$1 php ${APP_PATH}/lib/$2 > /dev/null 2>&1 # $3" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added $3 to: ${CRONTAB}"
-}
-
-add_cron '25 4 * * *' refresh.php "${APP_NAME}-refresh"
-add_cron '30 4 * * *' auto_update.php "${APP_NAME}-auto-update"
+# none are)
+cron_add '25 4 * * *' "php ${APP_PATH}/lib/refresh.php > /dev/null 2>&1" "${APP_NAME}-refresh"
+cron_add '30 4 * * *' "php ${APP_PATH}/lib/auto_update.php > /dev/null 2>&1" "${APP_NAME}-auto-update"

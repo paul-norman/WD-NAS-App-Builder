@@ -55,6 +55,7 @@ for app in "${APPS[@]}"; do
         mongodb) extra=(--security-opt "seccomp=${PROJ}/tests/common/seccomp-no-rseq.json") ;;
     esac
     docker run --rm --init "${extra[@]}" -e DATA_FOLDER="${data}" -v "${HERE}/bin:/t/bin:ro" -v "${WORK}/bb:/t/bb:ro" \
+        -v "${HERE}/../common/xmldbc:/t/xmldbc:ro" \
         -v "${package}:/pkg/package.tar.gz:ro" nas-test-php74 sh /t/bin/lifecycle.sh "${app}" "${check}" > "${log}" 2>&1
     grep -E '^(PASS|FAIL)' "${log}" | sed 's/^/  /' | cut -c1-170
     passes=$(grep -c "^PASS" "${log}")

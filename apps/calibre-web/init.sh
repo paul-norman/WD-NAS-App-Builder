@@ -37,18 +37,10 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 sh "${APP_PATH}/cw_ctl.sh" setup >> ${LOG} 2>&1
 
 # The daily backups, a weekly check for a new Calibre-Web release (shown as a NAS alert), and the ingest folder every
-# minute (nothing happens unless it's turned on). OS5 regenerates root's crontab on every boot, so they're added here
-# (init.sh runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "40 3 * * * ${APP_PATH}/cw_ctl.sh daily # ${APP_NAME}-daily" >> "${CRONTAB}.tmp" \
-        && echo "* * * * * ${APP_PATH}/cw_ctl.sh ingest # ${APP_NAME}-ingest" >> "${CRONTAB}.tmp" \
-        && echo "0 6 * * 1 ${APP_PATH}/check_update.sh # ${APP_NAME}-update-check" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the daily backups, weekly update check and ingest folder check to: ${CRONTAB}"
-fi
+# minute (nothing happens unless it's turned on)
+cron_add '40 3 * * *' "${APP_PATH}/cw_ctl.sh daily" "${APP_NAME}-daily"
+cron_add '* * * * *' "${APP_PATH}/cw_ctl.sh ingest" "${APP_NAME}-ingest"
+cron_add '0 6 * * 1' "${APP_PATH}/check_update.sh" "${APP_NAME}-update-check"
 
 # Its site in the Nginx app (https://books.<the Nginx app's domain>)
 sh "${APP_PATH}/cw_ctl.sh" nginx >> ${LOG} 2>&1

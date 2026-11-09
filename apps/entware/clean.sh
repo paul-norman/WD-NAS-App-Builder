@@ -26,13 +26,7 @@ log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
 rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
 
 # Remove the update check, the PATH lines and the reboot wrapper
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-update-check" "${CRONTAB}"; then
-    # Grep exits with 1 when no lines are left, so the move mustn't depend on it
-    grep -v "${APP_NAME}-update-check" "${CRONTAB}" > "${CRONTAB}.tmp"
-    mv "${CRONTAB}.tmp" "${CRONTAB}"
-fi
+cron_remove "${APP_NAME}-update-check"
 
 sed -i '/# added by the entware app/d' /etc/profile 2>/dev/null
 

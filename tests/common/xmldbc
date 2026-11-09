@@ -1,0 +1,97 @@
+#!/bin/sh
+# A stand-in for WD's xmldbc (its settings database), enough for the apps' cron jobs (cron_add / cron_remove in
+# apps/helpers.sh): nodes kept one per line (path, a tab, value) in $XMLDB_FILE (default /tmp/xmldb). A path's last
+# part may have an index (name:2; no index is :1), name# counts the name's rows, and deleting a row moves the rows after
+# it up, as WD's does.
+#     xmldbc -g <path>          - prints its value (or the count, for name#)
+#     xmldbc -s <path> <value>  - sets it
+#     xmldbc -d <path>          - deletes it and everything under it
+#     xmldbc --crontab          - prints the crontab WD writes from /system_mgr/crond (the stand-in for its rebuild)
+DB="${XMLDB_FILE:-/tmp/xmldb}"
+[ -f "${DB}" ] || touch "${DB}"
+
+# Gives every part of a path an index (:1 when it has none).
+#
+# $1 path The path
+#
+# Prints the path
+normal() {
+    printf '%s' "$1" | awk -F/ '{
+        out = ""
+        for (i = 2; i <= NF; i++) {
+            part = $i
+            if (part !~ /:[0-9]+$/) {
+                part = part ":1"
+            }
+            out = out "/" part
+        }
+        print out
+    }'
+}
+
+case "$1" in
+    -g)
+        case "$2" in
+            *'#')
+                path="$(normal "${2%#}")"
+                base="${path%:1}"
+                awk -F '\t' -v base="${base}" '{
+                    if (index($1, base ":") == 1) {
+                        rest = substr($1, length(base) + 2)
+                        sub(/\/.*/, "", rest)
+                        if (rest ~ /^[0-9]+$/) {
+                            seen[rest] = 1
+                        }
+                    }
+                } END { n = 0; for (k in seen) n++; print n }' "${DB}"
+                ;;
+            *)
+                path="$(normal "$2")"
+                awk -F '\t' -v path="${path}" '$1 == path { print substr($0, length($1) + 2); exit }' "${DB}"
+                ;;
+        esac
+        ;;
+    -s)
+        path="$(normal "$2")"
+        awk -F '\t' -v path="${path}" '$1 != path' "${DB}" > "${DB}.tmp"
+        printf '%s\t%s\n' "${path}" "$3" >> "${DB}.tmp"
+        mv "${DB}.tmp" "${DB}"
+        ;;
+    -d)
+        path="$(normal "$2")"
+        base="${path%:*}"
+        index="${path##*:}"
+        awk -F '\t' -v path="${path}" -v base="${base}" -v index_="${index}" 'BEGIN { OFS = "\t" } {
+            if ($1 == path || index($1, path "/") == 1) {
+                next
+            }
+            if (index($1, base ":") == 1) {
+                rest = substr($1, length(base) + 2)
+                n = rest
+                sub(/\/.*/, "", n)
+                if (n ~ /^[0-9]+$/ && n + 0 > index_ + 0) {
+                    $1 = base ":" (n - 1) substr(rest, length(n) + 1)
+                }
+            }
+            print
+        }' "${DB}" > "${DB}.tmp"
+        mv "${DB}.tmp" "${DB}"
+        ;;
+    --crontab)
+        count="$(sh "$0" -g '/system_mgr/crond/list/name#')"
+        i=1
+
+        while [ "${i}" -le "${count}" ]; do
+            name="$(sh "$0" -g "/system_mgr/crond/list/name:${i}")"
+            item="/system_mgr/crond/${name}/item:1"
+            echo "$(sh "$0" -g "${item}/1") $(sh "$0" -g "${item}/2") $(sh "$0" -g "${item}/3")" \
+                "$(sh "$0" -g "${item}/4") $(sh "$0" -g "${item}/5") $(sh "$0" -g "${item}/run")"
+            i=$((i + 1))
+        done
+        ;;
+    *)
+        echo 'usage: xmldbc -g <path> | -s <path> <value> | -d <path> | --crontab' >&2
+
+        exit 1
+        ;;
+esac

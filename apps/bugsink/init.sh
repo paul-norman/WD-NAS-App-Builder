@@ -37,16 +37,8 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 # first start)
 sh "${APP_PATH}/bugsink_ctl.sh" setup >> ${LOG} 2>&1
 
-# Keeping its log small every day. OS5 regenerates root's crontab on every boot, so it's added here (init.sh
-# runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "20 3 * * * ${APP_PATH}/bugsink_ctl.sh daily # ${APP_NAME}-daily" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the daily log check to: ${CRONTAB}"
-fi
+# Keeping its log small every day
+cron_add '20 3 * * *' "${APP_PATH}/bugsink_ctl.sh daily" "${APP_NAME}-daily"
 
 # Its site in the Nginx app (https://bugsink.<the Nginx app's domain>, from its nginx.json)
 sh "${APP_PATH}/bugsink_ctl.sh" nginx >> ${LOG} 2>&1

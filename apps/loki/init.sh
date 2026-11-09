@@ -36,15 +36,6 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 # Loki's user, folders and settings (kept across reinstalls, in Nas_Prog/_loki)
 sh "${APP_PATH}/loki_ctl.sh" setup >> ${LOG} 2>&1
 
-# Keeping its two logs small every day, and a weekly check for a new Loki release (shown as a NAS alert). OS5
-# regenerates root's crontab on every boot, so they're added here (init.sh runs on every boot) - via a temporary file,
-# as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "10 3 * * * ${APP_PATH}/loki_ctl.sh daily # ${APP_NAME}-daily" >> "${CRONTAB}.tmp" \
-        && echo "0 6 * * 1 ${APP_PATH}/check_update.sh # ${APP_NAME}-update-check" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the daily log check and weekly update check to: ${CRONTAB}"
-fi
+# Keeping its two logs small every day, and a weekly check for a new Loki release (shown as a NAS alert)
+cron_add '10 3 * * *' "${APP_PATH}/loki_ctl.sh daily" "${APP_NAME}-daily"
+cron_add '0 6 * * 1' "${APP_PATH}/check_update.sh" "${APP_NAME}-update-check"

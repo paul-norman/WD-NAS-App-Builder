@@ -26,9 +26,4 @@ log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
 rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
 
 # Remove the daily backups, the update check and the ingest folder check
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-" "${CRONTAB}"; then
-    grep -v "${APP_NAME}-daily\|${APP_NAME}-update-check\|${APP_NAME}-ingest" "${CRONTAB}" > "${CRONTAB}.tmp"
-    mv "${CRONTAB}.tmp" "${CRONTAB}"
-fi
+cron_remove "${APP_NAME}-daily" "${APP_NAME}-update-check" "${APP_NAME}-ingest"

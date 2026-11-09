@@ -87,6 +87,122 @@ stop_process() {
     log "stopped PID: ${pid}"
 }
 
+# Root's crontab, and WD's own list of cron jobs (in xmldbc's memory): the firmware writes the crontab afresh from that
+# list every night at midnight (random_chk_central -s) and on boot, dropping any line only added to the file
+CRONTAB='/var/spool/cron/crontabs/root'
+CRON_XML='/system_mgr/crond'
+
+# The name an app's cron job has in WD's list: nasapp_ then its tag, with anything but letters and digits as _.
+#
+# $1 tag The job's tag (e.g. store-auto-update)
+#
+# Prints the name
+cron_xml_name() {
+    printf 'nasapp_%s' "$1" | tr -c 'A-Za-z0-9_' '_'
+}
+
+# Finds a name in WD's list of cron jobs.
+#
+# $1 name The name (from cron_xml_name)
+#
+# Prints its position in the list (from 1), or nothing when it isn't there
+cron_xml_index() {
+    local count="$(xmldbc -g "${CRON_XML}/list/name#" 2>/dev/null)"
+    local i=1
+
+    while [ "${i}" -le "${count:-0}" ]; do
+        if [ "$(xmldbc -g "${CRON_XML}/list/name:${i}")" = "$1" ]; then
+            echo "${i}"
+
+            return 0
+        fi
+
+        i=$((i + 1))
+    done
+}
+
+# Adds one of the app's cron jobs (or changes its schedule or command): to root's crontab, so it runs from now on, and
+# to WD's list, so it's still there after the firmware next writes the crontab. The list isn't saved to flash by this
+# (WD may save it with its own settings), so init.sh calls it on every boot.
+#
+# $1 schedule The schedule's 5 fields (e.g. 30 4 * * *)
+# $2 command  The command it runs as root
+# $3 tag      What it's found by: <app name>-<job> (e.g. store-auto-update)
+#
+# Prints nothing; returns 0
+cron_add() {
+    local line="$1 $2 # $3"
+    local name="$(cron_xml_name "$3")"
+    local command="$2 # $3"
+    local field
+    local i=1
+
+    # Via a temporary file, as BusyBox crond only notices replaced files
+    if [ -f "${CRONTAB}" ] && ! grep -q -x -F -e "${line}" "${CRONTAB}"; then
+        { grep -v -e "# $3\$" "${CRONTAB}"; echo "${line}"; } > "${CRONTAB}.tmp" \
+            && mv "${CRONTAB}.tmp" "${CRONTAB}" \
+            && log "added to ${CRONTAB}: ${line}"
+    fi
+
+    command -v xmldbc > /dev/null 2>&1 || return 0
+
+    if [ -z "$(cron_xml_index "${name}")" ]; then
+        local count="$(xmldbc -g "${CRON_XML}/list/name#" 2>/dev/null)"
+
+        xmldbc -s "${CRON_XML}/list/name:$((${count:-0} + 1))" "${name}"
+        log "added to WD's cron jobs: ${name}"
+    fi
+
+    xmldbc -s "${CRON_XML}/${name}/count" 1
+    xmldbc -s "${CRON_XML}/${name}/item:1/method" 3
+
+    # The schedule's fields are elements 1 to 5 (no globbing: they hold *)
+    set -f
+    set -- $1
+    set +f
+
+    for field in "$@"; do
+        xmldbc -s "${CRON_XML}/${name}/item:1/${i}" "${field}"
+        i=$((i + 1))
+    done
+
+    xmldbc -s "${CRON_XML}/${name}/item:1/run" "${command}"
+
+    return 0
+}
+
+# Removes cron jobs added by cron_add, from root's crontab and WD's list.
+#
+# $@ tags Their tags (e.g. store-refresh store-auto-update)
+#
+# Prints nothing; returns 0
+cron_remove() {
+    local tag
+    local name
+    local index
+
+    for tag in "$@"; do
+        if [ -f "${CRONTAB}" ] && grep -q -e "# ${tag}\$" "${CRONTAB}"; then
+            grep -v -e "# ${tag}\$" "${CRONTAB}" > "${CRONTAB}.tmp"
+            mv "${CRONTAB}.tmp" "${CRONTAB}"
+            log "removed from ${CRONTAB}: ${tag}"
+        fi
+
+        command -v xmldbc > /dev/null 2>&1 || continue
+
+        name="$(cron_xml_name "${tag}")"
+        index="$(cron_xml_index "${name}")"
+
+        if [ -n "${index}" ]; then
+            xmldbc -d "${CRON_XML}/list/name:${index}"
+            xmldbc -d "${CRON_XML}/${name}"
+            log "removed from WD's cron jobs: ${name}"
+        fi
+    done
+
+    return 0
+}
+
 if [ "${APP_SCRIPT}" == 'init.sh' ]; then
     # Create a user group for this application (if specified and missing - existing groups are never removed)
     if [ "${USER_GROUP}" != '' ] && ! grep -q "^${USER_GROUP}:" /etc/group; then

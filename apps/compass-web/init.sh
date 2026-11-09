@@ -36,18 +36,9 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 # Its own user, folders, settings and password (kept across reinstalls, in Nas_Prog/_compass-web)
 sh "${APP_PATH}/cw_ctl.sh" setup >> ${LOG} 2>&1
 
-# Keeping its log small every day, and a weekly check for a new Compass Web release (shown as a NAS alert).
-# OS5 regenerates root's crontab on every boot, so they're added here (init.sh runs on every boot) - via a temporary
-# file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "50 3 * * * ${APP_PATH}/cw_ctl.sh daily # ${APP_NAME}-daily" >> "${CRONTAB}.tmp" \
-        && echo "30 6 * * 1 ${APP_PATH}/check_update.sh # ${APP_NAME}-update-check" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the daily log check, and the weekly update check to: ${CRONTAB}"
-fi
+# Keeping its log small every day, and a weekly check for a new Compass Web release (shown as a NAS alert)
+cron_add '50 3 * * *' "${APP_PATH}/cw_ctl.sh daily" "${APP_NAME}-daily"
+cron_add '30 6 * * 1' "${APP_PATH}/check_update.sh" "${APP_NAME}-update-check"
 
 # Its site in the Nginx app (https://compass.<the Nginx app's domain>, from its nginx.json)
 sh "${APP_PATH}/cw_ctl.sh" nginx >> ${LOG} 2>&1

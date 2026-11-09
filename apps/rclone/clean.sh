@@ -32,9 +32,4 @@ if [ "$(readlink /usr/bin/rclone)" = "${APP_PATH}/rclone_cli.sh" ]; then
 fi
 
 # Remove the hourly jobs, the daily log check and the update check
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-" "${CRONTAB}"; then
-    grep -v "${APP_NAME}-jobs\|${APP_NAME}-daily\|${APP_NAME}-update-check" "${CRONTAB}" > "${CRONTAB}.tmp"
-    mv "${CRONTAB}.tmp" "${CRONTAB}"
-fi
+cron_remove "${APP_NAME}-jobs" "${APP_NAME}-daily" "${APP_NAME}-update-check"

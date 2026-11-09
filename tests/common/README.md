@@ -7,7 +7,7 @@ MODEL_OVERRIDE=MyCloudPR4100 ./build.sh ntfy      # first: its package (and the 
 tests/common/run.sh ntfy [--php 7.4|8.5|both]
 ```
 
-- **`nas.sh`**: the stand-in *(BusyBox's `sh`, `adduser`, `addgroup`, `ps` and `ip` first in the PATH; the share group; `/dev/urandom` root's only, as WD has it; root's crontab; a Public share)* and the helpers the suites use: `install_app`, `page_up` *(also checks the page refuses requests without a NAS login, or with a wrong CSRF token)*, `get` / `post` *(the page's actions)*, `j` *(reads JSON)*, `code`, `wait_port`, `listening`, `finish_app` *(stop, clean, remove: stopped, its data kept)*.
+- **`nas.sh`**: the stand-in *(BusyBox's `sh`, `adduser`, `addgroup`, `ps` and `ip` first in the PATH; the share group; `/dev/urandom` root's only, as WD has it; root's crontab; a Public share; [`xmldbc`](xmldbc), a stand-in for WD's settings database, enough for the apps' cron jobs)* and the helpers the suites use: `install_app`, `page_up` *(also checks the page refuses requests without a NAS login, or with a wrong CSRF token)*, `get` / `post` *(the page's actions)*, `j` *(reads JSON)*, `code`, `wait_port`, `listening`, `finish_app` *(stop, clean, remove: stopped, its data kept)*.
 - **`run.sh`**: runs a suite in the PHP 7.4 image *(WD's PHP, Debian 11 - the NAS's glibc; see [`images`](../images))* or 8.5's *(the [PHP app](../../apps/php/README.md)'s - the page runs on whichever the NAS has)*. A suite can add, in its folder:
   - `docker-options`: options for its container *(`--privileged`, to change the kernel settings the app changes on the NAS)*
   - `with`: other apps it installs too *(apps that work together)*

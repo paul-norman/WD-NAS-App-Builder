@@ -37,15 +37,6 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 # first start)
 sh "${APP_PATH}/mongodb_ctl.sh" setup >> ${LOG} 2>&1
 
-# A backup and keeping its logs small every day, and a weekly check for a new MongoDB release (shown as a NAS alert).
-# OS5 regenerates root's crontab on every boot, so they're added here (init.sh runs on every boot) - via a temporary
-# file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "15 3 * * * ${APP_PATH}/mongodb_ctl.sh daily # ${APP_NAME}-daily" >> "${CRONTAB}.tmp" \
-        && echo "25 6 * * 1 ${APP_PATH}/check_update.sh # ${APP_NAME}-update-check" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the daily backup and log check, and the weekly update check to: ${CRONTAB}"
-fi
+# A backup and keeping its logs small every day, and a weekly check for a new MongoDB release (shown as a NAS alert)
+cron_add '15 3 * * *' "${APP_PATH}/mongodb_ctl.sh daily" "${APP_NAME}-daily"
+cron_add '25 6 * * 1' "${APP_PATH}/check_update.sh" "${APP_NAME}-update-check"

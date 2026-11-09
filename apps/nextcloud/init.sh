@@ -38,18 +38,10 @@ ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 sh "${APP_PATH}/nextcloud_ctl.sh" setup >> ${LOG} 2>&1
 
 # Its background jobs every 5 minutes, a backup and keeping its logs small every day, and a weekly check for a new
-# Nextcloud release (shown as a NAS alert). OS5 regenerates root's crontab on every boot, so they're added here (init.sh
-# runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "*/5 * * * * ${APP_PATH}/nextcloud_ctl.sh cron # ${APP_NAME}-cron" >> "${CRONTAB}.tmp" \
-        && echo "45 3 * * * ${APP_PATH}/nextcloud_ctl.sh daily # ${APP_NAME}-daily" >> "${CRONTAB}.tmp" \
-        && echo "20 6 * * 1 ${APP_PATH}/check_update.sh # ${APP_NAME}-update-check" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the background jobs, the daily backup and log check, and the weekly update check to: ${CRONTAB}"
-fi
+# Nextcloud release (shown as a NAS alert)
+cron_add '*/5 * * * *' "${APP_PATH}/nextcloud_ctl.sh cron" "${APP_NAME}-cron"
+cron_add '45 3 * * *' "${APP_PATH}/nextcloud_ctl.sh daily" "${APP_NAME}-daily"
+cron_add '20 6 * * 1' "${APP_PATH}/check_update.sh" "${APP_NAME}-update-check"
 
 # Its site in the Nginx app (https://nextcloud.<the Nginx app's domain>, from its nginx.json)
 sh "${APP_PATH}/nextcloud_ctl.sh" nginx >> ${LOG} 2>&1

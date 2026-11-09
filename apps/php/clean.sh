@@ -26,10 +26,4 @@ log "removing web paths: ${APP_WEB_PATH} ${APP_MANAGE_PATH}"
 rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
 
 # Remove the error log rotation
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-log-rotate" "${CRONTAB}"; then
-    # Grep exits with 1 when no lines are left, so the move mustn't depend on it
-    grep -v "${APP_NAME}-log-rotate" "${CRONTAB}" > "${CRONTAB}.tmp"
-    mv "${CRONTAB}.tmp" "${CRONTAB}"
-fi
+cron_remove "${APP_NAME}-log-rotate"

@@ -43,18 +43,10 @@ log "linking the rclone command: /usr/bin/rclone"
 ln -sf "${APP_PATH}/rclone_cli.sh" /usr/bin/rclone >> ${LOG} 2>&1
 
 # The page's jobs (hourly: those set for that hour run), keeping its log small every day, and a weekly check for a new
-# rclone release (shown as a NAS alert). OS5 regenerates root's crontab on every boot, so they're added here (init.sh
-# runs on every boot) - via a temporary file, as BusyBox crond only notices replaced files
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && ! grep -q "${APP_NAME}-daily" "${CRONTAB}"; then
-    cp "${CRONTAB}" "${CRONTAB}.tmp" \
-        && echo "0 * * * * ${APP_PATH}/rclone_ctl.sh due # ${APP_NAME}-jobs" >> "${CRONTAB}.tmp" \
-        && echo "15 4 * * * ${APP_PATH}/rclone_ctl.sh daily # ${APP_NAME}-daily" >> "${CRONTAB}.tmp" \
-        && echo "0 6 * * 1 ${APP_PATH}/check_update.sh # ${APP_NAME}-update-check" >> "${CRONTAB}.tmp" \
-        && mv "${CRONTAB}.tmp" "${CRONTAB}" \
-        && log "added the hourly jobs, the daily log check and the weekly update check to: ${CRONTAB}"
-fi
+# rclone release (shown as a NAS alert)
+cron_add '0 * * * *' "${APP_PATH}/rclone_ctl.sh due" "${APP_NAME}-jobs"
+cron_add '15 4 * * *' "${APP_PATH}/rclone_ctl.sh daily" "${APP_NAME}-daily"
+cron_add '0 6 * * 1' "${APP_PATH}/check_update.sh" "${APP_NAME}-update-check"
 
 # Its site in the Nginx app (https://rclone.<the Nginx app's domain>)
 sh "${APP_PATH}/rclone_ctl.sh" nginx >> ${LOG} 2>&1

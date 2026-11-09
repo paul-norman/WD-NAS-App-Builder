@@ -27,9 +27,4 @@ rm -rf ${APP_WEB_PATH} ${APP_MANAGE_PATH}
 [ "$(readlink /usr/bin/wg)" = "${APP_PATH}/binaries/wg" ] && rm -f /usr/bin/wg
 
 # Remove the update check
-CRONTAB='/var/spool/cron/crontabs/root'
-
-if [ -f "${CRONTAB}" ] && grep -q "${APP_NAME}-" "${CRONTAB}"; then
-    grep -v "${APP_NAME}-update-check" "${CRONTAB}" > "${CRONTAB}.tmp"
-    mv "${CRONTAB}.tmp" "${CRONTAB}"
-fi
+cron_remove "${APP_NAME}-update-check"
