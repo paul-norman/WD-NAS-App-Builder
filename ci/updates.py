@@ -759,9 +759,10 @@ LABELS = {
 def run(limit):
     """
     The update check's work, in CI (see README.md, Updates): a pull request
-    per update (branch update/<app>, replaced by a newer release), merged
-    where the policy allows once CI has passed; update pull requests no
-    longer needed (the app updated another way) closed.
+    per update (branch update/<app>, replaced by a newer release, and made
+    again from main when it conflicts with it), merged where the policy
+    allows once CI has passed; update pull requests no longer needed (the
+    app updated another way) closed.
 
     :param int limit: At most this many pull requests made or changed
 
@@ -795,8 +796,20 @@ def run(limit):
         title = f"Update {name} to {version}"
         decision, reason = update["auto"], update["reason"]
         pr = open_prs.get(branch)
+        # Its pull request made again from main when main has changed the
+        # same lines since (e.g. the app's packaging revision raised by hand):
+        # it can't be merged as it is, and would wait for ever
+        conflicting = (
+            pr is not None
+            and pr["title"] == title
+            and pr_state(pr["number"]).get("mergeable") == "CONFLICTING"
+        )
 
-        if pr is None or pr["title"] != title:
+        if conflicting:
+            print(f"{name} {version}: #{pr['number']} conflicts with main -"
+                  " made again from it")
+
+        if pr is None or pr["title"] != title or conflicting:
             if touched >= limit:
                 continue
 
@@ -860,18 +873,17 @@ def run(limit):
     return problems
 
 
-def ci_passed(number):
+def pr_state(number):
     """
-    Whether a pull request's required check (build-test-release's result
-    job) has passed on its latest changes. The bot may bypass the branch's
-    rules, so GitHub's own auto-merge isn't used: it merges itself, only
-    then. GitHub works out whether a pull request can be merged only when
-    it's asked (UNKNOWN until then - e.g. the first time after main has
-    changed), so an UNKNOWN answer is asked again, for up to a minute.
+    A pull request's checks and whether it can be merged. GitHub works out
+    whether a pull request can be merged only when it's asked (UNKNOWN until
+    then - e.g. the first time after main has changed), so an UNKNOWN answer
+    is asked again, for up to a minute.
 
     :param int number: The pull request
 
-    :return: (passed, why not): passed is True if it has
+    :return: Its statusCheckRollup and mergeable (MERGEABLE, CONFLICTING or
+             UNKNOWN), as gh gives them
     """
     for _ in range(12):
         checks = json.loads(gh(
@@ -882,6 +894,22 @@ def ci_passed(number):
             break
 
         time.sleep(5)
+
+    return checks
+
+
+def ci_passed(number):
+    """
+    Whether a pull request's required check (build-test-release's result
+    job) has passed on its latest changes. The bot may bypass the branch's
+    rules, so GitHub's own auto-merge isn't used: it merges itself, only
+    then.
+
+    :param int number: The pull request
+
+    :return: (passed, why not): passed is True if it has
+    """
+    checks = pr_state(number)
 
     if checks.get("mergeable") != "MERGEABLE":
         return False, f"GitHub says: {checks.get('mergeable')}"
