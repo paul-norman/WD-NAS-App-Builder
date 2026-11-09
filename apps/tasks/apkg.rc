@@ -1,0 +1,23 @@
+Package:			tasks
+Version:			1.0.0
+Packager:			PDN
+Email:
+Homepage:			https://github.com/paul-norman/WD-NAS-App-Builder
+Description:		Runs your own scripts on the NAS: at boot, on a schedule, at shutdown or when you ask, with their logs and ntfy alerts.
+Icon:				logo.svg
+AddonShowName:		Tasks
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

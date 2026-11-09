@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Tasks: runs your own scripts on the NAS - at boot, on a schedule, at shutdown or when you ask - with their logs and ntfy alerts.</en-US>
+	<fr-FR>Tasks : exécute vos propres scripts sur le NAS - au démarrage, selon un planning, à l'arrêt ou à la demande - avec leurs journaux et des alertes ntfy.</fr-FR>
+	<es-ES>Tasks: ejecuta sus propios scripts en el NAS - al arrancar, según un horario, al apagar o cuando lo pida - con sus registros y avisos de ntfy.</es-ES>
+	<de-DE>Tasks: führt Ihre eigenen Skripte auf dem NAS aus - beim Start, nach Zeitplan, beim Herunterfahren oder auf Wunsch - mit Protokollen und ntfy-Benachrichtigungen.</de-DE>
+</config>

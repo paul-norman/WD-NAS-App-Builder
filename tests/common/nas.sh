@@ -15,7 +15,7 @@ P=/mnt/HD/HD_a2/Nas_Prog; D=$P/_$APP; V=/mnt/HD/HD_a2
 pass() { echo "PASS $1"; }
 fail() { echo "FAIL $1"; }
 mkdir -p /tmp/bb && for tool in sh adduser addgroup ps ip; do ln -sf /t/bb/busybox /tmp/bb/$tool; done
-ln -sf /t/common/xmldbc /tmp/bb/xmldbc
+ln -sf /t/common/xmldbc /usr/sbin/xmldbc
 export PATH=/tmp/bb:$PATH
 grep -q '^share:' /etc/group || echo 'share:x:1000:' >> /etc/group
 # WD's own users with low IDs (an app's user must not take one): ftp is 95 on the NAS

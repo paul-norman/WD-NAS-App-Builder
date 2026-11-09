@@ -118,6 +118,17 @@ fi
 stop_process "/var/run/${APP_NAME}.pid" 30
 ```
 
+`cron_add` - adds one of the app's cron jobs *(or changes its schedule or command)*: to root's crontab, so it runs from now on, and to WD's own list of cron jobs *(`xmldbc`, `/system_mgr/crond`)*. **The firmware writes root's crontab afresh from that list every night at midnight** *(and at boot)*: a line only added to the crontab is gone the next morning. The list isn't saved to flash, so call it in `init.sh` *(which runs at every boot)*. Its tag is `<app>-<job>`.
+
+`cron_remove` - removes jobs added by `cron_add`, by their tags, from both - in `clean.sh`
+
+```bash
+cron_add '5 3 * * *' "${APP_PATH}/myapp_ctl.sh daily" "${APP_NAME}-daily"    # init.sh
+cron_remove "${APP_NAME}-daily"                                             # clean.sh
+```
+
+For scripts of your own on a schedule *(or at boot)*, there's the [Tasks app](tasks/README.md).
+
 If `AddonDefaultGroup` / `AddonDefaultUser` are set in `apkg.rc`, `init.sh` also creates that group and a locked user *(no password, no login shell)* when they don't already exist. Existing users and groups are never removed or changed.
 
 ## Management pages
