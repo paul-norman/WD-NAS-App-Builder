@@ -9,7 +9,8 @@ fail() { echo "FAIL $A: $1"; }
 # WD's NAS: BusyBox's sh and user tools first, the share group, /dev/urandom readable by root only, root's crontab, WD's
 # settings database (a stand-in xmldbc: its cron jobs)
 mkdir -p /tmp/bb && for tool in sh adduser addgroup ps ip; do ln -sf /t/bb/busybox /tmp/bb/$tool; done
-ln -sf /t/xmldbc /usr/sbin/xmldbc
+# (run with sh: the repository keeps its files' modes as 644)
+printf '#!/bin/sh\nexec sh /t/xmldbc "$@"\n' > /usr/sbin/xmldbc && chmod 755 /usr/sbin/xmldbc
 export PATH=/tmp/bb:$PATH
 grep -q '^share:' /etc/group || echo 'share:x:1000:' >> /etc/group
 chmod 600 /dev/urandom /dev/random
