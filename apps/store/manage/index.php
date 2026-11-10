@@ -101,6 +101,8 @@ header('Cache-Control: no-store');
         #store-manage .st-repo-actions button { margin: 0; height: auto; line-height: 1.4; padding: 0.3rem 0.9rem; }
         #store-manage .st-form { margin: 1rem 0; padding: 0.75rem 1rem; border: 1px solid rgba(127, 127, 127, 0.3); border-radius: 8px; }
         #store-manage .st-form h4 { margin: 0 0 0.5rem; }
+        #store-manage details.st-form summary { cursor: pointer; }
+        #store-manage details.st-form[open] summary { margin-bottom: 0.5rem; }
     </style>
 
     <div class="st-titlebar">
@@ -147,8 +149,16 @@ header('Cache-Control: no-store');
     </div>
 
     <div data-st="activity" hidden>
-        <div class="st-form" data-st="auto">
-            <h4>Automatic updates</h4>
+        <p class="mg-note" data-st="activity-none">Nothing has been installed, updated or removed yet.</p>
+        <div data-st="job" hidden>
+            <p><strong data-st="job-title"></strong> - <span data-st="job-state"></span></p>
+            <p class="mg-note" data-st="job-times"></p>
+            <p data-st="job-message"></p>
+            <pre class="st-log" data-st="job-log"></pre>
+            <button type="button" data-st-action="job-close" hidden>Clear</button>
+        </div>
+        <details class="st-form" data-st="auto">
+            <summary><strong>Automatic updates</strong> <span data-st="auto-summary"></span></summary>
             <p class="mg-note">Every night at 04:30 the Store updates the apps and recipes ticked <strong>Update
                 automatically</strong> on their pages: one at a time, from the repository each came from - the Store
                 itself last. Updates that need you (e.g. new settings) are left for you, and said so here.</p>
@@ -158,15 +168,7 @@ header('Cache-Control: no-store');
                 <button type="button" data-st-action="auto-topic">Save</button>
                 <span class="mg-note">(updates, failures, and updates left for you - blank for none)</span></p>
             <p data-st="auto-message"></p>
-        </div>
-        <p class="mg-note" data-st="activity-none">Nothing has been installed, updated or removed yet.</p>
-        <div data-st="job" hidden>
-            <p><strong data-st="job-title"></strong> - <span data-st="job-state"></span></p>
-            <p class="mg-note" data-st="job-times"></p>
-            <p data-st="job-message"></p>
-            <pre class="st-log" data-st="job-log"></pre>
-            <button type="button" data-st-action="job-close" hidden>Clear</button>
-        </div>
+        </details>
     </div>
 
     <div data-st="repos" hidden>
@@ -1288,7 +1290,9 @@ header('Cache-Control: no-store');
 
         /**
          * Shows the automatic updates on the Activity tab: what tonight's run would do with each ticked app and recipe,
-         * what the last one did, and the ntfy topic (when the ntfy app is installed).
+         * what the last one did, and the ntfy topic (when the ntfy app is installed) - in a box that opens and closes,
+         * summed up on its title line. It's as the user left it (this browser session), else open only when an update
+         * is left for them.
          *
          * @return {void}
          */
@@ -1322,6 +1326,27 @@ header('Cache-Control: no-store');
             });
 
             part('auto-last').textContent = auto.last.checked ? 'Last run ' + auto.last.checked.replace('T', ' ').slice(0, 16) + ': ' + (done.length ? done.join('; ') : 'nothing needed updating') + '.' : '';
+
+            // Its title line: how many are ticked, what tonight brings, and the last run
+            let count = function (state) {
+                return keys.filter(function (key) {
+                    return auto.plan[key].state === state;
+                }).length;
+            };
+            let tonight = count('update');
+            let left    = count('skip');
+            let summary = keys.length ? keys.length + ' ticked: ' + (tonight ? tonight + ' to update tonight' : 'all up to date') + (left ? ', ' + left + ' left for you' : '') : 'none ticked';
+
+            if (auto.last.checked) {
+                summary += ' - last run ' + auto.last.checked.replace('T', ' ').slice(0, 16);
+            }
+
+            part('auto-summary').textContent = '(' + summary + ')';
+            part('auto-summary').className   = left ? 'mg-bad' : 'mg-note';
+
+            let open = recall('auto-open');
+
+            part('auto').open = open === null ? left > 0 : open;
 
             part('auto-ntfy').hidden = !auto.ntfy && !auto.topic;
 
@@ -2219,6 +2244,12 @@ header('Cache-Control: no-store');
 
         button('refresh').addEventListener('click', function () {
             refresh('Refreshing the repositories…');
+        });
+
+        // The automatic updates' box stays as the user left it (for this browser session): their click, before it
+        // opens or closes
+        part('auto').querySelector('summary').addEventListener('click', function () {
+            remember('auto-open', !part('auto').open);
         });
 
         button('auto-topic').addEventListener('click', function () {
