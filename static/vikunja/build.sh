@@ -190,7 +190,7 @@ C
 }
 
 function run() {
-    local arch output usage
+    local arch output usage version
 
     # Clean start
     if [ -d ${BUILD_PATH} ]; then
@@ -208,7 +208,10 @@ function run() {
         rm -rf ${output}
         mkdir -p ${output}
         cp vikunja sqlite3 vikunja_runas ${output}/
-        run_for ${arch} ${output}/vikunja version | grep -q "v${VERSION}"
+        # (its output captured first: grep -q stops reading at a match, and Vikunja - still writing - would fail on the
+        # closed pipe, failing the build under set -o pipefail)
+        version="$(run_for ${arch} ${output}/vikunja version)"
+        echo "${version}" | grep -q "v${VERSION}"
         [ "$(echo 'SELECT 1;' | run_for ${arch} ${output}/sqlite3 :memory:)" = 1 ]
         # (no arguments: it says how to use it, and fails - showing that it runs)
         usage="$(run_for ${arch} ${output}/vikunja_runas 2>&1 || true)"
