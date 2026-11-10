@@ -89,12 +89,18 @@ grep -q 'proxy_pass *http://127.0.0.1:9091' $P/_nginx/sites/60-app-transmission.
     && site /transmission/web/ -u "admin:$NEW" | grep -qi '<title>Transmission' && [ "$(site / -o /dev/null -w '%{redirect_url}')" = "https://transmission.$DOMAIN/transmission/web/" ] \
     && pass "its site https://transmission.$DOMAIN/ (its start page /transmission/web/)" || fail "site: $(ls $P/_nginx/sites; site /transmission/web/ -u "admin:$NEW" | head -c 200)"
 [ "$(get status | j '$d["site"]["url"]')" = "\"https://transmission.$DOMAIN/\"" ] && pass 'the page shows its site' || fail "site: $(get status | j '$d["site"]')"
+# Transmission's failed logins from here on (its log's timestamps, UTC, to the second), once anything it logged before
+# has been written - an earlier step's deliberate wrong password (a CI run once saw one logged late) isn't counted
+sleep 2
+SENT=$(date -u '+%Y-%m-%dT%H:%M:%S')
 LINES=$(wc -l < $D/transmission.log)
 C1=$(site /transmission/web/ -o /dev/null -w '%{http_code}'); C2=$(site /transmission/rpc -u admin:wrong-password -o /dev/null -w '%{http_code}')
+sleep 2
+REJECTED=$(tail -n +$((LINES + 1)) $D/transmission.log | grep 'failed authentication' | awk -v sent="$SENT" 'substr($1, 2, 19) >= sent' | wc -l)
 grep -q "auth_basic_user_file $D/htpasswd" $P/_nginx/sites/60-app-transmission.conf && [ "$C1" = 401 ] && [ "$C2" = 401 ] \
-    && [ "$(stat -c '%u %a' $D/htpasswd)" = '0 640' ] && [ "$(tail -n +$((LINES + 1)) $D/transmission.log | grep -c 'failed authentication')" = 0 ] \
+    && [ "$(stat -c '%u %a' $D/htpasswd)" = '0 640' ] && [ "${REJECTED}" = 0 ] \
     && pass "Nginx asks for the same login first: none or a wrong one refused there ($C1, $C2), nothing in Transmission's log" \
-    || fail "Nginx login: $C1 $C2 $(stat -c '%U %G %a' $D/htpasswd) $(tail -n +$((LINES + 1)) $D/transmission.log | tail -n 2)"
+    || fail "Nginx login: $C1 $C2 $(stat -c '%U %G %a' $D/htpasswd), sent at ${SENT}, Transmission logged: $(tail -n +$((LINES + 1)) $D/transmission.log | tail -n 4)"
 [ "$(cat $D/config/queue.json 2>/dev/null)" != '' ] && ! grep -q 'queue.json' $D/transmission.log \
     && pass "no queue.json error at its starts (an empty queue made for it until Transmission writes its own)" || fail "queue: $(grep queue $D/transmission.log | tail -n 1)"
 
