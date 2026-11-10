@@ -1,8 +1,8 @@
 #!/bin/bash
 . '../build_helpers.sh'
 
-# Memos, SQLite's shell (for backups) and its run-as helper (memos_runas) are prepared by static/memos (which the root build.sh runs first) - for the
-# Intel models and the ARM ones (its amd64 build makes both)
+# Memos, SQLite's shell (for backups) and its run-as helper (memos_runas) are prepared by static/memos (which the
+# root build.sh runs first) - for the Intel models and the ARM ones (its amd64 build makes both)
 declare -A MODELS
 MODELS[amd64]='MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100'
 MODELS[armhf]='WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra'

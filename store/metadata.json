@@ -64,6 +64,7 @@
         "uptime-kuma":        { "categories": ["monitoring"], "license": "MIT", "data_folder": "_uptime-kuma", "keeps_data": true, "web": { "port": 3001, "nginx": { "name": "uptime-kuma" } } },
         "valkey":             { "categories": ["databases"], "license": "BSD-3-Clause", "data_folder": "_valkey", "keeps_data": true },
         "vaultwarden":        { "categories": ["security"], "license": "AGPL-3.0-only", "data_folder": "_vaultwarden", "keeps_data": true, "requires": { "apps": ["nginx"] }, "web": { "local_port": 8222, "nginx": { "name": "vaultwarden" } } },
+        "vikunja":            { "categories": ["productivity"], "license": "AGPL-3.0-or-later", "data_folder": "_vikunja", "keeps_data": true, "web": { "local_port": 3456, "nginx": { "name": "vikunja" } } },
         "wikijs":             { "categories": ["productivity"], "license": "AGPL-3.0-only", "data_folder": "_wikijs", "keeps_data": true, "requires": { "apps": ["postgresql"], "ram_mb": 1024 }, "web": { "local_port": 3010, "nginx": { "name": "wikijs" } } },
         "wireguard":          { "categories": ["network", "security"], "license": "MIT AND GPL-2.0-only AND LGPL-2.1-or-later", "data_folder": "_wireguard", "keeps_data": true, "security": "Remote access to the NAS without exposing its apps to the internet" }
     },

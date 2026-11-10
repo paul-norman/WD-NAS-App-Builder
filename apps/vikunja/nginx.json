@@ -1,0 +1,6 @@
+{
+    "name":    "vikunja",
+    "label":   "Vikunja",
+    "target":  "http://127.0.0.1:3456",
+    "uploads": true
+}

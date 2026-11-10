@@ -1,0 +1,23 @@
+Package:			vikunja
+Version:			2.8.0
+Packager:			PDN
+Email:
+Homepage:			https://vikunja.io/
+Description:		Vikunja: to-do lists, kanban boards and projects - shared or private, with CalDAV for phone and desktop to-do apps.
+Icon:				vikunja.svg
+AddonShowName:		Vikunja
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
