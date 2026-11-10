@@ -1,0 +1,23 @@
+Package:			memos
+Version:			26.11.0
+Packager:			PDN
+Email:
+Homepage:			https://usememos.com/
+Description:		Memos: quick notes - Markdown, tags and search - kept on the NAS, from any browser.
+Icon:				memos.svg
+AddonShowName:		Memos
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

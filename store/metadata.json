@@ -28,6 +28,7 @@
         "loki":               { "categories": ["monitoring"], "license": "AGPL-3.0-only", "data_folder": "_loki", "keeps_data": true },
         "mailpit":            { "categories": ["development"], "license": "MIT", "keeps_data": true, "web": { "port": 8025, "nginx": { "name": "mailpit" } } },
         "mariadb":            { "categories": ["databases"], "license": "GPL-2.0-only", "data_folder": "_mariadb", "keeps_data": true, "replaces": ["mariadb"], "security": "Replaces WD's MariaDB 10.5, which has had no security fixes since June 2025" },
+        "memos":              { "categories": ["productivity"], "license": "MIT", "data_folder": "_memos", "keeps_data": true, "web": { "local_port": 5230, "nginx": { "name": "memos" } } },
         "miniflux":           { "categories": ["productivity"], "license": "Apache-2.0", "data_folder": "_miniflux", "keeps_data": true, "requires": { "apps": ["postgresql"], "ram_mb": 256 }, "web": { "local_port": 8099, "nginx": { "name": "miniflux" } } },
         "mongodb":            { "categories": ["databases"], "license": "SSPL-1.0", "data_folder": "_mongodb", "keeps_data": true, "requires": { "ram_mb": 1024 } },
         "music-assistant":    { "categories": ["music", "home"], "license": "Apache-2.0", "data_folder": "_music-assistant", "keeps_data": true, "requires": { "ram_mb": 2048 }, "web": { "port": 8095, "nginx": { "name": "music" } } },

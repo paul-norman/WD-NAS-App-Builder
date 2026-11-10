@@ -1,0 +1,6 @@
+{
+    "name":    "memos",
+    "label":   "Memos",
+    "target":  "http://127.0.0.1:5230",
+    "uploads": true
+}
