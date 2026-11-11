@@ -8,9 +8,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=2.18.2
+VERSION=2.19.0
 # Tautulli's release has no source archive of its own: GitHub's archive of its tag, pinned here
-TAUTULLI_SHA256=cde285c9954bcdd7680f5d9d268ccde2751c8c84e2146db25f0c83e5d3e8f293
+TAUTULLI_SHA256=e336b4e862a1959099b1058ef21624f24db261a81751b586ebb76807f7a9cb4e
 # Tautulli needs Python 3.11 or later (its own tests run on 3.11 and 3.14)
 PYTHON_VERSION=3.14.10
 PYTHON_RELEASE=20261026

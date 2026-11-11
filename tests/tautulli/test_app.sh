@@ -53,9 +53,9 @@ grep -q 'proxy_pass *http://127.0.0.1:8181' $P/_nginx/sites/60-app-tautulli.conf
 echo '== its page'
 page_up tautulli
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"2.18.2"' ] && [ "$(echo "$ST" | j '$d["set_up"]')" = false ] \
+[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"2.19.0"' ] && [ "$(echo "$ST" | j '$d["set_up"]')" = false ] \
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://tautulli.$DOMAIN/\"" ] && [ "$(echo "$ST" | j '$d["plex"]')" = false ] \
-    && pass "the page: Tautulli 2.18.2 answering, not set up yet, its address https://tautulli.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
+    && pass "the page: Tautulli 2.19.0 answering, not set up yet, its address https://tautulli.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
 OLD=$(cat $D/password)
 [ "$(post password | j '$d["password"]')" = "\"$OLD\"" ] && pass 'the page shows the password' || fail 'password not shown'
 [ "$(post set_password -d password=short | j '$d["ok"]')" = false ] && pass 'a short password refused' || fail 'short password accepted'
