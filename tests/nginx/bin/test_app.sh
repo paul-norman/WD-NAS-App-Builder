@@ -197,3 +197,15 @@ rm -f $D/sites/90-mine.conf; post reload -d confirm=1 > /dev/null
 echo '== stopping'
 sh $P/nginx/stop.sh $P/nginx > /dev/null 2>&1; sleep 2
 [ "$(code -k https://127.0.0.1/)" = 000 ] && pass 'stopped' || fail 'still answering'
+
+echo '== after a reboot (its PID files left behind)'
+# An unclean shutdown can leave the PID file empty (BusyBox's `kill -0 ""` succeeds), or holding a number another
+# process has now (here this shell's, the file dated before the NAS started)
+: > $D/logs/nginx.pid; : > $D/logs/php-fpm.pid
+sh $P/nginx/start.sh $P/nginx > /dev/null 2>&1; sleep 2
+[ "$(code -k https://127.0.0.1/)" != 000 ] && pass 'an empty PID file: started' || fail "empty PID file: $(tail -3 /tmp/debug_apkg)"
+sh $P/nginx/stop.sh $P/nginx > /dev/null 2>&1; sleep 2
+echo $$ > $D/logs/nginx.pid; touch -d '2000-01-01' $D/logs/nginx.pid
+sh $P/nginx/start.sh $P/nginx > /dev/null 2>&1; sleep 2
+[ "$(code -k https://127.0.0.1/)" != 000 ] && pass "a PID file from before the NAS started: started" || fail "old PID file: $(tail -3 /tmp/debug_apkg)"
+sh $P/nginx/stop.sh $P/nginx > /dev/null 2>&1

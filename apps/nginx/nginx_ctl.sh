@@ -43,11 +43,35 @@ workers() {
     done
 }
 
+# Whether a PID file's process is running. The file must hold a number (BusyBox's `kill -0 ""` succeeds - it signals
+# its own process group) and have been written since the NAS started: a reboot can leave the file empty, or holding a
+# number some other process now has.
+#
+# $1 The PID file
+#
+# Returns 0 if it is running
+pid_running() {
+    pid="$(cat "$1" 2>/dev/null)"
+
+    case "${pid}" in
+        '' | *[!0-9]*) return 1 ;;
+    esac
+
+    booted="$(awk '$1 == "btime" { print $2 }' /proc/stat 2>/dev/null)"
+    written="$(date -r "$1" +%s 2>/dev/null)"
+
+    if [ -n "${booted}" ] && [ -n "${written}" ] && [ "${written}" -lt "${booted}" ]; then
+        return 1
+    fi
+
+    kill -0 "${pid}" 2>/dev/null
+}
+
 # Whether the app's process is running (its PID file's process).
 #
 # Returns 0 if it is
 running() {
-    [ -f "${PID_FILE}" ] && kill -0 "$(cat "${PID_FILE}")" 2>/dev/null
+    pid_running "${PID_FILE}"
 }
 
 # Nginx's worker processes run as nobody, with its own group - whose name differs between systems (e.g. nogroup on
@@ -111,7 +135,7 @@ setup() {
 }
 
 php_running() {
-    [ -f "${PHP_PID_FILE}" ] && kill -0 "$(cat "${PHP_PID_FILE}")" 2>/dev/null
+    pid_running "${PHP_PID_FILE}"
 }
 
 php_start() {
@@ -174,7 +198,13 @@ start() {
 
 stop() {
     php_stop
-    running || return 0
+
+    if ! running; then
+        rm -f "${PID_FILE}"
+
+        return 0
+    fi
+
     pid="$(cat "${PID_FILE}")"
     nginx -s quit
     waited=0
