@@ -108,7 +108,10 @@ sh $P/tasks/stop.sh $P/tasks > /dev/null 2>&1; sh $P/tasks/start.sh $P/tasks > /
 [ "$(wc -l < /tmp/booted)" = 1 ] && pass 'switched off and on again: not run again (once per boot)' || fail "boot again: $(cat /tmp/booted)"
 printf 'sleep 30\n' > /tmp/shutdown.sh; (sh /tmp/shutdown.sh &); sleep 1
 sh $P/tasks/stop.sh $P/tasks > /dev/null 2>&1
-[ -f /tmp/shutdown-ran ] && pass 'the NAS shutting down (WD'"'"'s shutdown.sh running): its shutdown task ran' || fail "shutdown: $(ps | grep shutdown)"
+sh $P/tasks/start.sh $P/tasks > /dev/null 2>&1; sh $P/tasks/stop.sh $P/tasks > /dev/null 2>&1
+[ "$(wc -l < /tmp/shutdown-ran 2>/dev/null)" = 1 ] && pass 'the NAS shutting down (WD'"'"'s shutdown.sh running): its shutdown task ran, once though stopped twice' \
+    || fail "shutdown: $(cat /tmp/shutdown-ran 2>&1) $(ps | grep shutdown)"
+rm -f /var/run/tasks.shutdown
 pkill -f /tmp/shutdown.sh 2>/dev/null
 sh $P/tasks/start.sh $P/tasks > /dev/null 2>&1
 

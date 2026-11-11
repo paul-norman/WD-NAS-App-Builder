@@ -21,6 +21,8 @@ HISTORY="${DATA_PATH}/history.log"
 CRON_TAGS="${DATA_PATH}/cron_tags"
 ACTIVE=/var/run/tasks.active
 BOOTED=/var/run/tasks.booted
+# Set once the shutdown tasks have run: WD's shutdown can stop the app more than once (seen on a PR4100)
+SHUT_DOWN=/var/run/tasks.shutdown
 LOG=/tmp/debug_apkg
 # A task's last run's output is kept up to this size (its end)
 OUTPUT_BYTES=262144
@@ -313,11 +315,13 @@ start() {
     return 0
 }
 
-# Stops the app: runs its shutdown tasks if the NAS is going down, then takes its tasks out of cron.
+# Stops the app: runs its shutdown tasks if the NAS is going down (once, though WD may stop it twice), then takes its
+# tasks out of cron.
 #
 # Prints nothing; returns 0
 stop() {
-    if shutting_down; then
+    if shutting_down && [ ! -f "${SHUT_DOWN}" ]; then
+        touch "${SHUT_DOWN}"
         log 'the NAS is shutting down: running the shutdown tasks'
         run_all shutdown
     fi
