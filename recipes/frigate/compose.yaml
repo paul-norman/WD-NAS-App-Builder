@@ -1,0 +1,51 @@
+# Frigate on a WD My Cloud NAS (OS5, Intel models) - based on Frigate's own Docker instructions:
+#     https://docs.frigate.video/frigate/installation#docker
+#
+# Changes from Frigate's example (see README.md):
+#  - the NAS's Intel GPU (/dev/dri) decodes the cameras' video, with the i965 driver (the N3710's Braswell graphics are
+#    too old for Intel's newer iHD driver)
+#  - USB devices are passed in for a Coral USB accelerator - as a folder plus a device rule, as a Coral changes its USB
+#    ID once its firmware is loaded (a fixed device would vanish from the container then)
+#  - only the logged-in web interface is published (8971 - its HTTPS is the Nginx app's: TLS is off in its settings),
+#    not Frigate's unauthenticated port 5000; 8554 is its RTSP restream (e.g. for Home Assistant)
+#  - container logs are capped (Docker keeps them on the NAS's disk, forever otherwise)
+#
+# Run it from the folder holding this file and its .env (setup.sh puts both in /mnt/HD/HD_a2/Nas_Prog/_frigate).
+
+name: frigate
+
+services:
+  frigate:
+    container_name: frigate
+    image: ghcr.io/blakeblackshear/frigate:${FRIGATE_VERSION:-0.18.2}
+    restart: unless-stopped
+    stop_grace_period: 30s
+    # Frames handed between Frigate's processes (about 30MB per 720p camera) - in memory, used only as needed
+    shm_size: 512mb
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      # Frigate's settings (config.yml) and database
+      - ${CONFIG_LOCATION}:/config
+      # The recordings, clips and snapshots (RECORDINGS in .env)
+      - ${RECORDINGS}:/media/frigate
+      # A Coral USB accelerator (char major 189: USB devices)
+      - /dev/bus/usb:/dev/bus/usb
+      # Recording segments are written here first, then moved to the disks: in memory, sparing them
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    device_cgroup_rules:
+      - 'c 189:* rmw'
+    environment:
+      TZ: ${TZ}
+      LIBVA_DRIVER_NAME: i965
+    ports:
+      - '8971:8971'
+      - '8554:8554'
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'

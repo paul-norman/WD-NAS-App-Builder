@@ -1,0 +1,69 @@
+# Frigate's remote detector, for another machine on the network (not the NAS): a Raspberry Pi 5 with a Hailo-8L (or
+# Hailo-8), or a PC. It runs one of Frigate's own detectors, in Frigate's own image, and Frigate on the NAS sends it the
+# frames to look at - see README.md. Start the one for your hardware, from the folder holding this file:
+#
+#     docker compose --profile hailo up -d       # Raspberry Pi 5 + Hailo-8L / Hailo-8 (Hailo's driver installed)
+#     docker compose --profile openvino up -d    # A PC with an Intel GPU (or OPENVINO_DEVICE=CPU: any Intel / AMD CPU)
+#     docker compose --profile coral up -d       # A Coral USB accelerator plugged into this machine
+#
+# Then set the NAS's Frigate recipe to "Another machine", at this machine's address and port 5555.
+# Use the same Frigate version as the NAS (FRIGATE_VERSION).
+
+name: frigate-detector
+
+x-detector: &detector
+  image: ghcr.io/blakeblackshear/frigate:${FRIGATE_VERSION:-0.18.2}
+  restart: unless-stopped
+  entrypoint: ['python3', '-u', '/server/detector_server.py']
+  working_dir: /opt/frigate
+  volumes:
+    - ./detector_server.py:/server/detector_server.py:ro
+    # Models downloaded on first use (Hailo's)
+    - ./model_cache:/config/model_cache
+  ports:
+    - '${PORT:-5555}:5555'
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
+
+services:
+  hailo:
+    <<: *detector
+    container_name: frigate-detector
+    profiles: [hailo]
+    environment:
+      DETECTOR: hailo8l
+    devices:
+      - /dev/hailo0:/dev/hailo0
+
+  openvino:
+    <<: *detector
+    container_name: frigate-detector
+    profiles: [openvino]
+    environment:
+      DETECTOR: openvino
+      OPENVINO_DEVICE: ${OPENVINO_DEVICE:-GPU}
+    devices:
+      - /dev/dri:/dev/dri
+
+  coral:
+    <<: *detector
+    container_name: frigate-detector
+    profiles: [coral]
+    environment:
+      DETECTOR: edgetpu
+    volumes:
+      - ./detector_server.py:/server/detector_server.py:ro
+      - /dev/bus/usb:/dev/bus/usb
+    device_cgroup_rules:
+      - 'c 189:* rmw'
+
+  # For testing: the CPU (slow - not for real use)
+  cpu:
+    <<: *detector
+    container_name: frigate-detector
+    profiles: [cpu]
+    environment:
+      DETECTOR: cpu

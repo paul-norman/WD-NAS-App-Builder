@@ -1,0 +1,84 @@
+{
+    "recipe_version": 1,
+    "id":             "frigate",
+    "name":           "Frigate",
+    "version":        "0.18.2-1",
+    "summary":        "Security cameras: records your IP cameras and spots people, cars and animals in them, all on the NAS",
+    "description":    "description.md",
+    "compose":        "compose.yaml",
+    "project":        "frigate",
+    "data_folder":    "_frigate",
+    "requires":       {
+        "arch":             "amd64",
+        "apps":             ["docker"],
+        "docker_memory_mb": 2048,
+        "disk_mb":          16384,
+        "storage_driver":   "overlay2"
+    },
+    "web":     { "port": 8971, "ready_timeout": 600, "nginx": { "name": "cameras", "stream": true } },
+    "options": [
+        {
+            "key":      "RECORDINGS",
+            "type":     "folder",
+            "label":    "Recordings folder",
+            "help":     "Where Frigate keeps its recordings, clips and snapshots - on a share, so they can also be copied off over SMB. Frigate deletes old recordings itself (after 7 days by default, alerts and detections after 30). A new, empty folder.",
+            "default":  "{share:Cameras}/Frigate",
+            "on_share": true,
+            "create":   true
+        },
+        {
+            "key":     "DETECTOR",
+            "type":    "choice",
+            "label":   "Object detection",
+            "help":    "What spots people, cars and animals. The NAS's own processor manages one or two quiet cameras; a Coral USB accelerator (plugged into the NAS) or another machine on your network (e.g. a Raspberry Pi 5 with a Hailo-8L, or a PC) handles 4-8. Manual: the detectors and model sections of Frigate's own settings are left as you've set them.",
+            "default": "cpu",
+            "choices": [
+                { "value": "cpu", "label": "The NAS's processor (1-2 cameras)" },
+                { "value": "coral", "label": "Coral USB accelerator, plugged into the NAS" },
+                { "value": "remote", "label": "Another machine on the network (Frigate's remote detector)" },
+                { "value": "manual", "label": "Manual (set in Frigate's own settings)" }
+            ]
+        },
+        {
+            "key":      "REMOTE_DETECTOR",
+            "type":     "string",
+            "label":    "Remote detector address",
+            "help":     "For \"Another machine\": its address and port, e.g. 192.168.1.50:5555 - where the recipe's detector server runs (see the recipe's README: remote-detector). It's asked which model it uses when the settings are saved, so it must be running then.",
+            "required": false,
+            "pattern":  "^([A-Za-z0-9.-]+:[0-9]{1,5})?$",
+            "default":  ""
+        },
+        {
+            "key":          "ADMIN_PASSWORD",
+            "type":         "password",
+            "label":        "Admin password",
+            "help":         "For Frigate's admin user (admin). It can be changed later in Frigate (Settings -> Users).",
+            "min_length":   8,
+            "install_only": true
+        },
+        {
+            "key":      "TZ",
+            "type":     "timezone",
+            "label":    "Time zone",
+            "default":  "{nas:timezone}",
+            "advanced": true
+        },
+        {
+            "key":      "FRIGATE_VERSION",
+            "type":     "choice",
+            "label":    "Frigate version",
+            "help":     "The Frigate release to run. A remote detector should run the same version.",
+            "default":  "0.18.2",
+            "choices":  [{ "value": "0.18.2", "label": "Frigate 0.18.2" }],
+            "advanced": true
+        },
+        { "key": "CONFIG_LOCATION", "type": "hidden", "default": "{data}/config", "create": true }
+    ],
+    "hooks":     {
+        "pre_install":  "hooks/pre_install.sh",
+        "post_install": "hooks/configure.sh",
+        "post_update":  "hooks/configure.sh",
+        "post_change":  "hooks/configure.sh"
+    },
+    "uninstall": { "keep": ["RECORDINGS"] }
+}

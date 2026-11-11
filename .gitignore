@@ -26,3 +26,5 @@ local.mk
 .env
 *.DS_Store
 *~
+
+recipes/frigate/remote-detector/model_cache/

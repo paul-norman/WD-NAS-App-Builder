@@ -1,7 +1,7 @@
 #!/bin/bash
 # Tests the Store app in a stand-in for the NAS (see README.md):
 #
-#     tests/store/run_tests.sh [repos_apps|recipes|auto|immich|pihole|arr|signatures|ui|all] [--php 7.4|8.5|both]
+#     tests/store/run_tests.sh [repos_apps|recipes|auto|immich|pihole|arr|frigate|signatures|ui|all] [--php 7.4|8.5|both]
 #
 # Default: all (except ui) on PHP 7.4. Needs Docker on Linux (host networking; ports 8080, 8443, 18081 and 2283 free),
 # Python 3, and the apps' packages built for the PR4100 (the Store's is built here). Work files go in $STORE_TEST_WORK
@@ -16,8 +16,8 @@ PHP='7.4'
 [ "${2:-}" = '--php' ] && PHP="${3:-7.4}"
 
 case "${WHAT}" in
-    all) TESTS='repos_apps recipes auto immich pihole arr signatures' ;;
-    repos_apps|recipes|auto|immich|pihole|arr|signatures|ui) TESTS="${WHAT}" ;;
+    all) TESTS='repos_apps recipes auto immich pihole arr frigate signatures' ;;
+    repos_apps|recipes|auto|immich|pihole|arr|frigate|signatures|ui) TESTS="${WHAT}" ;;
     *) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac
 
@@ -94,6 +94,20 @@ compose = compose.replace("'53:53/", "'1053:53/").replace("'8053:80/tcp'", "'180
 (folder / "compose.yaml").write_text(compose)
 hook = (folder / "hooks/pre_install.sh").read_text()
 (folder / "hooks/pre_install.sh").write_text(hook.replace("'tcp 53 0035' 'udp 53 0035' 'tcp 8053 1F75'", "'tcp 1053 041D' 'udp 1053 041D' 'tcp 18053 4685'"))
+EOF
+# ... and of the Frigate recipe for this machine (no Intel GPU or USB devices, a lower disk requirement)
+cp -r "${PROJ}/recipes/frigate" "${WORK}/fixtures/frigate-small"
+rm -rf "${WORK}/fixtures/frigate-small/"{setup.sh,example.env,README.md,remote-detector}
+python3 - "${WORK}/fixtures/frigate-small" <<'EOF'
+import json, pathlib, re, sys
+folder = pathlib.Path(sys.argv[1])
+recipe = json.loads((folder / "recipe.json").read_text())
+recipe["requires"]["disk_mb"] = 2048
+(folder / "recipe.json").write_text(json.dumps(recipe, indent="\t"))
+compose = (folder / "compose.yaml").read_text()
+compose = compose.replace("    devices:\n      - /dev/dri:/dev/dri\n", "")
+compose = re.sub(r"      # A Coral USB.*\n      - /dev/bus/usb:/dev/bus/usb\n", "", compose)
+(folder / "compose.yaml").write_text(compose)
 EOF
 
 echo 'Building the Store app'

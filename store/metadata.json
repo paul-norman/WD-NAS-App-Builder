@@ -96,6 +96,7 @@
         }
     },
     "recipes": {
-        "immich": { "categories": ["photos", "media"], "homepage": "https://immich.app/", "license": "AGPL-3.0-only" }
+        "immich":  { "categories": ["photos", "media"], "homepage": "https://immich.app/", "license": "AGPL-3.0-only" },
+        "frigate": { "categories": ["security", "home"], "homepage": "https://frigate.video/", "license": "MIT" }
     }
 }
