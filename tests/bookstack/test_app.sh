@@ -86,9 +86,9 @@ mkdir -p $D/storage/uploads/images/gallery/2026-11 && cp $P/bookstack/web/bookst
 echo '== its page'
 page_up bookstack
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"26.09.2"' ] && [ "$(echo "$ST" | j '$d["db"]["state"]')" = '"ok"' ] \
+[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"26.09.3"' ] && [ "$(echo "$ST" | j '$d["db"]["state"]')" = '"ok"' ] \
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://bookstack.$DOMAIN/\"" ] \
-    && pass "the page: BookStack 26.09.2 answering, its database set up, its address https://bookstack.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
+    && pass "the page: BookStack 26.09.3 answering, its database set up, its address https://bookstack.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password | j '$d["password"]')" = "\"$PW\"" ] && pass 'the page shows the password' || fail 'password not shown'
 R=$(post set_password -d password=Brand.New-Password_1)
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && logged_in "$(login admin@nas.local Brand.New-Password_1)" && ! logged_in "$(login admin@nas.local "$PW")" \
