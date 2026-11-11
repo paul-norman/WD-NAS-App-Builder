@@ -24,7 +24,7 @@ listens_beyond && fail 'listens beyond the NAS' || pass 'listens only on the NAS
     && grep -q 'authorization: enabled' $D/conf/mongod.conf && grep -q 'cacheSizeGB: 0.50' $D/conf/mongod.conf \
     && pass "its configuration root's (its group reads it: logins required, a 512MB cache), its data its own, its password root's" \
     || fail "files: $(stat -c '%n %U %G %a' $D/conf/mongod.conf $D/db $D/password)"
-$BIN/mongod --version | grep -q 'db version v8.0.34' && ldd $BIN/mongod | grep -q "mongodb/binaries/bin/../lib/libssl.so.3" \
+$BIN/mongod --version | grep -q 'db version v8.0.38' && ldd $BIN/mongod | grep -q "mongodb/binaries/bin/../lib/libssl.so.3" \
     && pass "MongoDB $($BIN/mongod --version | sed -n 's/^db version v//p'), with its own OpenSSL 3" || fail "version: $($BIN/mongod --version | head -n 3) $(ldd $BIN/mongod)"
 
 echo '== logins'
@@ -47,8 +47,8 @@ tr '\0' ' ' < /proc/$PID/cmdline | grep -q "$PW" && fail 'its password on its co
 echo '== its page'
 page_up mongodb
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"8.0.34"' ] && echo "$ST" | j '$d["databases"]' | grep -q '"family"' \
-    && pass "the page: MongoDB 8.0.34 answering, its databases (family among them)" || fail "status: $(echo "$ST" | head -c 400)"
+[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"8.0.38"' ] && echo "$ST" | j '$d["databases"]' | grep -q '"family"' \
+    && pass "the page: MongoDB 8.0.38 answering, its databases (family among them)" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password | j '$d["password"]')" = "\"$PW\"" ] && pass 'the page shows the password' || fail 'password not shown'
 R=$(post set_password -d password=Brand.New-Password_1)
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(sh_as admin Brand.New-Password_1 admin 'print(db.runCommand({ connectionStatus: 1 }).authInfo.authenticatedUsers.length)')" = 1 ] \
