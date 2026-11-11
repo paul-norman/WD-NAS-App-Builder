@@ -5,6 +5,7 @@ upstream releases (ci/updates.conf) and brings one up to date:
     python3 ci/updates.py check [--json] [<target> ...]
     python3 ci/updates.py apply <target> <version>
     python3 ci/updates.py run [--limit <n>]
+    python3 ci/updates.py merge [<branch>]
 
 check: each target's current version, the newest upstream one it may move
 to, and what an update to it would be - patch, minor or major, its release
@@ -24,6 +25,10 @@ needed.
 run: the workflow's work - a pull request per update, auto-merge where the
 policy allows, stale update pull requests closed (see run()).
 
+merge: only the merging - each open update pull request (or the one on
+<branch>, e.g. update/grafana) merged if the policy allows it and CI has
+passed (see merge()): run when CI finishes on one, and every few hours.
+
 Network access: GitHub through gh (GH_TOKEN), the rest over HTTPS.
 """
 
@@ -36,6 +41,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
@@ -45,6 +51,10 @@ import plan  # noqa: E402
 
 CONF = REPO / "ci" / "updates.conf"
 USER_AGENT = "wd-nas-app-builder-updates/1.0"
+# A new release whose download isn't published yet (a 404 - e.g. a tag made
+# before the release files) is tried again for this many hours before it's a
+# problem
+UNPUBLISHED_HOURS = 7 * 24
 # An update merges by itself only once its release is this many hours old
 # (unless it's a security fix): time for upstream to withdraw a bad one
 WAIT_HOURS = 24
@@ -290,29 +300,13 @@ def kind(old, new):
     return "patch"
 
 
-def tested(name):
-    """
-    Whether an app is tested beyond the shared package test (Tier 2): by a
-    suite of its own, or one that installs it with others (e.g. Prometheus,
-    in the monitoring apps' suite) - only those merge by themselves.
-
-    :param str name: The app
-
-    :return: True if it is
-    """
-    suites = plan.suites()
-
-    return name in suites or any(
-        name in needs for lines in suites.values() for needs, _ in lines
-    )
-
-
 def policy(name, target, update):
     """
     Whether an update may merge by itself once CI passes: a patch or minor
-    one, of an app with a test suite of its own that isn't always reviewed by
-    hand (manual=yes in updates.conf), whose release is WAIT_HOURS old - or
-    a security fix. A release without a date counts from when its pull request
+    one, of an app that isn't always reviewed by hand (manual=yes in
+    updates.conf), whose release is WAIT_HOURS old - or a security fix. Apps
+    without a test suite of their own merge too, on their build and the shared
+    package test. A release without a date counts from when its pull request
     was opened (the workflow checks that).
 
     :param str  name:   The app
@@ -326,9 +320,6 @@ def policy(name, target, update):
 
     if update["kind"] == "major":
         return "no", "a major version"
-
-    if not tested(name):
-        return "no", "no test suite of its own"
 
     if update["security"]:
         return "yes", "a security fix"
@@ -826,6 +817,16 @@ def run(limit):
                         check=True,
                     )
                     changed.append(str(lock_file(name).relative_to(REPO)))
+            except urllib.error.HTTPError as error:
+                git("checkout", "-f", "origin/main")
+
+                if error.code == 404 and not old_release(update):
+                    print(f"{name} {version}: not published yet ({error.url}"
+                          " is missing) - tried again next run")
+                else:
+                    problems.append(f"{name} {version}: {error} ({error.url})")
+
+                continue
             except (OSError, subprocess.CalledProcessError,
                     ValueError) as error:
                 problems.append(f"{name} {version}: {error}")
@@ -852,23 +853,106 @@ def run(limit):
 
             git("checkout", "-f", "origin/main")
 
-        # A release without a date: counted from its pull request
-        if decision == "wait" and update["date"] is None:
-            if hours_since(parse_date(pr["createdAt"])) >= WAIT_HOURS:
-                decision = "yes"
+        merge_pr(update, pr)
 
-        if decision != "yes":
-            print(f"{name} {version}: not merged ({reason})")
-            continue
+    return problems
 
-        passed, why = ci_passed(pr["number"])
 
-        if passed:
-            gh("pr", "merge", str(pr["number"]), "--squash",
-               "--delete-branch")
-            print(f"{name} {version}: merged (#{pr['number']})")
+def old_release(update):
+    """
+    Whether a release is old enough that a missing download is a problem,
+    rather than not published yet.
+
+    :param dict update: The update (date)
+
+    :return: True if it is
+    """
+    return (
+        update["date"] is not None
+        and hours_since(update["date"]) >= UNPUBLISHED_HOURS
+    )
+
+
+def merge_pr(update, pr):
+    """
+    Merges an update's pull request if the policy allows it and CI has passed
+    on its latest changes, saying what it did.
+
+    :param dict update: The update (its auto and reason from policy())
+    :param dict pr:     Its pull request (number, createdAt)
+
+    :return: True if it was merged
+    """
+    name, version = update["target"], update["version"]
+    decision, reason = update["auto"], update["reason"]
+
+    # A release without a date: counted from its pull request
+    if decision == "wait" and update["date"] is None:
+        if hours_since(parse_date(pr["createdAt"])) >= WAIT_HOURS:
+            decision = "yes"
+
+    if decision != "yes":
+        print(f"{name} {version}: not merged ({reason})")
+
+        return False
+
+    passed, why = ci_passed(pr["number"])
+
+    if not passed:
+        print(f"{name} {version}: not merged yet (#{pr['number']}: {why})")
+
+        return False
+
+    gh("pr", "merge", str(pr["number"]), "--squash", "--delete-branch")
+    print(f"{name} {version}: merged (#{pr['number']})")
+
+    return True
+
+
+def merge(branch=None):
+    """
+    Only the merging (see the module's description): each open update pull
+    request - or the one on branch - checked against its app's newest release
+    (made by the update check: the same title), and merged where the policy
+    allows once CI has passed. Pull requests from forks, or that a newer
+    release has overtaken, are left for the next update check.
+
+    :param str branch: Only this pull request's branch (e.g. update/grafana)
+
+    :return: The problems found (text)
+    """
+    prs = [
+        pr for pr in json.loads(gh(
+            "pr", "list", "--state", "open", "--label", "automatic update",
+            "--json", "number,headRefName,title,createdAt,isCrossRepository",
+            "--limit", "200",
+        ))
+        if pr["headRefName"].startswith("update/")
+        and not pr["isCrossRepository"]
+        and (branch is None or pr["headRefName"] == branch)
+    ]
+
+    if not prs:
+        where = f" on {branch}" if branch else ""
+        print(f"No open update pull request{where}")
+
+        return []
+
+    names = [pr["headRefName"][len("update/"):] for pr in prs]
+    targets = load_conf()
+    updates, problems = check([name for name in names if name in targets])
+    by_name = {update["target"]: update for update in updates}
+
+    for name, pr in zip(names, prs):
+        update = by_name.get(name)
+
+        if update is None:
+            print(f"{name}: #{pr['number']} - no update found for it now")
+        elif pr["title"] != f"Update {name} to {update['version']}":
+            print(f"{name}: #{pr['number']} is for an older release than "
+                  f"{update['version']} - the next update check replaces it")
         else:
-            print(f"{name} {version}: not merged yet (#{pr['number']}: {why})")
+            merge_pr(update, pr)
 
     return problems
 
@@ -937,6 +1021,8 @@ def main():
     step.add_argument("targets", nargs="*")
     step = steps.add_parser("run")
     step.add_argument("--limit", type=int, default=10)
+    step = steps.add_parser("merge")
+    step.add_argument("branch", nargs="?")
     step = steps.add_parser("apply")
     step.add_argument("target")
     step.add_argument("version")
@@ -961,8 +1047,11 @@ def main():
 
             for problem in problems:
                 print(f"PROBLEM {problem}")
-    elif args.step == "run":
-        problems = run(args.limit)
+    elif args.step in ("run", "merge"):
+        if args.step == "run":
+            problems = run(args.limit)
+        else:
+            problems = merge(args.branch)
 
         for problem in problems:
             print(f"PROBLEM {problem}")
