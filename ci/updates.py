@@ -508,7 +508,7 @@ def downloads(text):
             continue
 
         url = re.search(r'"(https?://[^"]+)"', line)
-        sha = re.search(r"\$\{([A-Z0-9_]+SHA256)\}", line)
+        sha = re.search(r"\$\{([A-Z0-9_]*SHA256)\}", line)
 
         if url and sha:
             found.append((url.group(1), sha.group(1)))
