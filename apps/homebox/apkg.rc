@@ -1,0 +1,23 @@
+Package:			homebox
+Version:			0.27.1
+Packager:			PDN
+Email:
+Homepage:			https://homebox.software/
+Description:		Homebox: a home inventory - what you own, where it is, receipts, warranties and labels - kept on the NAS.
+Icon:				homebox.svg
+AddonShowName:		Homebox
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off
