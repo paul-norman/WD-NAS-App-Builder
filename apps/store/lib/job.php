@@ -22,7 +22,9 @@ if ($spec === null) {
     exit(1);
 }
 
-$lock = fopen($jobs.'/lock', 'c');
+// Close-on-exec (e): otherwise every program the job starts inherits the lock, and one that keeps running (e.g. Nginx,
+// started by its reload) would hold it - every later job would then stop at once, without a word
+$lock = fopen($jobs.'/lock', 'ce');
 
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
     exit(1);
@@ -32,7 +34,7 @@ ignore_user_abort(true);
 set_time_limit(0);
 umask(022);
 
-$GLOBALS['job_log'] = fopen($jobs.'/job.log', 'w');
+$GLOBALS['job_log'] = fopen($jobs.'/job.log', 'we');
 
 chmod($jobs.'/job.log', 0600);
 

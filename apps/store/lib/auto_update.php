@@ -41,7 +41,8 @@ $jobs = store_data_path().'/jobs';
 
 store_mkdir($jobs);
 
-$lock = fopen($jobs.'/lock', 'c');
+// Close-on-exec (e): the programs it starts mustn't inherit the lock (see job.php)
+$lock = fopen($jobs.'/lock', 'ce');
 
 for ($i = 0; $i < 60 && $lock && !flock($lock, LOCK_EX | LOCK_NB); $i++) {
     sleep(60);
