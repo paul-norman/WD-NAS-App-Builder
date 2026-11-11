@@ -190,7 +190,7 @@ docker_setup() {
         fi
     done
 
-    # The app's own modules: overlay (for the overlay2 storage driver) and iptable_raw (see docker_start)
+    # The app's own modules: overlay (for containerd's overlayfs image storage) and iptable_raw (see docker_start)
     load_app_module overlay
     load_app_module iptable_raw
 
@@ -231,24 +231,26 @@ docker_start() {
         export DOCKER_INSECURE_NO_IPTABLES_RAW=1
     fi
 
-    # overlay2 when the overlay module is loaded, otherwise vfs (works everywhere, but every image layer is a full
-    # copy). Each driver stores its own images and containers, so switching driver hides those stored with the other one
-    storage_driver=vfs
-
+    # Images are stored by containerd (daemon.json turns its image store on: Docker would otherwise keep the older one on
+    # a NAS that already used it). It lays them out with overlay when the overlay module is loaded, otherwise with
+    # "native" (works everywhere, but every image layer is a full copy). Unlike Docker's older store, containerd skips
+    # file attributes that WD's ext4 can't store (security.capability), rather than failing to pull such images
     if grep -q "overlay$" /proc/filesystems; then
-        storage_driver=overlay2
+        log 'Image storage: containerd with overlayfs'
+    else
+        log 'Image storage: containerd with native (no overlay module: every image layer is a full copy)'
     fi
-    log "Storage driver: ${storage_driver}"
 
-    for other in vfs overlay2; do
-        if [ "${other}" != "${storage_driver}" ] && [ -d "${DOCKER_ROOT}/${other}" ]; then
-            log "Note: images and containers stored with ${other} aren't available with ${storage_driver} (delete ${DOCKER_ROOT}/${other} to free its space)"
+    # Images and containers from Docker's older image store (overlay2 or vfs) stay on disk, but are no longer used
+    for old in overlay2 vfs; do
+        if [ -d "${DOCKER_ROOT}/${old}" ]; then
+            log "Note: images and containers from Docker's older ${old} store aren't used any more: pull or create them again, then delete ${DOCKER_ROOT}/${old} and ${DOCKER_ROOT}/image/${old} to free their space"
         fi
     done
 
     # Join the memory cgroup before starting the daemon, so that containerd and all containers are limited too
     log "Starting dockerd (log: ${DOCKER_LOG})"
-    sh -c 'echo $$ > /sys/fs/cgroup/memory/docker/tasks 2>/dev/null; exec "$0" --ip-masq=true --config-file "$1" --storage-driver "$2"' "${DOCKERD}" "${DOCKER_CONFIG_FILE}" "${storage_driver}" >> "${DOCKER_LOG}" 2>&1 &
+    sh -c 'echo $$ > /sys/fs/cgroup/memory/docker/tasks 2>/dev/null; exec "$0" --ip-masq=true --config-file "$1"' "${DOCKERD}" "${DOCKER_CONFIG_FILE}" >> "${DOCKER_LOG}" 2>&1 &
     pid=$!
 
     # Wait for the daemon to accept commands

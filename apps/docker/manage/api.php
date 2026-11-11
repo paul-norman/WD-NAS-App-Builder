@@ -196,12 +196,14 @@ if ($action === 'status') {
         }
     }
 
-    $driver        = $running && isset($info['Driver']) ? $info['Driver'] : '';
-    $unused_driver = '';
+    // Containerd's way of laying out images: overlayfs, or native without the overlay module
+    $driver     = $running && isset($info['Driver']) ? $info['Driver'] : '';
+    $old_stores = [];
 
-    foreach (['vfs', 'overlay2'] as $other) {
-        if ($driver !== '' && $other !== $driver && is_dir($docker_root.'/'.$other)) {
-            $unused_driver = $other;
+    // Docker's older image store (overlay2 or vfs): no longer used, its folders only take up space
+    foreach (['overlay2', 'vfs'] as $old) {
+        if (is_dir($docker_root.'/'.$old)) {
+            $old_stores[] = $old;
         }
     }
 
@@ -210,7 +212,7 @@ if ($action === 'status') {
         'restarting'          => docker_restarting($restart_pid_file),
         'version'             => $running ? $info['ServerVersion'] : '',
         'driver'              => $driver,
-        'unused_driver'       => $unused_driver,
+        'old_stores'          => $old_stores,
         'docker_root'         => $docker_root,
         'images'              => $running && isset($info['Images']) ? (int)$info['Images'] : 0,
         'containers'          => $containers,
@@ -223,7 +225,7 @@ if ($action === 'status') {
 }
 
 if ($action === 'disk') {
-    // Can take a few seconds (especially with vfs), so it isn't part of the regular status
+    // Can take a few seconds (especially with native storage), so it isn't part of the regular status
     $rows = docker_json_lines($docker, ['system', 'df', '--format', '{{json .}}']);
 
     if ($rows === null) {

@@ -14,7 +14,7 @@ header('Cache-Control: no-store');
     <table>
         <tr><td>Status</td><td data-dk="status">…</td></tr>
         <tr><td>Version</td><td data-dk="version">-</td></tr>
-        <tr><td>Storage driver</td><td data-dk="driver">-</td></tr>
+        <tr><td>Image storage</td><td data-dk="driver">-</td></tr>
         <tr><td>Kernel modules</td><td data-dk="modules">-</td></tr>
         <tr><td>Memory</td><td data-dk="memory">-</td></tr>
     </table>
@@ -177,7 +177,7 @@ header('Cache-Control: no-store');
 
             if (wrongFirmware) {
                 note = 'The modules were built for firmware ' + kernel.built_for + ', but this NAS runs ' + kernel.firmware +
-                    ': rebuild the app for it to use overlay2 again.';
+                    ': rebuild the app for it to use overlayfs again.';
             } else if (anyCrashed) {
                 note = 'Loading a module never finished, so it is no longer tried. Retry only if the NAS crashed for another reason.';
             }
@@ -211,17 +211,20 @@ header('Cache-Control: no-store');
 
                 let driver = part('driver');
 
-                driver.textContent = response.driver ? response.driver + (response.driver === 'vfs' ? ' (every image layer is a full copy - uses much more disk space)' : '') : '-';
-                driver.className   = response.driver === 'vfs' ? 'mg-bad' : '';
+                driver.textContent = response.driver ? 'containerd, ' + response.driver + (response.driver === 'native' ? ' (every image layer is a full copy - uses much more disk space)' : '') : '-';
+                driver.className   = response.driver === 'native' ? 'mg-bad' : '';
 
                 showKernel(response.kernel);
                 showMemory(response.memory, response.memory_choices);
 
-                if (response.unused_driver) {
-                    let note = part('driver-note');
+                if (response.old_stores.length) {
+                    let note    = part('driver-note');
+                    let folders = response.old_stores.map(function (old) {
+                        return response.docker_root + '/' + old + ' and ' + response.docker_root + '/image/' + old;
+                    }).join(', ');
 
-                    note.textContent = (note.textContent ? note.textContent + ' ' : '') + 'Images stored with ' + response.unused_driver +
-                        ' are still on disk but unused: delete ' + response.docker_root + '/' + response.unused_driver + ' (over SSH) to free their space.';
+                    note.textContent = (note.textContent ? note.textContent + ' ' : '') + "Images and containers from Docker's older image store are still on disk but no longer used: " +
+                        'pull or create them again (e.g. reinstall recipes from the Store), then delete ' + folders + ' (over SSH) to free their space.';
                     note.hidden      = false;
                 }
 

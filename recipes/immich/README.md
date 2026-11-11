@@ -7,7 +7,7 @@ Tested on a **My Cloud PR4100 with 16GB RAM**, Immich v3.3.5.
 ## Before you start
 
 - **Memory**: Immich needs about **6GB** for Docker *(4GB without machine learning)*, on top of the NAS's own use. With the NAS's standard 4GB it doesn't fit - the PR4100 / PR2100 take up to 16GB *(2 × 8GB DDR3L SO-DIMM)*. Set the Docker app's memory share on its page accordingly *(e.g. 60% of 16GB)*.
-- **Docker's storage**: Immich's images are about 3GB. On a NAS where the Docker app uses `overlay2` *(see its page)* that's all it takes; with `vfs` *(where the overlay module can't be loaded)* each image layer is a full copy, using several times more space - possible, but slower and much bigger.
+- **Docker's storage**: Immich's images are about 3GB. On a NAS where the Docker app stores images with overlay *(`overlayfs`, or `overlay2` in older versions - see its page)* that's all it takes, plus the compressed downloads containerd keeps; with `native` or `vfs` *(where the overlay module can't be loaded)* each image layer is a full copy, using several times more space - possible, but slower and much bigger.
 - **A share for the photos**: by default Immich's own folder is `Photos/Immich` - create a share called **Photos** in the NAS dashboard first *(Shares)*, or set `UPLOAD_LOCATION` to a folder on an existing share *(see below)*. It's for what Immich manages - phone backups and uploads; photos you already have stay where they are *(see [Your existing photos](#your-existing-photos))*.
 - **CPU**: the NAS's CPU has no AVX, which Immich's machine learning doesn't need. It's slow, though: the first scan of a large library *(search, text in photos)* can take days - Immich works meanwhile, and new photos are quick.
 

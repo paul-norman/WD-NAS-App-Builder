@@ -1,6 +1,6 @@
 {
     "features": {
-        "containerd-snapshotter": false
+        "containerd-snapshotter": true
     },
     "userland-proxy": false,
     "log-driver":     "json-file",
