@@ -2010,6 +2010,28 @@ header('Cache-Control: no-store');
             if (!state.catalogue.repos.length) {
                 listEl.appendChild(element('p', { className: 'mg-note', textContent: 'No repositories.' }));
             }
+
+            // The default repository, if it was removed: one click adds it back (its signing key remembered again)
+            if (!state.catalogue.repos.some(function (repo) { return repo.default; })) {
+                let restore = element('button', { type: 'button', textContent: 'Add this project\'s repository back' });
+
+                restore.addEventListener('click', function () {
+                    say('Adding…', true, 'repo-message');
+
+                    call('add_repo', { url: state.catalogue.default_repo }).then(function (response) {
+                        if (!response.ok) {
+                            say(response.error, false, 'repo-message');
+
+                            return;
+                        }
+
+                        say('Added ' + response.name + '.', true, 'repo-message');
+                        loadCatalogue();
+                    });
+                });
+
+                listEl.appendChild(element('p', {}, [restore]));
+            }
         }
 
         // ------------------------------------------------------------------------------------------------------------

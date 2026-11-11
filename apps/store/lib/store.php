@@ -324,7 +324,8 @@ function store_resolve_url($url, string $base): string
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Signatures (Ed25519, section 6 of the spec): PHP's sodium, else the PHP app's PHP (which has it), else OpenSSL 3
+// Signatures (Ed25519, section 6 of the spec): PHP's sodium, else the Store's own checker (store_verify), else the PHP
+// app's PHP (which has sodium), else OpenSSL 3
 
 /**
  * The raw 32-byte Ed25519 key from a repository's public_key.
@@ -360,8 +361,9 @@ function store_key_fingerprint($key): string
 }
 
 /**
- * Checks an Ed25519 signature (section 6 of the spec) with PHP's sodium extension, else the PHP app's PHP (which has
- * it), else OpenSSL 3.
+ * Checks an Ed25519 signature (section 6 of the spec) with PHP's sodium extension, else the Store's own checker (its
+ * binaries/store_verify: WD's own PHP has no sodium, and its OpenSSL is 1.1), else the PHP app's PHP (which has sodium),
+ * else OpenSSL 3.
  *
  * @param string $data      What was signed
  * @param string $signature The signature, in base64
@@ -389,9 +391,16 @@ function store_verify(string $data, string $signature, string $key): ?bool
     file_put_contents($temp.'/sig', $sig);
 
     $result = null;
+    $own    = store_apps_path().'/store/binaries/store_verify';
     $php    = store_apps_path().'/php/binaries/php';
 
-    if (is_executable($php)) {
+    if (is_executable($own)) {
+        list($exit) = store_run([$own, bin2hex($raw), $temp.'/sig', $temp.'/data']);
+
+        $result = $exit === 0 ? true : ($exit === 1 ? false : null);
+    }
+
+    if ($result === null && is_executable($php)) {
         $code = 'exit(sodium_crypto_sign_verify_detached(file_get_contents($argv[1]), file_get_contents($argv[2]), hex2bin($argv[3])) ? 0 : 1);';
 
         list($exit) = store_run([$php, '-n', '-r', $code, $temp.'/sig', $temp.'/data', bin2hex($raw)]);
@@ -634,7 +643,7 @@ function store_fetch_repo_into(string $json_url, ?string $pinned_key, string $di
         if ($valid === null) {
             return [
                 'ok'    => false,
-                'error' => 'Its signature can\'t be checked on this NAS (install the PHP app, which can)',
+                'error' => 'Its signature can\'t be checked on this NAS (the Store\'s own checker, binaries/store_verify, is missing)',
             ];
         }
 
