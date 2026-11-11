@@ -9,7 +9,7 @@ MODELS[x64]='MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100'
 
 # Node.js's release for each architecture, checked against its SHA256 (from Node.js's SHASUMS256.txt for this version)
 declare -A NODE_SHA256
-NODE_SHA256[x64]=d28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997
+NODE_SHA256[x64]=5c063e46bab0fbc1c17cc445d7ff129cbdcd0471be6ed83b6ab864f8143bc864
 
 # pnpm: its native program (pnpm 11+ is no longer plain JavaScript - its package only wraps the program, and would
 # download it on first use), installed as npm's own install script would. Both checked against npm's published integrity
