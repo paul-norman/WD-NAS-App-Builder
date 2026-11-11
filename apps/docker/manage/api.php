@@ -218,6 +218,8 @@ if ($action === 'status') {
         'containers'          => $containers,
         'portainer'           => $portainer,
         'portainer_has_admin' => $portainer === 'running' ? portainer_has_admin() : null,
+        // The Nginx app's HTTPS address for Portainer (see nginx.json), if it serves it
+        'portainer_site'      => manage_nginx_site(dirname($app_path), 'http://127.0.0.1:9000'),
         'kernel'              => docker_modules($app_path, $docker_root, $app_modules),
         'memory'              => docker_memory($memory_file, $memory_cgroup),
         'memory_choices'      => $memory_choices,

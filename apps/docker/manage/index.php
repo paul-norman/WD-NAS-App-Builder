@@ -230,9 +230,14 @@ header('Cache-Control: no-store');
 
                 let portainer = part('portainer');
 
-                portainer.textContent = response.portainer === 'running' ? 'Running on port 9000 (HTTP) and 9443 (HTTPS)' :
+                let site = response.portainer_site.url;
+
+                portainer.textContent = response.portainer === 'running' ? (site ? 'Running at ' + site + ', and on port 9000 (HTTP) and 9443 (HTTPS)' : 'Running on port 9000 (HTTP) and 9443 (HTTPS)') :
                     (response.portainer ? 'Not running (' + response.portainer + ')' : (response.running ? 'No Portainer container (disable and enable the app to recreate it)' : '-'));
                 portainer.className   = response.portainer === 'running' ? 'mg-ok' : 'mg-bad';
+
+                // The Nginx app's HTTPS address when it serves Portainer, otherwise port 9000
+                part('portainer-link').href = site || 'http://' + window.location.hostname + ':9000/';
 
                 part('setup-box').hidden = response.portainer_has_admin !== false;
 
