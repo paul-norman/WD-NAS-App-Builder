@@ -16,6 +16,7 @@ parameters:
         - apps/copyparty/lib
         - apps/forgejo/lib
         - apps/grafana/lib
+        - apps/homebox/lib
         - apps/icecast/lib
         - apps/kopia/lib
         - apps/kvweb/lib
@@ -40,6 +41,7 @@ parameters:
         - apps/forgejo/manage/api.php
         - apps/golang/manage/api.php
         - apps/grafana/manage/api.php
+        - apps/homebox/manage/api.php
         - apps/icecast/manage/api.php
         - apps/jellyfin/manage/api.php
         - apps/kopia/manage/api.php

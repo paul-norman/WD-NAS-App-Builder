@@ -46,6 +46,13 @@ How it behaves:
    - `ci/sources/myapp.conf`: each file its build downloads, with its license *(CI's plan fails without it - `python3 ci/sources.py check`)*
    - [`phpstan.neon`](../../phpstan.neon): `apps/myapp/manage/api.php` *(and `apps/myapp/lib`, if it has one)*
    - [`tests/common/README.md`](../../tests/common/README.md): what its suite tests
+
+   Then run CI's own checks, which fail the run at once if a registration is missing *(they print an `::error::` line for each)*:
+
+   ```bash
+   python3 ci/plan.py --event pull_request --base origin/main --head HEAD > /dev/null
+   python3 ci/sources.py check myapp
+   ```
 7. Build it for one model and test it:
 
    ```bash
