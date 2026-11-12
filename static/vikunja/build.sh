@@ -1,13 +1,18 @@
 #!/bin/bash
 
-# Prepares Vikunja for the NAS - for the Intel models and the ARM ones: its official static program for each (its web
-# app is inside it), plus fully static builds of:
+# Prepares Vikunja for the NAS - for the Intel models and the ARM ones (its web app is inside it), plus fully static
+# builds of:
 #  - sqlite3: SQLite's shell, for safe backups of Vikunja's database while it runs, and for the page's list of users
 #  - vikunja_runas: switches to Vikunja's own user (the NAS has no su or similar) before running it. With --pty it runs
 #    the program in a pseudo-terminal fed from its input: Vikunja only reads new passwords from a terminal, and this
 #    keeps them off the command line
-# The ARM models' parts are built on this (Intel) machine: the helpers cross-compiled with Zig for their ARMv7
-# processors (hard-float), and every ARM program checked with QEMU's emulator.
+#
+# Intel: Vikunja's official static program. ARM: built here from Vikunja's source, as its official ARM program is laid
+# out for 4KB memory pages and the ARM models' kernels use larger ones (32KB on the EX2 Ultra: it crashes there) - its
+# web app first (pnpm, from its lock file), then Vikunja for ARMv7 with Go, its C parts (SQLite) cross-compiled and the
+# whole linked statically by Zig, which lays programs out for 64KB pages. The helpers are cross-compiled with Zig too.
+# Every ARM program is checked for that layout (ci/check_arm_pages.py) and run with QEMU's emulator: Vikunja makes its
+# database and serves its API and web app.
 
 set -e
 set -o pipefail
@@ -17,7 +22,9 @@ VERSION=2.8.0
 # Each architecture's release (a zip, hashed here: the release publishes only its program's SHA256, inside the zip -
 # checked too)
 VIKUNJA_SHA256=0b6ba2934bd432eefaa4209b0f96d20b7f7cd7f7be0269dd79071979c4363423
-VIKUNJA_ARMHF_SHA256=06ac3f7892cdb05b1d0c220fff4d2c5556208ed808db44f2eded4a41180ade57
+# Its source (GitHub's archive of the release's tag), for the ARM build, and the pnpm its web app is built with
+VIKUNJA_SOURCE_SHA256=c7bfb1c4d4f577b3cbad62e2e77abb85802709fdeff7f1d366b90badc5fc7f94
+PNPM_VERSION=12.16.1
 SQLITE_VERSION=3540100
 SQLITE_YEAR=2026
 # SQLite publishes SHA3-256 hashes: 92281c86e2957f9b9305890f9ac04204caa7b677cc868dc326d942689df28e30 - checked to match
@@ -75,19 +82,67 @@ function build_vikunja() {
     local name
 
     if [ "$1" = armhf ]; then
-        name="vikunja-v${VERSION}-linux-arm-7"
-        fetch "https://github.com/go-vikunja/vikunja/releases/download/v${VERSION}/${name}-full.zip" vikunja.zip \
-            "${VIKUNJA_ARMHF_SHA256}"
-    else
-        name="vikunja-v${VERSION}-linux-amd64"
-        fetch "https://github.com/go-vikunja/vikunja/releases/download/v${VERSION}/${name}-full.zip" vikunja.zip \
-            "${VIKUNJA_SHA256}"
+        build_arm_vikunja
+
+        return 0
     fi
+
+    name="vikunja-v${VERSION}-linux-amd64"
+    fetch "https://github.com/go-vikunja/vikunja/releases/download/v${VERSION}/${name}-full.zip" vikunja.zip \
+        "${VIKUNJA_SHA256}"
 
     mkdir -p release
     unzip -q vikunja.zip -d release
     (cd release && sha256sum -c "${name}.sha256")
     mv "release/${name}" vikunja
+}
+
+# Builds Vikunja for the ARM models from its source, into the current folder: its web app (embedded in it), then
+# Vikunja with Go for ARMv7 - SQLite cross-compiled and everything linked statically by Zig (64KB pages).
+function build_arm_vikunja() {
+    local here="$(pwd)"
+    local source="${here}/vikunja-${VERSION}"
+
+    fetch "https://github.com/go-vikunja/vikunja/archive/refs/tags/v${VERSION}.tar.gz" source.tar.gz \
+        "${VIKUNJA_SOURCE_SHA256}"
+    tar -xzf source.tar.gz
+
+    cd "${source}/frontend"
+    npm install --global --no-audit --no-fund "pnpm@${PNPM_VERSION}"
+    pnpm install --frozen-lockfile
+    pnpm run build
+
+    cd "${source}"
+    CGO_ENABLED=1 GOOS=linux GOARCH=arm GOARM=7 CC='zig cc -target arm-linux-musleabihf -mcpu=cortex_a9' \
+        go build -o "${here}/vikunja" -tags 'osusergo netgo sqlite_omit_load_extension' \
+        -ldflags "-linkmode=external -extldflags=-static -s -w -X code.vikunja.io/api/pkg/version.Version=v${VERSION}"
+    cd "${here}"
+}
+
+# Checks the ARM build of Vikunja (in the current folder) with QEMU's emulator: it makes its SQLite database and serves
+# its API and its web app.
+function check_arm_serving() {
+    local url=http://127.0.0.1:13456
+    local pid i
+
+    rm -rf /tmp/vikunja-test
+    mkdir -p /tmp/vikunja-test
+    VIKUNJA_DATABASE_TYPE=sqlite VIKUNJA_DATABASE_PATH=/tmp/vikunja-test/vikunja.db \
+        VIKUNJA_SERVICE_INTERFACE=127.0.0.1:13456 VIKUNJA_SERVICE_PUBLICURL=${url}/ \
+        VIKUNJA_FILES_BASEPATH=/tmp/vikunja-test/files qemu-arm -cpu cortex-a9 ./vikunja web \
+        > /tmp/vikunja-test/web.log 2>&1 &
+    pid=$!
+
+    for i in $(seq 1 120); do
+        curl -sf -o /dev/null ${url}/api/v1/info && break
+        sleep 1
+    done
+
+    curl -sf ${url}/api/v1/info | grep "v${VERSION}" > /dev/null
+    curl -sf ${url}/ | grep -i '<html' > /dev/null
+    [ -s /tmp/vikunja-test/vikunja.db ]
+    kill ${pid}
+    wait ${pid} 2> /dev/null || true
 }
 
 # Builds SQLite's shell for an architecture in the current folder (as static/grafana does).
@@ -204,18 +259,25 @@ function run() {
         build_sqlite ${arch}
         build_runas ${arch}
 
+        if [ "${arch}" = armhf ]; then
+            python3 /data/ci/check_arm_pages.py vikunja sqlite3 vikunja_runas
+            check_arm_serving
+        fi
+
+        # (its output captured first: grep -q stops reading at a match, and Vikunja - still writing - would fail on the
+        # closed pipe, failing the build under set -o pipefail)
+        version="$(run_for ${arch} ./vikunja version)"
+        echo "${version}" | grep "v${VERSION}" > /dev/null
+        [ "$(echo 'SELECT 1;' | run_for ${arch} ./sqlite3 :memory:)" = 1 ]
+        # (no arguments: it says how to use it, and fails - showing that it runs)
+        usage="$(run_for ${arch} ./vikunja_runas 2>&1 || true)"
+        echo "${usage}" | grep 'Usage: vikunja_runas' > /dev/null
+
+        # Only once it's checked (build_static.sh takes an output folder that isn't empty as built)
         output=/data/packages/static/vikunja/${VERSION}/${arch}
         rm -rf ${output}
         mkdir -p ${output}
         cp vikunja sqlite3 vikunja_runas ${output}/
-        # (its output captured first: grep -q stops reading at a match, and Vikunja - still writing - would fail on the
-        # closed pipe, failing the build under set -o pipefail)
-        version="$(run_for ${arch} ${output}/vikunja version)"
-        echo "${version}" | grep -q "v${VERSION}"
-        [ "$(echo 'SELECT 1;' | run_for ${arch} ${output}/sqlite3 :memory:)" = 1 ]
-        # (no arguments: it says how to use it, and fails - showing that it runs)
-        usage="$(run_for ${arch} ${output}/vikunja_runas 2>&1 || true)"
-        echo "${usage}" | grep -q 'Usage: vikunja_runas'
         du -sh ${output}
     done
 
