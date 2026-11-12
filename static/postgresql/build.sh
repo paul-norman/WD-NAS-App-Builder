@@ -8,9 +8,10 @@
 # PostGIS (geometry / geography and topology - no rasters, which need GDAL), with GEOS and PROJ built from source and
 # GMP bundled, pgvector, pg_cron, pg_partman and pgaudit.
 #
-# The ARM models: armhf.sh builds the same versions with Debian's cross-compiler - inside the Dockerfile's Debian stage
-# (/armhf-root, with chroot) - against Debian's builds of the libraries, bundled with it with Debian's glibc. It's
-# checked here with QEMU's emulator: a new cluster, the server, PostGIS (a coordinate transform), pgvector, pgcrypto.
+# The ARM models: armhf.sh builds the same versions with clang and LLD (laid out for their kernels' large memory pages),
+# against Alpine's static ARM libraries - with its own musl, which PostgreSQL's extensions need to be loaded - inside the
+# Dockerfile's Alpine stage (/armhf-root, with chroot). It's checked here: its layout (ci/check_arm_pages.py), then with
+# QEMU's emulator - a new cluster, the server, PostGIS (a coordinate transform), pgvector, pgcrypto.
 
 set -e
 set -o pipefail
@@ -34,6 +35,21 @@ PG_PARTMAN_SHA256=a3f100ae871677f0012579f58542c174900297f664a4ad2be0256e7ee5e335
 PGAUDIT_VERSION=18.0
 PGAUDIT_SHA256=988e8afeda320ebe0a3e632ef6b6bce5d3a08346c2e100a173a585c9521d1fa5
 OPENSSL_SHA256=603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a
+# The ARM build's own C library (musl - laid out for the ARM models' large memory pages) and libuuid (util-linux's), as
+# their releases publish them (util-linux's in kernel.org's signed sha256sums.asc)
+MUSL_VERSION=1.2.6
+MUSL_SHA256=d585fd3b613c66151fc3249e8ed44f77020cb5e6c1e635a616d3f9f82460512a
+UTIL_LINUX_VERSION=2.41.6
+UTIL_LINUX_SHA256=e596083744e746be7d2823b62b43f4418dd7bf56303b4dc09e6fe8112fe3d7ed
+# ...and LZ4 and protobuf-c (Alpine's static ones are GCC link-time optimisation code): their releases (LZ4's as its
+# .sha256 publishes it), the versions Alpine has
+LZ4_VERSION=1.10.0
+LZ4_SHA256=537512904744b35e232912055ccf8ec66d768639ff3abe5788d90d792ec5f48b
+PROTOBUF_C_VERSION=1.5.2
+PROTOBUF_C_SHA256=e2c86271873a79c92b58fef7ebf8de1aa0df4738347a8bd5d4e65a80a16d0d24
+# ...and GMP (PostGIS's; Alpine has no static one) - static/php's pin
+GMP_VERSION=6.3.0
+GMP_SHA256=a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898
 # The architectures built (each into packages/static/postgresql/<version>/<arch>)
 ARCHES='amd64 armhf'
 
@@ -42,7 +58,7 @@ BUILD_PATH=/build
 PREFIX=/usr/local/pgsql
 OUTPUT_ROOT=/data/packages/static/postgresql/${VERSION}
 OUTPUT_PATH=${OUTPUT_ROOT}/amd64
-# The ARM build environment (the Dockerfile's Debian stage), and where the ARM build is made: the app's folder on the
+# The ARM build environment (the Dockerfile's Alpine stage), and where the ARM build is made: the app's folder on the
 # NAS, as its programs find their loader by its full path
 ARM_ROOT=/armhf-root
 ARM_FINAL=/mnt/HD/HD_a2/Nas_Prog/postgresql/binaries/postgresql
@@ -178,9 +194,10 @@ function bundle() {
     for elf in ${OUTPUT_PATH}/lib/*.so*; do [ -L "${elf}" ] || patchelf --set-rpath '$ORIGIN' "${elf}"; done
 }
 
-# Builds PostgreSQL and its extensions for the ARM models with armhf.sh, in the Debian stage (with chroot: its own /dev
-# entries made first, as the builds need them), into ${BUILD_PATH}/armhf-out (until it's checked) - and its bundled
-# libraries' sources.
+# Builds PostgreSQL and its extensions for the ARM models with armhf.sh, in the Alpine stage (with chroot: its own /dev
+# entries made first, as the builds need them), into ${BUILD_PATH}/armhf-out (until it's checked) - and lists the
+# Alpine packages whose static libraries it may have linked in, for their sources (ci/sources.py reads it as it reads
+# the survey's distro.tsv).
 function build_arm() {
     local work=${ARM_ROOT}/work
     local device
@@ -205,6 +222,16 @@ function build_arm() {
         "${PG_PARTMAN_SHA256}"
     sh /data/static/fetch.sh "https://github.com/pgaudit/pgaudit/archive/refs/tags/${PGAUDIT_VERSION}.tar.gz" \
         pgaudit.tar.gz "${PGAUDIT_SHA256}"
+    sh /data/static/fetch.sh "https://musl.libc.org/releases/musl-${MUSL_VERSION}.tar.gz" musl.tar.gz "${MUSL_SHA256}"
+    sh /data/static/fetch.sh \
+        "https://www.kernel.org/pub/linux/utils/util-linux/v${UTIL_LINUX_VERSION%.*}/util-linux-${UTIL_LINUX_VERSION}.tar.xz" \
+        util-linux.tar.xz "${UTIL_LINUX_SHA256}"
+    sh /data/static/fetch.sh "https://github.com/lz4/lz4/releases/download/v${LZ4_VERSION}/lz4-${LZ4_VERSION}.tar.gz" \
+        lz4.tar.gz "${LZ4_SHA256}"
+    sh /data/static/fetch.sh \
+        "https://github.com/protobuf-c/protobuf-c/releases/download/v${PROTOBUF_C_VERSION}/protobuf-c-${PROTOBUF_C_VERSION}.tar.gz" \
+        protobuf-c.tar.gz "${PROTOBUF_C_SHA256}"
+    sh /data/static/fetch.sh "https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz" gmp.tar.xz "${GMP_SHA256}"
     cp /data/static/postgresql/armhf.sh ${work}/
 
     for device in 'null 1 3' 'zero 1 5' 'random 1 8' 'urandom 1 9'; do
@@ -212,69 +239,122 @@ function build_arm() {
         [ -e ${ARM_ROOT}/dev/$1 ] || mknod -m 666 ${ARM_ROOT}/dev/$1 c $2 $3
     done
 
-    cp /etc/resolv.conf ${ARM_ROOT}/etc/resolv.conf
-    chroot ${ARM_ROOT} /usr/bin/env VERSION=${VERSION} /bin/bash /work/armhf.sh
+    # (on a failure, the builds' configure logs are kept beside the output, to look into: packages/static/postgresql/
+    # <version>/armhf-logs)
+    if ! chroot ${ARM_ROOT} /usr/bin/env VERSION=${VERSION} /bin/bash /work/armhf.sh; then
+        rm -rf ${OUTPUT_ROOT}/armhf-logs
+        mkdir -p ${OUTPUT_ROOT}/armhf-logs
+        find ${work} -maxdepth 3 \( -name config.log -o -name CMakeError.log \) | while read -r log; do
+            cp "${log}" "${OUTPUT_ROOT}/armhf-logs/$(echo "${log#${work}/}" | tr / _)"
+        done
+
+        exit 1
+    fi
+
+    rm -rf ${OUTPUT_ROOT}/armhf-logs
 
     rm -rf ${BUILD_PATH}/armhf-out
     mkdir -p ${BUILD_PATH}/armhf-out
     cp -a ${ARM_ROOT}${ARM_FINAL}/. ${BUILD_PATH}/armhf-out/
     mkdir -p ${OUTPUT_PATH}.sources
     rm -rf ${OUTPUT_PATH}.sources/armhf-debian
-    cp -r ${work}/sources ${OUTPUT_PATH}.sources/armhf-debian
+    alpine_packages ${ARM_ROOT}/armv7 ${ARM_ROOT}/etc/os-release > ${OUTPUT_PATH}.sources/armhf-distro.tsv
     cd ${BUILD_PATH}
     rm -rf ${work}
-    du -sh ${BUILD_PATH}/armhf-out ${OUTPUT_PATH}.sources/armhf-debian
+    du -sh ${BUILD_PATH}/armhf-out
 }
 
-# Checks the ARM build with QEMU's emulator (as a Cortex-A9, the ARM models' processors' kind), at the app's path on the
-# NAS (where its programs find their loader), without the Debian stage's libraries anywhere they could be found: a new
-# cluster (as the app makes it), the server, and PostGIS (the coordinate transform checked on the NAS), pgvector,
-# pgcrypto and pg_trgm in it - and pg_runas refusing root. Its programs are run through scripts calling QEMU, so that
-# PostgreSQL's own programs can run each other as on the NAS.
+# Lists an Alpine system's packages holding static libraries, as the survey lists an Alpine stage's (ci/survey_inside.sh).
+#
+# $1 root    The Alpine system's folder
+# $2 release Its Alpine release's os-release file (the ARM system has none of its own: the stage's, the same release)
+#
+# Prints a line per package: os, its version, stage (armhf), source package, version, license, why (static), aports
+# commit and package name - tab separated
+function alpine_packages() {
+    local osv
+
+    osv="$(sed -n 's/^VERSION_ID=//p' "$2")"
+    awk -v osv="${osv}" '
+        function flush() {
+            if (name != "" && static) {
+                printf "alpine\t%s\tarmhf\t%s\t%s\t%s\tstatic\t%s\t%s\n", osv, origin, version, license, commit, name
+            }
+            name = ""; version = ""; origin = ""; commit = ""; license = ""; folder = ""; static = 0
+        }
+        /^$/ { flush(); next }
+        /^P:/ { name = substr($0, 3) }
+        /^V:/ { version = substr($0, 3) }
+        /^o:/ { origin = substr($0, 3) }
+        /^c:/ { commit = substr($0, 3) }
+        /^L:/ { license = substr($0, 3) }
+        /^F:/ { folder = substr($0, 3) }
+        /^R:/ { if (substr($0, 3) ~ /\.a$/ && folder ~ /^(usr\/)?lib/) static = 1 }
+        END { flush() }
+    ' "$1/lib/apk/db/installed"
+}
+
+# Checks the ARM build: laid out for the ARM models' large memory pages (ci/check_arm_pages.py), then with QEMU's
+# emulator (as a Cortex-A9, the ARM models' processors' kind) in the Alpine stage (with chroot), at the app's path on
+# the NAS (where its programs find musl's loader): pg_runas refusing root, then - as the postgres user, through it - a
+# new cluster (as the app makes it), the server, and PostGIS (the coordinate transform checked on the NAS), pgvector,
+# pgcrypto and pg_trgm in it. Its programs are run through scripts calling QEMU, so that PostgreSQL's own programs can
+# run each other as on the NAS.
 function check_arm() {
-    local qemu='qemu-arm -cpu cortex-a9'
-    local data=${BUILD_PATH}/armhf-test
-    local socket=${BUILD_PATH}/armhf-sock
-    local program psql
+    local final=${ARM_ROOT}${ARM_FINAL}
+    local program
 
-    rm -rf ${ARM_FINAL} ${data} ${socket}
-    mkdir -p "$(dirname ${ARM_FINAL})" ${data} ${socket}
-    cp -a ${BUILD_PATH}/armhf-out ${ARM_FINAL}
-    mv ${ARM_FINAL}/bin ${ARM_FINAL}/bin-arm
-    mkdir ${ARM_FINAL}/bin
+    python3 /data/ci/check_arm_pages.py ${BUILD_PATH}/armhf-out
+    rm -rf ${final} ${ARM_ROOT}/check
+    mkdir -p "$(dirname ${final})" ${ARM_ROOT}/check
+    cp -a ${BUILD_PATH}/armhf-out ${final}
+    mv ${final}/bin ${final}/bin-arm
+    mkdir ${final}/bin
 
-    for program in ${ARM_FINAL}/bin-arm/*; do
+    for program in ${final}/bin-arm/*; do
         # (-0: the program sees the script's path as its own, so that it finds its siblings - the scripts - beside it)
-        printf '#!/bin/sh\nexec %s -0 "$0" %s "$@"\n' "${qemu}" "${program}" > ${ARM_FINAL}/bin/$(basename ${program})
-        chmod 755 ${ARM_FINAL}/bin/$(basename ${program})
+        printf '#!/bin/sh\nexec qemu-arm -cpu cortex-a9 -0 "$0" %s "$@"\n' "${ARM_FINAL}/bin-arm/$(basename ${program})" \
+            > ${final}/bin/$(basename ${program})
+        chmod 755 ${final}/bin/$(basename ${program})
     done
 
-    ${ARM_FINAL}/bin/postgres --version | grep "(PostgreSQL) ${VERSION}" > /dev/null
+    cat > ${ARM_ROOT}/check/check.sh <<'CHECK'
+set -e
+set -o pipefail
+set -x
+final=/mnt/HD/HD_a2/Nas_Prog/postgresql/binaries/postgresql
+data=/check/data
+socket=/check/sock
+runas="${final}/bin/pg_runas 70 70"
+export PROJ_DATA=${final}/share/proj
+${final}/bin/postgres --version | grep "(PostgreSQL) ${VERSION}" > /dev/null
 
-    if ${ARM_FINAL}/bin/pg_runas 0 0 /bin/true 2> /dev/null; then
-        echo 'pg_runas ran something as root'
+if ${final}/bin/pg_runas 0 0 /bin/true 2> /dev/null; then
+    echo 'pg_runas ran something as root'
 
-        exit 1
-    fi
+    exit 1
+fi
 
-    id pgtest > /dev/null 2>&1 || useradd -M pgtest
-    chown pgtest ${data} ${socket}
-    export PROJ_DATA=${ARM_FINAL}/share/proj
-    runuser -u pgtest -- ${ARM_FINAL}/bin/initdb -D ${data} -U postgres --auth=trust --locale-provider=builtin \
-        --builtin-locale=C.UTF-8
-    runuser -u pgtest -- ${ARM_FINAL}/bin/pg_ctl -D ${data} -l ${data}/server.log -w -t 180 \
-        -o "-c listen_addresses='' -c unix_socket_directories=${socket}" start
-    psql="${ARM_FINAL}/bin/psql -h ${socket} -U postgres -X -A -t -v ON_ERROR_STOP=1"
-
-    ${psql} -c 'SELECT version()' | grep "PostgreSQL ${VERSION}" > /dev/null
-    ${psql} -c 'CREATE EXTENSION postgis; CREATE EXTENSION vector; CREATE EXTENSION pgcrypto; CREATE EXTENSION pg_trgm'
-    ${psql} -c "SELECT ST_AsText(ST_SnapToGrid(ST_Transform(ST_SetSRID(ST_MakePoint(-0.1276, 51.5072), 4326), 27700), 1))" \
-        | grep 'POINT(530' > /dev/null
-    ${psql} -c "SELECT '[1,2,3]'::vector <-> '[4,6,3]'::vector" | grep '^5$' > /dev/null
-    ${psql} -c "SELECT encode(digest('abc', 'sha256'), 'hex')" | grep '^ba7816bf' > /dev/null
-    ${psql} -c "SELECT similarity('postgres', 'postgis') > 0.3" | grep '^t$' > /dev/null
-    runuser -u pgtest -- ${ARM_FINAL}/bin/pg_ctl -D ${data} -w -t 120 stop
-    rm -rf ${ARM_FINAL} ${data} ${socket}
+# (the postgres user, ID 70, as the app adds it on the NAS - initdb looks itself up)
+grep -q '^postgres:' /etc/passwd || echo 'postgres:x:70:70:PostgreSQL:/check:/sbin/nologin' >> /etc/passwd
+grep -q '^postgres:' /etc/group || echo 'postgres:x:70:' >> /etc/group
+mkdir -p ${data} ${socket}
+chown 70:70 ${data} ${socket}
+${runas} ${final}/bin/initdb -D ${data} -U postgres --auth=trust --locale-provider=builtin --builtin-locale=C.UTF-8
+${runas} ${final}/bin/pg_ctl -D ${data} -l ${data}/server.log -w -t 300 \
+    -o "-c listen_addresses='' -c unix_socket_directories=${socket}" start
+psql="${final}/bin/psql -h ${socket} -U postgres -X -A -t -v ON_ERROR_STOP=1"
+${psql} -c 'SELECT version()' | grep "PostgreSQL ${VERSION}" > /dev/null
+${psql} -c 'CREATE EXTENSION postgis; CREATE EXTENSION vector; CREATE EXTENSION pgcrypto; CREATE EXTENSION pg_trgm'
+${psql} -c "SELECT ST_AsText(ST_SnapToGrid(ST_Transform(ST_SetSRID(ST_MakePoint(-0.1276, 51.5072), 4326), 27700), 1))" \
+    | grep 'POINT(530' > /dev/null
+${psql} -c "SELECT '[1,2,3]'::vector <-> '[4,6,3]'::vector" | grep '^5$' > /dev/null
+${psql} -c "SELECT encode(digest('abc', 'sha256'), 'hex')" | grep '^ba7816bf' > /dev/null
+${psql} -c "SELECT similarity('postgres', 'postgis') > 0.3" | grep '^t$' > /dev/null
+${runas} ${final}/bin/pg_ctl -D ${data} -w -t 120 stop
+CHECK
+    chroot ${ARM_ROOT} /usr/bin/env VERSION=${VERSION} /bin/bash /check/check.sh
+    rm -rf ${final} ${ARM_ROOT}/check
 }
 
 function run() {
