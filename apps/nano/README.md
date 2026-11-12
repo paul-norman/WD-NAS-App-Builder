@@ -1,6 +1,6 @@
 # Nano App
 
-Nano is a text editor already present on the WD NAS devices, but it is old *(version 5.2)*. This replaces it with a more modern, statically linked version.
+Nano is a text editor already present on the WD NAS devices, but it is old *(version 5.2)*. This replaces it with a more modern, statically linked version - for the Intel models and the ARM ones *(built with Zig for both, with ncurses and the common terminal types built in; the ARM build is laid out for their kernels' large memory pages and checked with QEMU's emulator)*.
 
 What is the point of this? To test static compilation!
 

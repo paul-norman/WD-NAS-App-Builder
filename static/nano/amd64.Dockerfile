@@ -1,22 +1,9 @@
-FROM debian:bullseye
+FROM alpine:3.22
 
-ENV LANG=C.UTF-8
-
-# Bullseye (the NAS's Debian version) is end of life, so its packages are only on the archive mirror
-RUN printf 'deb http://archive.debian.org/debian bullseye main\ndeb http://archive.debian.org/debian-security bullseye-security main\n' > /etc/apt/sources.list && \
-	rm -f /etc/apt/sources.list.d/*
-
-RUN apt-get update && \
-	DEBIAN_FRONTEND=noninteractive apt-get upgrade -yy && \
-	DEBIAN_FRONTEND=noninteractive apt-get install -yy \
-	build-essential \
-	automake \
-	curl \
-	wget \
-	git \
-	ncurses-bin \
-	ncurses-term \
-	pkg-config
+# nano, fully static (musl) for the Intel models and the ARM ones, with ncurses built in: Zig compiles both for each
+# (with its own musl, laid out for the ARM models' large memory pages), gcc builds ncurses' helper programs for this
+# machine, ncurses' tic and terminfo provide the terminal types built in, and QEMU and Python check the ARM build
+RUN apk add --no-cache bash binutils-arm-none-eabi build-base file ncurses ncurses-terminfo python3 qemu-arm wget xz zig
 
 # Volume that will point to the whole repository
 VOLUME /data

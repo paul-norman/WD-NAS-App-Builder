@@ -1,12 +1,11 @@
 #!/bin/bash
 . '../build_helpers.sh'
 
-# Some models use AMD64 architecture and others use ARM
+# nano is built fully static by static/nano (which the root build.sh runs first) - for the Intel models and the ARM ones
+# (its amd64 build makes both)
 declare -A MODELS
 MODELS[amd64]='MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100'
-
-# TODO: Build statically linked binary for ARM
-#MODELS[armhf]="WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra"
+MODELS[armhf]='WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra'
 
 for ARCH in "${!MODELS[@]}"; do
     # Skip architectures without a wanted model (MODEL_OVERRIDE)
@@ -17,7 +16,7 @@ for ARCH in "${!MODELS[@]}"; do
     STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${STATIC_VERSION}/${ARCH}"
 
     if [ -z "${STATIC_VERSION}" ] || [ ! -f "${STATIC_PATH}/nano" ]; then
-        abort "statically linked nano not found in: ${STATIC_PATH} (run: ./build_static.sh ${APP_NAME} ${ARCH})"
+        abort "statically linked nano not found in: ${STATIC_PATH} (run: ./build_static.sh ${APP_NAME} amd64)"
     fi
 
     # Put the statically linked binary into the binaries directory
