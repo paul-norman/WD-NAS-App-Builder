@@ -8,9 +8,9 @@
 #
 # - Intel: fully static binaries, built with static-php-cli. Static binaries can't load extensions from .so files, so
 #   none are needed (or possible).
-# - ARM: static-php-cli can't cross-build PHP's libraries, so armhf.sh compiles PHP with Debian's cross-compiler,
-#   against Debian's own builds of its libraries - inside the Dockerfile's Debian stage (/armhf-root, with chroot) -
-#   and bundles those libraries and glibc with it. It's checked here with QEMU's emulator.
+# - ARM: fully static too, built by armhf.sh (static-php-cli can't cross-build PHP's libraries): clang and LLD (which
+#   lay programs out for the ARM models' large memory pages - 32KB on the EX2 Ultra), against Alpine's own static ARM
+#   libraries, with GNU libiconv, GMP and libzip built from their source. It's checked here with QEMU's emulator.
 
 set -e
 set -o pipefail
@@ -31,10 +31,25 @@ REDIS_VERSION=6.3.0
 REDIS_SHA256=0d5141f634bd1db6c1ddcda053d25ecf2c4fc1c395430d534fd3f8d51dd7f0b5
 YAML_VERSION=2.3.0
 YAML_SHA256=bc8404807a3a4dc896b310af21a7f8063aa238424ff77f27eb6ffa88b5874b8a
-# GNU libiconv, built into the ARM build's PHP (as static-php-cli does for the Intel build: the same file): glibc's own
-# iconv needs its character set modules from Debian's folders, which the NAS doesn't have
+# The libraries the ARM build builds from source (Alpine has no static ARM libraries of them; musl's own iconv is
+# limited) - the same files as static-php-cli's for the Intel build
 LIBICONV_VERSION=1.19.1
 LIBICONV_SHA256=9a06844846d664d7122161700c10a64480d7c7bcead3091925a785b38c91edab
+GMP_VERSION=6.3.0
+GMP_SHA256=a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898
+LIBZIP_VERSION=1.12.1
+LIBZIP_SHA256=c40062022a1963c80573d48f6070792297cecd7c6bffe3aefcac0d8b9bee8913
+# ...and those whose Alpine static libraries LLD can't link (GCC link-time optimisation code): Brotli (static/nginx's
+# pin), libwebp (its release, whose signature is published beside it) and curl (static/transmission's pin)
+BROTLI_VERSION=1.2.1
+BROTLI_SHA256=98d35d11a78dc453aebb7d10c3748f3f73ff78c8267c0dc697b8631f67bf7e8f
+LIBWEBP_VERSION=1.6.0
+LIBWEBP_SHA256=e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564
+CURL_VERSION=8.23.0
+CURL_SHA256=8dadd7d2536a314f982ad05a651b713f426bf7d02cc2c76cffb9796f2218e6c5
+# ...and OpenLDAP's client libraries (Alpine's static ones need SASL, which needs Kerberos) - static-php-cli's file
+OPENLDAP_VERSION=2.7.2
+OPENLDAP_SHA256=aad731aa22118ff327b9b4ddfc4b6f18ef9476586205da88a532e90940b523d2
 # The architectures built (each into packages/static/php/<version>/<arch>)
 ARCHES='amd64 armhf'
 
@@ -49,10 +64,6 @@ LIBS='freetype,libjpeg,libpng,libwebp'
 BUILD_PATH=/build
 OUTPUT_ROOT=/data/packages/static/php/${VERSION}
 OUTPUT_PATH=${OUTPUT_ROOT}/amd64
-# The ARM build environment (the Dockerfile's Debian stage), and where the ARM build is made inside it: the app's final
-# path on the NAS, as php and php-fpm find their libraries by their full paths
-ARM_ROOT=/armhf-root
-ARM_BINARIES=/mnt/HD/HD_a2/Nas_Prog/php/binaries
 
 function build_php() {
     cd ${BUILD_PATH}
@@ -74,12 +85,11 @@ function build_php() {
     ./spc build "${EXTENSIONS}" --with-libs="${LIBS}" --build-cli --build-fpm
 }
 
-# Builds PHP for the ARM models with armhf.sh, in the Debian stage (with chroot: its own /dev entries made first, as
-# configure scripts need them), into ${BUILD_PATH}/armhf-out (until it's checked) - and its bundled libraries' sources,
-# with the Intel build's.
+# Builds PHP for the ARM models with armhf.sh (fully static, against the Alpine ARM system in /armv7), into
+# ${BUILD_PATH}/armhf-out (until it's checked) - and lists the Alpine packages whose static libraries it may have linked
+# in, for their sources (ci/sources.py reads it as it reads the survey's distro.tsv: those under a copyleft license).
 function build_arm_php() {
-    local work=${ARM_ROOT}/work
-    local device
+    local work=${BUILD_PATH}/armhf
 
     rm -rf ${work}
     mkdir -p ${work}
@@ -92,37 +102,61 @@ function build_arm_php() {
     sh /data/static/fetch.sh "https://pecl.php.net/get/yaml-${YAML_VERSION}.tgz" yaml.tgz "${YAML_SHA256}"
     sh /data/static/fetch.sh "https://ftp.gnu.org/gnu/libiconv/libiconv-${LIBICONV_VERSION}.tar.gz" libiconv.tar.gz \
         "${LIBICONV_SHA256}"
-    cp /data/static/php/armhf.sh ${work}/
-
-    for device in 'null 1 3' 'zero 1 5' 'random 1 8' 'urandom 1 9'; do
-        set -- ${device}
-        [ -e ${ARM_ROOT}/dev/$1 ] || mknod -m 666 ${ARM_ROOT}/dev/$1 c $2 $3
-    done
-
-    cp /etc/resolv.conf ${ARM_ROOT}/etc/resolv.conf
-    chroot ${ARM_ROOT} /usr/bin/env VERSION=${VERSION} /bin/bash /work/armhf.sh
+    sh /data/static/fetch.sh "https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz" gmp.tar.xz "${GMP_SHA256}"
+    sh /data/static/fetch.sh "https://libzip.org/download/libzip-${LIBZIP_VERSION}.tar.xz" libzip.tar.xz \
+        "${LIBZIP_SHA256}"
+    sh /data/static/fetch.sh "https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VERSION}.tar.gz" \
+        brotli.tar.gz "${BROTLI_SHA256}"
+    sh /data/static/fetch.sh \
+        "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${LIBWEBP_VERSION}.tar.gz" \
+        libwebp.tar.gz "${LIBWEBP_SHA256}"
+    sh /data/static/fetch.sh "https://curl.se/download/curl-${CURL_VERSION}.tar.xz" curl.tar.xz "${CURL_SHA256}"
+    sh /data/static/fetch.sh \
+        "https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-${OPENLDAP_VERSION}.tgz" \
+        openldap.tgz "${OPENLDAP_SHA256}"
+    VERSION=${VERSION} WORK=${work} bash /data/static/php/armhf.sh
 
     rm -rf ${BUILD_PATH}/armhf-out
     mkdir -p ${BUILD_PATH}/armhf-out
-    cp -a ${ARM_ROOT}${ARM_BINARIES}/. ${BUILD_PATH}/armhf-out/
+    cp ${work}/out/php ${work}/out/php-fpm ${BUILD_PATH}/armhf-out/
+
+    # The Alpine ARM system's packages holding static libraries, as the survey lists an Alpine stage's (its version: this
+    # image's - the same Alpine release, which the ARM system has no os-release of its own for)
+    . /etc/os-release
+    awk -v osv="${VERSION_ID}" '
+        function flush() {
+            if (name != "" && static) {
+                printf "alpine\t%s\tarmhf\t%s\t%s\t%s\tstatic\t%s\t%s\n", osv, origin, version, license, commit, name
+            }
+            name = ""; version = ""; origin = ""; commit = ""; license = ""; folder = ""; static = 0
+        }
+        /^$/ { flush(); next }
+        /^P:/ { name = substr($0, 3) }
+        /^V:/ { version = substr($0, 3) }
+        /^o:/ { origin = substr($0, 3) }
+        /^c:/ { commit = substr($0, 3) }
+        /^L:/ { license = substr($0, 3) }
+        /^F:/ { folder = substr($0, 3) }
+        /^R:/ { if (substr($0, 3) ~ /\.a$/ && folder ~ /^(usr\/)?lib/) static = 1 }
+        END { flush() }
+    ' /armv7/lib/apk/db/installed > ${OUTPUT_PATH}.sources/armhf-distro.tsv
     rm -rf ${OUTPUT_PATH}.sources/armhf-debian
-    cp -r ${work}/sources ${OUTPUT_PATH}.sources/armhf-debian
-    du -sh ${BUILD_PATH}/armhf-out ${OUTPUT_PATH}.sources/armhf-debian
+    echo "$(wc -l < ${OUTPUT_PATH}.sources/armhf-distro.tsv) Alpine ARM packages with static libraries listed"
 }
 
-# Checks the ARM build with QEMU's emulator (as a Cortex-A9, the ARM models' processors' kind), at the app's path on the
-# NAS (where it finds its loader and libraries), without the Debian stage's libraries anywhere it could find them:
-# its version, the same extensions as the Intel build, and that the main ones work - and php-fpm.
+# Checks the ARM build: laid out for the ARM models' large memory pages (ci/check_arm_pages.py), then with QEMU's
+# emulator (as a Cortex-A9, the ARM models' processors' kind): its version, the same extensions as the Intel build, and
+# that the main ones work - and php-fpm.
 function check_arm_php() {
-    local php="qemu-arm -cpu cortex-a9 ${ARM_BINARIES}/php"
+    local php="qemu-arm -cpu cortex-a9 ${BUILD_PATH}/armhf-out/php"
     local test=${BUILD_PATH}/armhf-test
 
-    rm -rf ${ARM_BINARIES} ${test}
-    mkdir -p ${ARM_BINARIES} ${test}
-    cp -a ${BUILD_PATH}/armhf-out/. ${ARM_BINARIES}/
+    rm -rf ${test}
+    mkdir -p ${test}
+    python3 /data/ci/check_arm_pages.py ${BUILD_PATH}/armhf-out
 
     ${php} -n -v | tee ${test}/version.txt
-    grep -q "^PHP ${VERSION} (cli)" ${test}/version.txt
+    grep "^PHP ${VERSION} (cli)" ${test}/version.txt > /dev/null
     ${php} -n -m > ${BUILD_PATH}/armhf-out/extensions.txt
     diff ${OUTPUT_PATH}/extensions.txt ${BUILD_PATH}/armhf-out/extensions.txt
 
@@ -226,10 +260,10 @@ PHP
     ${php} -n -d display_errors=1 ${test}/check.php
 
     # php-fpm: its version, and a configuration it accepts
-    qemu-arm -cpu cortex-a9 ${ARM_BINARIES}/php-fpm -n -v | grep "^PHP ${VERSION} (fpm-fcgi)" > /dev/null
+    qemu-arm -cpu cortex-a9 ${BUILD_PATH}/armhf-out/php-fpm -n -v | grep "^PHP ${VERSION} (fpm-fcgi)" > /dev/null
     printf '[global]\nerror_log = %s/fpm.log\n[www]\nuser = nobody\nlisten = %s/fpm.sock\npm = static\npm.max_children = 1\n' \
         ${test} ${test} > ${test}/php-fpm.conf
-    qemu-arm -cpu cortex-a9 ${ARM_BINARIES}/php-fpm -n -t -y ${test}/php-fpm.conf
+    qemu-arm -cpu cortex-a9 ${BUILD_PATH}/armhf-out/php-fpm -n -t -y ${test}/php-fpm.conf
 }
 
 function run() {

@@ -1072,6 +1072,12 @@ def release(app, dist):
         if static:
             rows += fetch_distro(static / "distro.tsv", work)
 
+            # (and those of the ARM models' build, where a static build
+            # lists the packages it linked in from another system - e.g.
+            # PHP's, from Alpine's ARM packages)
+            if (static / "armhf-distro.tsv").is_file():
+                rows += fetch_distro(static / "armhf-distro.tsv", work)
+
             # What the build kept itself (e.g. PHP's libraries' sources)
             for kept in sorted(static.iterdir()):
                 if kept.is_dir():
