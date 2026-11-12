@@ -17,6 +17,9 @@ DATA_PATH="$(dirname "${APP_PATH}")/_python"
 BIN="${APP_PATH}/binaries/python/bin"
 CHOICE_FILE="${DATA_PATH}/use"
 WD_PYTHON=/usr/local/modules/python39/bin/python3.9
+# Where WD's python3 was found before the first switch of this boot (/tmp is in RAM, so it's found again after each
+# boot): models' firmware may keep it elsewhere than WD_PYTHON
+WD_FOUND=/tmp/python_app_wd_python3
 # The links made: /usr/bin/<name> -> the app's <name>
 LINKS='python3 python3.14 pip3 pip3.14 pydoc3 uv uvx'
 LOG=/tmp/debug_apkg
@@ -31,12 +34,38 @@ log() {
     echo "$*"
 }
 
+# WD's own python3: where /usr/bin/python3 led before the first switch of this boot, else WD_PYTHON.
+#
+# Prints its path
+wd_python() {
+    cat "${WD_FOUND}" 2>/dev/null || echo "${WD_PYTHON}"
+}
+
+# Remembers WD's own python3 before the first switch of this boot: where /usr/bin/python3 leads, or a copy of it if it's
+# a program rather than a link (/usr/bin/python3.wd).
+remember_wd_python() {
+    [ -f "${WD_FOUND}" ] && return 0
+    current="$(readlink -f /usr/bin/python3 2>/dev/null)"
+
+    if [ -z "${current}" ] || [ ! -x "${current}" ] || [ "${current#"${APP_PATH}"/}" != "${current}" ]; then
+        return 0
+    fi
+
+    if [ -L /usr/bin/python3 ]; then
+        echo "${current}" > "${WD_FOUND}"
+    elif cp -p /usr/bin/python3 /usr/bin/python3.wd; then
+        echo /usr/bin/python3.wd > "${WD_FOUND}"
+    fi
+}
+
 swap() {
     if ! "${BIN}/python3" -c 'import ssl, sqlite3, venv' > /dev/null 2>&1; then
         log "Not switching to Python 3.14: it doesn't run on this NAS"
 
         return 1
     fi
+
+    remember_wd_python
 
     for name in ${LINKS}; do
         # Only where there's nothing else already, apart from WD's python3
@@ -53,8 +82,10 @@ swap() {
 }
 
 restore() {
-    if [ -x "${WD_PYTHON}" ]; then
-        ln -sf "${WD_PYTHON}" /usr/bin/python3
+    if [ -x "$(wd_python)" ]; then
+        ln -sf "$(wd_python)" /usr/bin/python3
+    else
+        log "WD's own python3 wasn't found ($(wd_python)): /usr/bin/python3 left as it is"
     fi
 
     for name in ${LINKS}; do
