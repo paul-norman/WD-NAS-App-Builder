@@ -7,8 +7,8 @@
 - Messages are kept for a day *(so a phone that was offline still gets them)*, attachments up to 15MB.
 - It runs as its own `ntfy` user *(created by the app, ID 76)*, not as root.
 - Its data is kept next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_ntfy`, and survives reinstalls and removal: the messages, users and attachments in `data/` *(with the generated `server.yml`)*, the admin password and token *(root only)*, the page's settings, and `ntfy.log` *(warnings only, kept under 1MB)*.
-- It's the official static program *(prepared by `static/ntfy`)*. ntfy doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release is out, checked weekly.
-- For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)*.
+- On the Intel models it's the official static program; on the ARM ones it's built from ntfy's source *(its official ARM program is laid out for 4KB memory pages, and the ARM models' kernels use larger ones - it crashes there)*, with its web app and documentation, linked statically for 64KB pages *(both prepared by `static/ntfy`)*. ntfy doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release is out, checked weekly.
+- For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built - it serves, takes a message and gives it back - but haven't yet been tried on an ARM NAS)*.
 
 ## Phones
 
