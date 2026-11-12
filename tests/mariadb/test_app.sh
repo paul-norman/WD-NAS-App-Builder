@@ -55,6 +55,27 @@ echo '== removed'
 finish_app
 wait_version 10.5 && [ "$(q 'SELECT name FROM family.recipes')" = "Crème brûlée" ] && cmp -s /etc/my.cnf /tmp/my.cnf.before && pass "WD's MariaDB 10.5 back, with WD's data" || fail "after removal: $(q 'SELECT VERSION()')"
 
+echo "== WD's data with an inconsistent catalogue"
+# A database and an account of the user's own in WD's 10.5 - then three of its system tables' files lost, as on NASes
+# whose data started life on an older MySQL (InnoDB still lists them)
+q "CREATE DATABASE shop; CREATE TABLE shop.items (name varchar(50)) DEFAULT CHARSET utf8mb4; INSERT INTO shop.items VALUES ('Café'); CREATE USER 'shopper'@'localhost' IDENTIFIED BY 'Shop-pass-1'; GRANT ALL ON shop.* TO 'shopper'@'localhost'" > /dev/null
+killall mysqld mysqld_safe mariadbd mariadbd-safe 2>/dev/null; i=0; while pidof mariadbd > /dev/null && [ $i -lt 60 ]; do sleep 1; i=$((i + 1)); done
+rm -f $WD_DATA/mysql/innodb_table_stats.ibd $WD_DATA/mysql/innodb_index_stats.ibd $WD_DATA/mysql/transaction_registry.ibd
+(startup-mysql > /dev/null 2>&1 &); wait_version 10.5
+rm -rf $D
+install_app
+wait_version 11.8 180
+[ -n "$(q 'SELECT COUNT(*) FROM mysql.innodb_table_stats' | grep '^[0-9]*$')" ] && [ -n "$(q 'SELECT COUNT(*) FROM mysql.transaction_registry' | grep '^[0-9]*$')" ] \
+    && pass "its system tables rebuilt by itself: usable again" || fail "system tables: $(q 'SELECT COUNT(*) FROM mysql.innodb_table_stats') $(grep mariadb /tmp/debug_apkg | tail -n 6)"
+[ "$(q 'SELECT name FROM shop.items')" = 'Café' ] && [ "$($P/mariadb/binaries/mariadb/bin/mariadb --socket=$SOCK -ushopper -pShop-pass-1 -N -e 'SELECT COUNT(*) FROM shop.items' 2>&1)" = 1 ] \
+    && pass "the user's database (accents intact) and account (its password and grants) carried over" || fail "carried over: $(q 'SELECT name FROM shop.items') $(grep mariadb /tmp/debug_apkg | tail -n 4)"
+[ -f $D/rebuilt ] && [ -n "$(ls -d $D/data.old-* 2>/dev/null)" ] && [ ! -e $D/rebuild.sql ] \
+    && pass "the copy as it was kept ($(basename $(ls -d $D/data.old-*))), the dump of its users gone" || fail "kept: $(ls -la $D)"
+READ_ONLY_PAGE=1 page_up
+get status | j '$d["rebuilt"]' | grep -q 'data.old-' && pass 'the page says so' || fail "page: $(get status | head -c 300)"
+finish_app
+wait_version 10.5 && pass "WD's MariaDB 10.5 back, its own data as it was" || fail "after removal: $(q 'SELECT VERSION()')"
+
 echo "== a NAS without a MariaDB of its own"
 # WD's MariaDB taken away (its server, startup-mysql and client - as perhaps on some ARM models), and the app's earlier
 # data, so that it starts as on such a NAS

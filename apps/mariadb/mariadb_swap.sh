@@ -294,20 +294,91 @@ swap() {
 # The data is upgraded once for each version (and recorded under the name WD's mysql_reset.py looks for too, so that it
 # doesn't try to upgrade it with 10.5's tools), then the server restarts with its upgraded system tables
 upgrade() {
+    upgraded=yes
+
     if [ "$(cut -d - -f 1 "${COPY}/mysql_upgrade_info" 2>/dev/null)" != "${VERSION}" ]; then
         log "Upgrading the data for MariaDB ${VERSION}"
 
-        if ! /usr/local/mysql/bin/mariadb-upgrade --socket="${SOCKET}" -uroot >> ${LOG} 2>&1; then
-            log "Upgrading the data failed - see ${LOG}. If WD's data is too inconsistent for ${VERSION}, '$0 fresh' starts again with new, empty system tables"
-
-            return 1
+        if /usr/local/mysql/bin/mariadb-upgrade --socket="${SOCKET}" -uroot >> ${LOG} 2>&1; then
+            server_version > "${COPY}/mysql_upgrade_info"
+            stop_server && start_server
+        else
+            log "Upgrading the data failed - see ${LOG}"
+            upgraded=''
         fi
+    fi
 
-        server_version > "${COPY}/mysql_upgrade_info"
-        stop_server && start_server
+    # WD's data can have an inconsistent catalogue (e.g. having started life on an older MySQL): system tables listed
+    # whose files are missing, which MariaDB then can't use (and its upgrade may fail on). Then they're rebuilt, the
+    # databases and users carried over
+    if [ -z "${upgraded}" ] || ! system_tables_usable; then
+        rebuild || return 1
     fi
 
     log "MariaDB $(server_version) is running"
+}
+
+# Whether the system tables InnoDB keeps (statistics, the transaction registry) can be used: missing from an
+# inconsistent catalogue, they can't.
+system_tables_usable() {
+    for table in innodb_table_stats innodb_index_stats transaction_registry; do
+        /usr/local/mysql/bin/mariadb --socket="${SOCKET}" -uroot -N -e "SELECT 1 FROM mysql.${table} LIMIT 1" \
+            > /dev/null 2>&1 || return 1
+    done
+}
+
+# New, consistent system tables in place of those of the copy of WD's data, with its databases and users carried over:
+# both dumped from the running server, the copy kept (data.old-<date>), new system tables made, then the dump loaded.
+# Anything failing puts the copy back as it was. The page shows that it was done (rebuilt).
+rebuild() {
+    dump="${DATA_PATH}/rebuild.sql"
+    tools=/usr/local/mysql/bin
+    log "The copy of WD's MariaDB data has an inconsistent catalogue (system tables missing): rebuilding its system tables, carrying its databases and users over"
+    databases="$(${tools}/mariadb --socket="${SOCKET}" -uroot -N -e "SELECT schema_name FROM information_schema.schemata
+        WHERE schema_name NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')" 2>> ${LOG})"
+
+    # (root's only: it holds the users' password hashes. Users other than those the new system tables have - root:
+    # CREATE USER IF NOT EXISTS)
+    : > "${dump}"
+    chmod 600 "${dump}"
+
+    if ! { ${tools}/mariadb-dump --socket="${SOCKET}" -uroot --system=users --insert-ignore \
+        && { [ -z "${databases}" ] || ${tools}/mariadb-dump --socket="${SOCKET}" -uroot --routines --events \
+            --triggers --single-transaction --databases ${databases}; }; } > "${dump}" 2>> ${LOG}; then
+        log "Couldn't dump the databases and users to rebuild the system tables - see ${LOG}. '$0 fresh' starts again with new, empty system tables"
+        rm -f "${dump}"
+
+        return 1
+    fi
+
+    datadir="$(wd_datadir)"
+    old="${COPY}.old-$(date '+%Y%m%d-%H%M%S')"
+    stop_server || return 1
+    [ "$(mode)" = wd ] && grep -q " ${datadir} " /proc/mounts && umount "${datadir}"
+    mv "${COPY}" "${old}"
+
+    if new_datadir "${COPY}"; then
+        [ "$(mode)" = wd ] && mount --bind "${COPY}" "${datadir}"
+
+        if start_server && ${tools}/mariadb --socket="${SOCKET}" -uroot < "${dump}" >> ${LOG} 2>&1; then
+            rm -f "${dump}"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') ${old}" > "${DATA_PATH}/rebuilt"
+            log "Rebuilt the system tables, with the databases (${databases:-none of the user's}) and users carried over - the previous copy is kept as: ${old}"
+
+            return 0
+        fi
+
+        stop_server
+        [ "$(mode)" = wd ] && grep -q " ${datadir} " /proc/mounts && umount "${datadir}"
+    fi
+
+    log "Rebuilding the system tables failed - see ${LOG}: back to the copy as it was"
+    rm -rf "${COPY}"
+    mv "${old}" "${COPY}"
+    [ "$(mode)" = wd ] && mount --bind "${COPY}" "${datadir}"
+    start_server
+
+    return 1
 }
 
 # Own mode's swap: the app's MariaDB as /usr/libexec/mariadbd, on its own data (new the first time).

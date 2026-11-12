@@ -26,6 +26,8 @@ header('Cache-Control: no-store');
         listens where WD's did (the NAS only, socket /var/lib/mysql/mysql.sock, port 3306), so phpMyAdmin works as before.
         On a NAS without a MariaDB of its own, the app runs MariaDB by itself, on its own new data, in the same place.</p>
 
+    <p class="mg-note" data-md="rebuilt" hidden></p>
+
     <h3>Warnings and errors (since it last started)</h3>
     <pre data-md="problems">…</pre>
 
@@ -52,6 +54,15 @@ header('Cache-Control: no-store');
             part('wd').textContent       = response.wd_datadir || '-';
             part('mode').textContent     = response.mode === 'own' ? 'By itself (the NAS has no MariaDB of its own)' : 'Underneath WD\'s own MariaDB';
             part('problems').textContent = response.problems.length ? response.problems.join('\n') : 'None.';
+
+            if (response.rebuilt) {
+                let rebuilt = response.rebuilt.split(' ');
+
+                part('rebuilt').textContent = 'WD\'s MariaDB data had an inconsistent catalogue (system tables listed whose files were missing), so on '
+                    + rebuilt[0] + ' MariaDB 11.8\'s system tables were rebuilt, with your databases and users carried over. The copy as it was is kept in '
+                    + rebuilt.slice(2).join(' ') + ' (WD\'s own data was never changed).';
+                part('rebuilt').hidden = false;
+            }
         });
     })();
     </script>

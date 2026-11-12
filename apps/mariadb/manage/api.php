@@ -43,6 +43,9 @@ if ($action === 'status') {
         'app_server' => $app_server,
         // wd: underneath WD's own MariaDB; own: by itself (the NAS has no MariaDB of its own)
         'mode'       => trim((string)@file_get_contents($data_path.'/mode')) ?: 'wd',
+        // When the system tables of the copy of WD's data were rebuilt (an inconsistent catalogue), and where the copy
+        // as it was is kept: '<date> <time> <folder>', or ''
+        'rebuilt'    => trim((string)@file_get_contents($data_path.'/rebuilt')),
         'wd_datadir' => trim((string)@file_get_contents($data_path.'/wd_datadir')),
         'copy'       => $data_path.'/data',
         'copy_size'  => preg_match('/^(\S+)/', $size, $m) ? $m[1] : '',
