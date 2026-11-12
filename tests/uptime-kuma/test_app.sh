@@ -16,8 +16,8 @@ install_app
 wait_port 3001 120 && pass 'answering on 3001' || { fail "not answering: $(tail -n 10 /tmp/start.log; tail -n 10 $D/uptime-kuma.log)"; exit 1; }
 page_up
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["version"]')" = '"2.5.9"' ] && [ "$(echo "$ST" | j '$d["user"]')" = '""' ] && [ "$(echo "$ST" | j '$d["answering"]')" = true ] \
-    && pass 'the page: Uptime Kuma 2.5.9 answering, no account yet' || fail "status: $(echo "$ST" | head -c 300)"
+[ "$(echo "$ST" | j '$d["version"]')" = '"2.5.11"' ] && [ "$(echo "$ST" | j '$d["user"]')" = '""' ] && [ "$(echo "$ST" | j '$d["answering"]')" = true ] \
+    && pass 'the page: Uptime Kuma 2.5.11 answering, no account yet' || fail "status: $(echo "$ST" | head -c 300)"
 U=$(awk '/^Uid:/ { print $2 }' /proc/$(cat /var/run/uptime-kuma.pid)/status)
 [ "$U" = 72 ] && [ "$(stat -c '%u %a' $D/data)" = '72 700' ] && [ "$(stat -c '%a' $D/settings)" = 600 ] \
     && pass 'runs as its own user (72), its data its own' || fail "user: $U $(stat -c '%u %a' $D/data)"

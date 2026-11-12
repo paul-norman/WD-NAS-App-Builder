@@ -18,9 +18,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=8.0.34
+VERSION=8.0.38
 # GitHub's archive of its release tag
-MONGO_SHA256=b86778267f530e430fc3013a37578e9698cf9b58aa185e93f0cf5c8e92465974
+MONGO_SHA256=b117fc0d05b80a579f5d393b7d0f7e170752a4a7d68f1e120653e9f296bf6658
 # Bazelisk (which runs the Bazel version MongoDB names): GitHub's release - identical to MongoDB's own copy
 BAZELISK_VERSION=1.26.0
 BAZELISK_SHA256=6539c12842ad76966f3d493e8f80d67caa84ec4a000e220d5459833c967c12bc
