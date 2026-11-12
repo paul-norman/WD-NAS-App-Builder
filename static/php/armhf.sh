@@ -25,6 +25,32 @@ LOADER=ld-linux-armhf.so.3
 # Where Debian keeps the ARM libraries (multiarch)
 LIB_PATHS="/lib/${HOST} /usr/lib/${HOST}"
 SOURCE=/work/php-${VERSION}
+EMULATOR='/usr/bin/qemu-arm-static -cpu cortex-a9'
+
+# A compiler for PHP's configure, which runs test programs for some of its checks (and otherwise assumes the answers,
+# e.g. that pread() and pwrite() don't work): the ARM compiler, turning the test program it links (conftest) into a
+# script running it with QEMU. configure then finds that it can run what it builds - it's given --host without
+# --build, so it tries rather than assuming it can't - and gets the ARM models' real answers.
+function make_run_cc() {
+    {
+        echo '#!/bin/sh'
+        echo "out=''"
+        echo "previous=''"
+        echo 'for arg in "$@"; do'
+        echo '    [ "${previous}" = -o ] && out="${arg}"'
+        echo '    previous="${arg}"'
+        echo 'done'
+        echo "${HOST}-gcc \"\$@\" || exit \$?"
+        echo 'case "${out}" in'
+        echo '    conftest|*/conftest)'
+        echo '        mv "${out}" "${out}.arm"'
+        echo "        printf '#!/bin/sh\\nexec ${EMULATOR} %s \"\$@\"\\n' \"\$(cd \"\$(dirname \"\${out}\")\" && pwd)/\$(basename \"\${out}\").arm\" > \"\${out}\""
+        echo '        chmod 755 "${out}"'
+        echo '        ;;'
+        echo 'esac'
+    } > /work/run-cc
+    chmod 755 /work/run-cc
+}
 
 # Unpacks PHP and adds the PECL extensions to its ext/ folder, then regenerates its configure script with them.
 function prepare() {
@@ -59,9 +85,10 @@ function build_libiconv() {
 # and the same php.ini locations. One difference, from Debian's libraries: Argon2 password hashes come from libargon2
 # (Debian's OpenSSL 3.0 has no Argon2). Opcache's JIT has no 32-bit ARM support.
 function build() {
+    make_run_cc
     cd ${SOURCE}
-    PKG_CONFIG_LIBDIR=/usr/lib/${HOST}/pkgconfig:/usr/share/pkgconfig \
-        ./configure --build=x86_64-linux-gnu --host=${HOST} \
+    CC=/work/run-cc PKG_CONFIG_LIBDIR=/usr/lib/${HOST}/pkgconfig:/usr/share/pkgconfig \
+        ./configure --host=${HOST} \
         --prefix=/usr/local --disable-all --disable-phpdbg --enable-cli --enable-fpm --disable-cgi --disable-embed \
         --with-config-file-path=/usr/local/etc/php --with-config-file-scan-dir=/usr/local/etc/php/conf.d \
         --enable-apcu --enable-bcmath --with-bz2 --enable-ctype --with-curl --enable-dom --enable-exif \
