@@ -215,12 +215,12 @@ function output_nginx() {
     local output=${OUTPUT_ROOT}/${arch}
 
     if [ "${arch}" = armhf ]; then
-        if arm-none-eabi-readelf -l ${source}/objs/nginx | grep -q 'program interpreter'; then
+        if arm-none-eabi-readelf -l ${source}/objs/nginx | grep 'program interpreter' > /dev/null; then
             echo "nginx (armhf) isn't static"
 
             exit 1
         fi
-    elif ldd ${source}/objs/nginx 2>&1 | grep -q '=>'; then
+    elif ldd ${source}/objs/nginx 2>&1 | grep '=>' > /dev/null; then
         echo "nginx isn't static"
 
         exit 1
@@ -281,9 +281,10 @@ function check_arm_nginx() {
         sleep 1
     done
 
-    curl -sk ${url} | grep -q 'Hello from Nginx on ARM'
-    curl -sk -H 'Accept-Encoding: br' -D - -o /dev/null ${url} | grep -qi '^content-encoding: br'
-    curl -sk -H 'Accept-Encoding: gzip' -D - -o /dev/null ${url} | grep -qi '^content-encoding: gzip'
+    # (grep reading everything: with pipefail, grep -q stopping early can fail the pipe - SIGPIPE)
+    curl -sk ${url} | grep 'Hello from Nginx on ARM' > /dev/null
+    curl -sk -H 'Accept-Encoding: br' -D - -o /dev/null ${url} | grep -i '^content-encoding: br' > /dev/null
+    curl -sk -H 'Accept-Encoding: gzip' -D - -o /dev/null ${url} | grep -i '^content-encoding: gzip' > /dev/null
     kill ${pid}
     wait ${pid} 2> /dev/null || true
 }

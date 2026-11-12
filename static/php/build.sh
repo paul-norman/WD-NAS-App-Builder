@@ -226,7 +226,7 @@ PHP
     ${php} -n -d display_errors=1 ${test}/check.php
 
     # php-fpm: its version, and a configuration it accepts
-    qemu-arm -cpu cortex-a9 ${ARM_BINARIES}/php-fpm -n -v | grep -q "^PHP ${VERSION} (fpm-fcgi)"
+    qemu-arm -cpu cortex-a9 ${ARM_BINARIES}/php-fpm -n -v | grep "^PHP ${VERSION} (fpm-fcgi)" > /dev/null
     printf '[global]\nerror_log = %s/fpm.log\n[www]\nuser = nobody\nlisten = %s/fpm.sock\npm = static\npm.max_children = 1\n' \
         ${test} ${test} > ${test}/php-fpm.conf
     qemu-arm -cpu cortex-a9 ${ARM_BINARIES}/php-fpm -n -t -y ${test}/php-fpm.conf

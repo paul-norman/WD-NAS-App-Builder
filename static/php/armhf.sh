@@ -113,12 +113,19 @@ function bundle() {
     mkdir -p ${RUNTIME}
     ${HOST}-strip -o ${BINARIES}/php ${SOURCE}/sapi/cli/php
     ${HOST}-strip -o ${BINARIES}/php-fpm ${SOURCE}/sapi/fpm/php-fpm
-    queue="$(needed ${BINARIES}/php; needed ${BINARIES}/php-fpm)"
+    # (an array, not lines through head / tail: with pipefail, a pipe into head can fail at random - SIGPIPE; read from
+    # a file, as the chroot has no /dev/fd for <(...))
+    { needed ${BINARIES}/php; needed ${BINARIES}/php-fpm; } > /work/needed
+    mapfile -t queue < /work/needed
 
-    while [ -n "${queue}" ]; do
-        name="$(echo "${queue}" | head -n 1)"
-        queue="$(echo "${queue}" | tail -n +2)"
-        [ -e "${RUNTIME}/${name}" ] && continue
+    while [ ${#queue[@]} -gt 0 ]; do
+        name="${queue[0]}"
+        queue=("${queue[@]:1}")
+
+        if [ -z "${name}" ] || [ -e "${RUNTIME}/${name}" ]; then
+            continue
+        fi
+
         path="$(find_library "${name}")"
 
         if [ -z "${path}" ]; then
@@ -128,8 +135,8 @@ function bundle() {
         fi
 
         cp -L "${path}" "${RUNTIME}/${name}"
-        queue="$(echo "${queue}"; needed "${RUNTIME}/${name}")"
-        queue="$(echo "${queue}" | sed '/^$/d')"
+        needed "${RUNTIME}/${name}" > /work/needed
+        mapfile -t -O ${#queue[@]} queue < /work/needed
     done
 
     cp -L "$(find_library ${LOADER})" ${RUNTIME}/${LOADER}
@@ -166,7 +173,7 @@ function sources() {
     apt-get update
 
     for lib in ${RUNTIME}/*; do
-        package="$(dpkg -S "*/$(basename "${lib}")" 2>/dev/null | grep ':armhf: ' | head -n 1 | sed 's/: .*//' || true)"
+        package="$(dpkg -S "*/$(basename "${lib}")" 2>/dev/null | awk -F ': ' '/:armhf: / && !found++ { print $1 }' || true)"
 
         if [ -z "${package}" ]; then
             echo "No package found for: ${lib}"
@@ -185,7 +192,7 @@ function sources() {
         printf '%s\t%s\t%s\t%s\t%s\n' "$(basename "${lib}")" "${package}" "${source}" "${version}" "${license}" \
             >> /work/sources/packages.tsv
 
-        if [ "${license}" = copyleft ] && ! echo "${source}" | grep -qE '^gcc(-[0-9]+)?$' \
+        if [ "${license}" = copyleft ] && [[ ! "${source}" =~ ^gcc(-[0-9]+)?$ ]] \
             && [ ! -e "/work/sources/${source}_${version#*:}.dsc" ]; then
             (cd /work/sources && apt-get source --download-only "${source}=${version}")
         fi
