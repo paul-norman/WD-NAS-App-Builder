@@ -1,8 +1,9 @@
 # PostgreSQL App
 
-[PostgreSQL](https://www.postgresql.org/) 18 *(supported until November 2030)*, for apps on the NAS - or, if allowed, on the local network. Intel models only.
+[PostgreSQL](https://www.postgresql.org/) 18 *(supported until November 2030)*, for apps on the NAS - or, if allowed, on the local network. For the Intel models and the ARM ones.
 
-- Built on Debian Bullseye *(the NAS's own Debian version)* by `static/postgresql`, with OpenSSL 3.5 LTS and the libraries it uses *(ICU, LZ4, Zstandard, zlib, readline, libuuid)* bundled - the NAS's system is stripped down, so nothing beyond glibc and libstdc++ is relied on.
+- On the Intel models, built on Debian Bullseye *(the NAS's own Debian version)* by `static/postgresql`, with OpenSSL 3.5 LTS and the libraries it uses *(ICU, LZ4, Zstandard, zlib, readline, libuuid)* bundled - the NAS's system is stripped down, so nothing beyond glibc and libstdc++ is relied on.
+- On the ARM models, the same versions *(PostgreSQL and every extension)* are built by `static/postgresql` with Debian 12's cross-compiler, against Debian's builds of the libraries, which come with it with Debian's glibc *(the NAS's own are too old)*. Its programs use that glibc by its full path, so the app must be on the NAS's first volume *(`/mnt/HD/HD_a2/Nas_Prog/postgresql`, where the NAS installs apps)*. It's checked with QEMU's emulator: a new cluster, the server, PostGIS *(a coordinate transform)*, pgvector, pgcrypto and pg_trgm.
 - Extensions *(added to a database with `CREATE EXTENSION`)*:
   - **[PostGIS](https://postgis.net/) 3.6** - geometry and geography types, functions and indexes, topology, GeoJSON and vector tiles *(`ST_AsMVT`)*, with **GEOS 3.15** and **PROJ 9.9** *(and its database of coordinate systems)* built from source. No rasters *(they need GDAL, which is very large)*.
   - **[pgvector](https://github.com/pgvector/pgvector) 0.8** - vector similarity search *(e.g. AI embeddings)*, with HNSW and IVFFlat indexes. Built for plain x86-64 *(its default would target the build machine's CPU)*.

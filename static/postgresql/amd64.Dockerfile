@@ -1,3 +1,19 @@
+# The ARM models' PostgreSQL: Debian's cross-compiler for their processors (armhf), Debian's own builds of the libraries
+# PostgreSQL, PostGIS and PROJ use, for them, and QEMU's emulator (PostGIS and the extensions ask PostgreSQL's pg_config,
+# an ARM program, how it was built). build.sh compiles them with these inside this stage's files (kept whole in the
+# final image, and entered with chroot), so that the ARM build is made from the same versions as the Intel one
+FROM debian:bookworm
+RUN dpkg --add-architecture armhf && \
+    sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        bison ca-certificates cmake crossbuild-essential-armhf dpkg-dev file flex make patchelf perl pkg-config \
+        protobuf-c-compiler qemu-user-static sqlite3 \
+        libgmp-dev:armhf libicu-dev:armhf libjson-c-dev:armhf liblz4-dev:armhf libprotobuf-c-dev:armhf \
+        libreadline-dev:armhf libsqlite3-dev:armhf libssl-dev:armhf libxml2-dev:armhf libzstd-dev:armhf \
+        uuid-dev:armhf zlib1g-dev:armhf && \
+    rm -rf /var/lib/apt/lists/*
+
 FROM debian:bullseye
 
 ENV LANG=C.UTF-8
@@ -35,6 +51,12 @@ RUN apt-get update && \
 
 # PROJ needs a newer CMake than Bullseye's (3.18) - only the build tool, the libraries stay Bullseye's
 RUN pip3 install --no-cache-dir cmake==3.31.6
+
+# QEMU's emulator checks the ARM models' build
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yy qemu-user && rm -rf /var/lib/apt/lists/*
+
+# The ARM models' build environment (above)
+COPY --from=0 / /armhf-root/
 
 # Volume that will point to the whole repository
 VOLUME /data

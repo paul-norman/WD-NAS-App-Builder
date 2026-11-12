@@ -6,7 +6,11 @@
 # finds the bundled ones through its own location ($ORIGIN), and PostgreSQL finds its files relative to its programs
 # too, so the whole tree can live anywhere (the app's folder). Extensions included besides PostgreSQL's own (contrib):
 # PostGIS (geometry / geography and topology - no rasters, which need GDAL), with GEOS and PROJ built from source and
-# GMP bundled, pgvector, pg_cron, pg_partman and pgaudit
+# GMP bundled, pgvector, pg_cron, pg_partman and pgaudit.
+#
+# The ARM models: armhf.sh builds the same versions with Debian's cross-compiler - inside the Dockerfile's Debian stage
+# (/armhf-root, with chroot) - against Debian's builds of the libraries, bundled with it with Debian's glibc. It's
+# checked here with QEMU's emulator: a new cluster, the server, PostGIS (a coordinate transform), pgvector, pgcrypto.
 
 set -e
 set -o pipefail
@@ -30,19 +34,18 @@ PG_PARTMAN_SHA256=a3f100ae871677f0012579f58542c174900297f664a4ad2be0256e7ee5e335
 PGAUDIT_VERSION=18.0
 PGAUDIT_SHA256=988e8afeda320ebe0a3e632ef6b6bce5d3a08346c2e100a173a585c9521d1fa5
 OPENSSL_SHA256=603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a
-
-ARCH=$(uname -m)
-
-if [ ${ARCH} = 'x86_64' ]; then
-    ARCH='amd64'
-else
-    ARCH='armhf'
-fi
+# The architectures built (each into packages/static/postgresql/<version>/<arch>)
+ARCHES='amd64 armhf'
 
 BUILD_PATH=/build
 # A prefix containing "pgsql", so that PostgreSQL's share and lib folders are share/ and lib/
 PREFIX=/usr/local/pgsql
-OUTPUT_PATH=/data/packages/static/postgresql/${VERSION}/${ARCH}
+OUTPUT_ROOT=/data/packages/static/postgresql/${VERSION}
+OUTPUT_PATH=${OUTPUT_ROOT}/amd64
+# The ARM build environment (the Dockerfile's Debian stage), and where the ARM build is made: the app's folder on the
+# NAS, as its programs find their loader by its full path
+ARM_ROOT=/armhf-root
+ARM_FINAL=/mnt/HD/HD_a2/Nas_Prog/postgresql/binaries/postgresql
 
 # The NAS's own libraries (everything else a program needs is bundled)
 SYSTEM_LIBS='libc.so.6 libm.so.6 libpthread.so.0 libdl.so.2 librt.so.1 libstdc++.so.6 libgcc_s.so.1 ld-linux-x86-64.so.2'
@@ -175,6 +178,105 @@ function bundle() {
     for elf in ${OUTPUT_PATH}/lib/*.so*; do [ -L "${elf}" ] || patchelf --set-rpath '$ORIGIN' "${elf}"; done
 }
 
+# Builds PostgreSQL and its extensions for the ARM models with armhf.sh, in the Debian stage (with chroot: its own /dev
+# entries made first, as the builds need them), into ${BUILD_PATH}/armhf-out (until it's checked) - and its bundled
+# libraries' sources.
+function build_arm() {
+    local work=${ARM_ROOT}/work
+    local device
+
+    rm -rf ${work}
+    mkdir -p ${work}
+    cd ${work}
+    sh /data/static/fetch.sh "https://ftp.postgresql.org/pub/source/v${VERSION}/postgresql-${VERSION}.tar.bz2" \
+        postgresql.tar.bz2 "${SHA256}"
+    sh /data/static/fetch.sh \
+        "https://github.com/libgeos/geos/releases/download/${GEOS_VERSION}/geos-${GEOS_VERSION}.tar.bz2" geos.tar.bz2 \
+        "${GEOS_SHA256}"
+    sh /data/static/fetch.sh "https://download.osgeo.org/proj/proj-${PROJ_VERSION}.tar.gz" proj.tar.gz "${PROJ_SHA256}"
+    sh /data/static/fetch.sh "https://download.osgeo.org/postgis/source/postgis-${POSTGIS_VERSION}.tar.gz" \
+        postgis.tar.gz "${POSTGIS_SHA256}"
+    sh /data/static/fetch.sh "https://github.com/pgvector/pgvector/archive/refs/tags/v${PGVECTOR_VERSION}.tar.gz" \
+        pgvector.tar.gz "${PGVECTOR_SHA256}"
+    sh /data/static/fetch.sh "https://github.com/citusdata/pg_cron/archive/refs/tags/v${PG_CRON_VERSION}.tar.gz" \
+        pg_cron.tar.gz "${PG_CRON_SHA256}"
+    sh /data/static/fetch.sh \
+        "https://github.com/pgpartman/pg_partman/archive/refs/tags/v${PG_PARTMAN_VERSION}.tar.gz" pg_partman.tar.gz \
+        "${PG_PARTMAN_SHA256}"
+    sh /data/static/fetch.sh "https://github.com/pgaudit/pgaudit/archive/refs/tags/${PGAUDIT_VERSION}.tar.gz" \
+        pgaudit.tar.gz "${PGAUDIT_SHA256}"
+    cp /data/static/postgresql/armhf.sh ${work}/
+
+    for device in 'null 1 3' 'zero 1 5' 'random 1 8' 'urandom 1 9'; do
+        set -- ${device}
+        [ -e ${ARM_ROOT}/dev/$1 ] || mknod -m 666 ${ARM_ROOT}/dev/$1 c $2 $3
+    done
+
+    cp /etc/resolv.conf ${ARM_ROOT}/etc/resolv.conf
+    chroot ${ARM_ROOT} /usr/bin/env VERSION=${VERSION} /bin/bash /work/armhf.sh
+
+    rm -rf ${BUILD_PATH}/armhf-out
+    mkdir -p ${BUILD_PATH}/armhf-out
+    cp -a ${ARM_ROOT}${ARM_FINAL}/. ${BUILD_PATH}/armhf-out/
+    mkdir -p ${OUTPUT_PATH}.sources
+    rm -rf ${OUTPUT_PATH}.sources/armhf-debian
+    cp -r ${work}/sources ${OUTPUT_PATH}.sources/armhf-debian
+    cd ${BUILD_PATH}
+    rm -rf ${work}
+    du -sh ${BUILD_PATH}/armhf-out ${OUTPUT_PATH}.sources/armhf-debian
+}
+
+# Checks the ARM build with QEMU's emulator (as a Cortex-A9, the ARM models' processors' kind), at the app's path on the
+# NAS (where its programs find their loader), without the Debian stage's libraries anywhere they could be found: a new
+# cluster (as the app makes it), the server, and PostGIS (the coordinate transform checked on the NAS), pgvector,
+# pgcrypto and pg_trgm in it - and pg_runas refusing root. Its programs are run through scripts calling QEMU, so that
+# PostgreSQL's own programs can run each other as on the NAS.
+function check_arm() {
+    local qemu='qemu-arm -cpu cortex-a9'
+    local data=${BUILD_PATH}/armhf-test
+    local socket=${BUILD_PATH}/armhf-sock
+    local program psql
+
+    rm -rf ${ARM_FINAL} ${data} ${socket}
+    mkdir -p "$(dirname ${ARM_FINAL})" ${data} ${socket}
+    cp -a ${BUILD_PATH}/armhf-out ${ARM_FINAL}
+    mv ${ARM_FINAL}/bin ${ARM_FINAL}/bin-arm
+    mkdir ${ARM_FINAL}/bin
+
+    for program in ${ARM_FINAL}/bin-arm/*; do
+        # (-0: the program sees the script's path as its own, so that it finds its siblings - the scripts - beside it)
+        printf '#!/bin/sh\nexec %s -0 "$0" %s "$@"\n' "${qemu}" "${program}" > ${ARM_FINAL}/bin/$(basename ${program})
+        chmod 755 ${ARM_FINAL}/bin/$(basename ${program})
+    done
+
+    ${ARM_FINAL}/bin/postgres --version | grep "(PostgreSQL) ${VERSION}" > /dev/null
+
+    if ${ARM_FINAL}/bin/pg_runas 0 0 /bin/true 2> /dev/null; then
+        echo 'pg_runas ran something as root'
+
+        exit 1
+    fi
+
+    id pgtest > /dev/null 2>&1 || useradd -M pgtest
+    chown pgtest ${data} ${socket}
+    export PROJ_DATA=${ARM_FINAL}/share/proj
+    runuser -u pgtest -- ${ARM_FINAL}/bin/initdb -D ${data} -U postgres --auth=trust --locale-provider=builtin \
+        --builtin-locale=C.UTF-8
+    runuser -u pgtest -- ${ARM_FINAL}/bin/pg_ctl -D ${data} -l ${data}/server.log -w -t 180 \
+        -o "-c listen_addresses='' -c unix_socket_directories=${socket}" start
+    psql="${ARM_FINAL}/bin/psql -h ${socket} -U postgres -X -A -t -v ON_ERROR_STOP=1"
+
+    ${psql} -c 'SELECT version()' | grep "PostgreSQL ${VERSION}" > /dev/null
+    ${psql} -c 'CREATE EXTENSION postgis; CREATE EXTENSION vector; CREATE EXTENSION pgcrypto; CREATE EXTENSION pg_trgm'
+    ${psql} -c "SELECT ST_AsText(ST_SnapToGrid(ST_Transform(ST_SetSRID(ST_MakePoint(-0.1276, 51.5072), 4326), 27700), 1))" \
+        | grep 'POINT(530' > /dev/null
+    ${psql} -c "SELECT '[1,2,3]'::vector <-> '[4,6,3]'::vector" | grep '^5$' > /dev/null
+    ${psql} -c "SELECT encode(digest('abc', 'sha256'), 'hex')" | grep '^ba7816bf' > /dev/null
+    ${psql} -c "SELECT similarity('postgres', 'postgis') > 0.3" | grep '^t$' > /dev/null
+    runuser -u pgtest -- ${ARM_FINAL}/bin/pg_ctl -D ${data} -w -t 120 stop
+    rm -rf ${ARM_FINAL} ${data} ${socket}
+}
+
 function run() {
     # Clean start
     if [ -d ${BUILD_PATH} ]; then
@@ -182,20 +284,31 @@ function run() {
     fi
     mkdir -p ${BUILD_PATH}
 
-    build_openssl
-    build_geos_proj
-    build_postgresql
-    build_extensions
-    rm -rf ${OUTPUT_PATH}
-    bundle
-    build_runas
-    cp ${BUILD_PATH}/pg_runas ${OUTPUT_PATH}/bin/
-    du -sh ${OUTPUT_PATH}
-    ${OUTPUT_PATH}/bin/postgres --version
+    # The Intel build (unless it's already made: e.g. only the ARM build is missing)
+    if [ -x ${OUTPUT_PATH}/bin/postgres ] && [ -x ${OUTPUT_PATH}/bin/pg_runas ]; then
+        echo "PostgreSQL ${VERSION} (amd64) is already built: ${OUTPUT_PATH}"
+    else
+        build_openssl
+        build_geos_proj
+        build_postgresql
+        build_extensions
+        rm -rf ${OUTPUT_PATH}
+        bundle
+        build_runas
+        cp ${BUILD_PATH}/pg_runas ${OUTPUT_PATH}/bin/
+        du -sh ${OUTPUT_PATH}
+        ${OUTPUT_PATH}/bin/postgres --version
+    fi
+
+    build_arm
+    check_arm
+    # Only once it's checked (build_static.sh takes an output folder that isn't empty as built)
+    rm -rf ${OUTPUT_ROOT}/armhf
+    mkdir -p ${OUTPUT_ROOT}/armhf
+    cp -a ${BUILD_PATH}/armhf-out/. ${OUTPUT_ROOT}/armhf/
 
     # Create a latest release file for ease of use in packages
-    LATEST_PATH="$(dirname ${OUTPUT_PATH})"
-    LATEST_PATH="$(dirname ${LATEST_PATH})/latest"
+    LATEST_PATH="$(dirname ${OUTPUT_ROOT})/latest"
     echo -e "\nCreating a latest release file: ${LATEST_PATH}"
     rm -f ${LATEST_PATH}
     printf '%s' "${VERSION}" > ${LATEST_PATH}
