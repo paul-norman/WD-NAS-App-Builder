@@ -68,7 +68,9 @@ swap() {
     remember_wd_python
 
     for name in ${LINKS}; do
-        # Only where there's nothing else already, apart from WD's python3
+        # Only programs this build has (the ARM models' has no uv), and only where there's nothing else already, apart
+        # from WD's python3
+        [ -e "${BIN}/${name}" ] || continue
         target="$(readlink "/usr/bin/${name}" 2>/dev/null)"
 
         if [ ! -e "/usr/bin/${name}" ] || [ "${name}" = python3 ] || [ "${target#"${APP_PATH}"/}" != "${target}" ]; then
