@@ -1,9 +1,9 @@
 # Nginx App
 
-[Nginx](https://nginx.org/) gives the NAS's apps proper HTTPS addresses - e.g. `https://jellyfin.nas.example.com` instead of `http://nas:8096` - with free, automatically renewed certificates from [Let's Encrypt](https://letsencrypt.org/) *(or another ACME certificate authority)*. **Intel models only**.
+[Nginx](https://nginx.org/) gives the NAS's apps proper HTTPS addresses - e.g. `https://jellyfin.nas.example.com` instead of `http://nas:8096` - with free, automatically renewed certificates from [Let's Encrypt](https://letsencrypt.org/) *(or another ACME certificate authority)*. For the Intel models and the ARM ones.
 
 - Nginx listens on port `443` *(HTTPS, with HTTP/2 and HTTP/3)* next to the NAS's own web interface *(which keeps ports 80 and 8543)*. **It's meant for the local network only**: forwarding port 443 from the Internet would expose every app.
-- Nginx is a static build *(`static/nginx`: OpenSSL 3.5, PCRE2, zlib and Brotli built in)*; certificates come from [lego](https://go-acme.github.io/lego/), downloaded from its official releases and checked against their published checksums.
+- Nginx is a static build *(`static/nginx`: OpenSSL 3.5, PCRE2, zlib and Brotli built in - for the ARM models, cross-compiled with Zig and checked with QEMU's emulator, serving a page over HTTPS)*; certificates come from [lego](https://go-acme.github.io/lego/), downloaded from its official releases and checked against their published checksums.
 - Its worker processes run as `nobody`. Access logging is off by default *(it would keep the NAS's disks from spinning down)*; the error log stays on.
 
 ## Management page
