@@ -1,18 +1,9 @@
-FROM debian:bullseye
+FROM alpine:3.22
 
-ENV LANG=C.UTF-8
-
-# Bullseye (the NAS's Debian version) is end of life, so its packages are only on the archive mirror
-RUN printf 'deb http://archive.debian.org/debian bullseye main\ndeb http://archive.debian.org/debian-security bullseye-security main\n' > /etc/apt/sources.list && \
-	rm -f /etc/apt/sources.list.d/*
-
-RUN apt-get update && \
-	DEBIAN_FRONTEND=noninteractive apt-get upgrade -yy && \
-	DEBIAN_FRONTEND=noninteractive apt-get install -yy \
-	build-essential \
-	ca-certificates \
-	pkg-config \
-	wget
+# ValKey, fully static (musl) for the Intel models and the ARM ones: gcc compiles the Intel one (ValKey picks its
+# fastest code for the processor it runs on, with gcc's runtime), Zig the ARM one (with its own musl, laid out for their
+# large memory pages), and QEMU and Python check the ARM build
+RUN apk add --no-cache bash binutils-arm-none-eabi build-base file linux-headers make pkgconf python3 qemu-arm wget zig
 
 # Volume that will point to the whole repository
 VOLUME /data

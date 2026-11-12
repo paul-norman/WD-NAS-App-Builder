@@ -2,6 +2,8 @@
 
 ValKey is an open-source, fairly licensed, drop-in replacement for Redis. By default it will run on: `0.0.0.0:6379` and can be accessed via the `valkey-cli` *(or `redis-cli`)* command. The config file is available at `/etc/valkey/valkey.conf`.
 
+For the Intel models and the ARM ones: ValKey's server and `valkey-cli` are fully static programs *(built by `static/valkey`: with gcc for the Intel models, with Zig for the ARM ones - laid out for their kernels' large memory pages, using musl's memory allocator rather than jemalloc, which is built for one page size - and checked with QEMU's emulator)*. Its built-in Lua scripting engine is found directly rather than with `dlopen()`, which a static program can't use *(a small patch to ValKey)*.
+
 ## Password
 
 ValKey listens on all interfaces, so a random password is generated on first install. It is the `requirepass` line in the config file *(readable by root only)*:
