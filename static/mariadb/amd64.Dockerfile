@@ -1,38 +1,19 @@
-# The ARM models' MariaDB: Debian's cross-compiler for their processors (armhf), Debian's own builds of the libraries
-# MariaDB uses, for them, and QEMU's emulator (MariaDB's build runs programs it has just built). build.sh compiles
-# MariaDB with these inside this stage's files (kept whole in the final image, and entered with chroot), so that the ARM
-# build is made from the same version as the Intel one
-FROM debian:bookworm
-RUN dpkg --add-architecture armhf && \
-    sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        bison ca-certificates cmake crossbuild-essential-armhf dpkg-dev file make patchelf pkg-config \
-        qemu-user-static \
-        libcrypt-dev:armhf libfmt-dev:armhf libncurses-dev:armhf libpcre2-dev:armhf libssl-dev:armhf \
-        zlib1g-dev:armhf && \
-    rm -rf /var/lib/apt/lists/*
+FROM alpine:3.22
 
-FROM debian:bullseye
-
-ENV LANG=C.UTF-8
-
-# Bullseye (the NAS's Debian version) is end of life, so its packages are only on the archive mirror
-RUN printf 'deb http://archive.debian.org/debian bullseye main\ndeb http://archive.debian.org/debian-security bullseye-security main\n' > /etc/apt/sources.list && \
-	rm -f /etc/apt/sources.list.d/*
-
-# QEMU's emulator checks the ARM models' build
-RUN apt-get update && \
-	DEBIAN_FRONTEND=noninteractive apt-get install -yy \
-	binutils \
-	ca-certificates \
-	gcc \
-	patchelf \
-	qemu-user \
-	wget
-
-# The ARM models' build environment (above)
-COPY --from=0 / /armhf-root/
+# Intel: MariaDB's own Linux release, cut down (binutils, patchelf) and given a stand-in libsystemd (gcc). ARM: MariaDB
+# built from its source, fully static, with clang and LLD (which lays programs out for the ARM models' large memory
+# pages) against Alpine's own static ARM libraries (the Alpine ARM system in /armv7, installed with Alpine's ARM signing
+# keys - its packages' scripts aren't run here; the links to the shared libraries MariaDB uses taken away, so that its
+# build can only find the static ones), with QEMU's emulator (MariaDB's build runs programs it has just built, and its
+# checks run the result) and Python (the layout check)
+RUN apk add --no-cache alpine-keys bash binutils bison clang cmake file gcc lld llvm make musl-dev ncurses patchelf perl \
+    pkgconf python3 qemu-arm wget && \
+    mkdir -p /armv7/etc/apk/keys && cp /usr/share/apk/keys/armv7/* /armv7/etc/apk/keys/ && \
+    apk add --root /armv7 --arch armv7 --initdb --no-scripts --no-cache \
+        -X https://dl-cdn.alpinelinux.org/alpine/v3.22/main -X https://dl-cdn.alpinelinux.org/alpine/v3.22/community \
+        musl-dev gcc g++ libstdc++-dev linux-headers fmt-dev ncurses-dev ncurses-static openssl-dev \
+        openssl-libs-static pcre2-dev pcre2-static zlib-dev zlib-static && \
+    cd /armv7/usr/lib && rm -f libssl.so libcrypto.so libz.so libpcre2-8.so libpcre2-posix.so libncursesw.so
 
 # Volume that will point to the whole repository
 VOLUME /data

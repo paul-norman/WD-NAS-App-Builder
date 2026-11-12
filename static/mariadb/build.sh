@@ -6,9 +6,10 @@
 # so a stand-in library is added, found through a fixed path (/usr/local/mysql/lib: the app links /usr/local/mysql to
 # these files, which is also where MariaDB's release looks for its plugins, messages and character sets).
 #
-# The ARM models: MariaDB publishes no 32-bit ARM release, so armhf.sh compiles the same version from its source with
-# Debian's cross-compiler - inside the Dockerfile's Debian stage (/armhf-root, with chroot) - and bundles the libraries
-# it uses with it. It's checked here with QEMU's emulator: a new database, the server, InnoDB, the client tools.
+# The ARM models: MariaDB publishes no 32-bit ARM release, so armhf.sh compiles the same version from its source, fully
+# static (clang and LLD, against Alpine's static ARM libraries in /armv7: laid out for the ARM models' large memory
+# pages). It's checked here: its layout (ci/check_arm_pages.py), then with QEMU's emulator - a new database, the server,
+# InnoDB, the client tools. (This image is Alpine: older QEMUs, and QEMU in a chroot, hang running its server.)
 
 set -e
 set -o pipefail
@@ -24,9 +25,7 @@ ARCHES='amd64 armhf'
 BUILD_PATH=/build
 OUTPUT_ROOT=/data/packages/static/mariadb/${VERSION}
 OUTPUT_PATH=${OUTPUT_ROOT}/amd64
-# The ARM build environment (the Dockerfile's Debian stage), and where the ARM build is made inside it: the path the app
-# links to MariaDB on the NAS, as its programs find their libraries by their full paths
-ARM_ROOT=/armhf-root
+# Where the ARM build is made: the path the app links to MariaDB on the NAS
 ARM_PREFIX=/usr/local/mysql
 
 # The programs kept: the server, and the client tools for managing, backing up and upgrading it
@@ -46,7 +45,8 @@ function download() {
     tar -xzf mariadb.tar.gz -C release --strip-components=1
 }
 
-# The stand-in for libsystemd: the three functions MariaDB's server calls, doing nothing (as with no systemd)
+# The stand-in for libsystemd: the three functions MariaDB's server calls, doing nothing (as with no systemd) - needing
+# no library at all (-nostdlib), so that it's built here (musl) for MariaDB's release (glibc)
 function build_libsystemd() {
     cd ${BUILD_PATH}
     cat > libsystemd.c <<'C'
@@ -58,7 +58,14 @@ C
 LIBSYSTEMD_209 { global: sd_notify; sd_notifyf; local: *; };
 LIBSYSTEMD_227 { global: sd_listen_fds_with_names; } LIBSYSTEMD_209;
 MAP
-    gcc -O2 -fPIC -shared -o libsystemd.so.0 -Wl,-soname,libsystemd.so.0 -Wl,--version-script=libsystemd.map libsystemd.c
+    gcc -O2 -fPIC -shared -nostdlib -o libsystemd.so.0 -Wl,-soname,libsystemd.so.0 \
+        -Wl,--version-script=libsystemd.map libsystemd.c
+
+    if readelf -d libsystemd.so.0 | grep NEEDED; then
+        echo 'The stand-in libsystemd needs a library'
+
+        exit 1
+    fi
 }
 
 function assemble() {
@@ -93,92 +100,127 @@ function assemble() {
     patchelf --set-rpath /usr/local/mysql/lib ${OUTPUT_PATH}/bin/mariadbd
 }
 
-# Builds MariaDB for the ARM models with armhf.sh, in the Debian stage (with chroot: its own /dev entries made first, as
-# the build needs them), into ${BUILD_PATH}/armhf-out (until it's checked) - and its bundled libraries' sources.
+# Builds MariaDB for the ARM models with armhf.sh, into ${BUILD_PATH}/armhf-out (until it's checked) - and lists the
+# Alpine packages whose static libraries it may have linked in, for their sources (ci/sources.py reads it as it reads
+# the survey's distro.tsv).
 function build_arm() {
-    local work=${ARM_ROOT}/work
-    local device
+    local work=/work
 
     rm -rf ${work}
     mkdir -p ${work}
     cd ${work}
     sh /data/static/fetch.sh "https://archive.mariadb.org/mariadb-${VERSION}/source/mariadb-${VERSION}.tar.gz" \
         mariadb.tar.gz "${SOURCE_SHA256}"
-    cp /data/static/mariadb/armhf.sh ${work}/
-
-    for device in 'null 1 3' 'zero 1 5' 'random 1 8' 'urandom 1 9'; do
-        set -- ${device}
-        [ -e ${ARM_ROOT}/dev/$1 ] || mknod -m 666 ${ARM_ROOT}/dev/$1 c $2 $3
-    done
-
-    cp /etc/resolv.conf ${ARM_ROOT}/etc/resolv.conf
-    chroot ${ARM_ROOT} /usr/bin/env VERSION=${VERSION} /bin/bash /work/armhf.sh
+    VERSION=${VERSION} bash /data/static/mariadb/armhf.sh
 
     rm -rf ${BUILD_PATH}/armhf-out
     mkdir -p ${BUILD_PATH}/armhf-out
-    cp -a ${ARM_ROOT}${ARM_PREFIX}/. ${BUILD_PATH}/armhf-out/
+    cp -a ${ARM_PREFIX}/. ${BUILD_PATH}/armhf-out/
     mkdir -p ${OUTPUT_PATH}.sources
     rm -rf ${OUTPUT_PATH}.sources/armhf-debian
-    cp -r ${work}/sources ${OUTPUT_PATH}.sources/armhf-debian
+    alpine_packages /armv7 /etc/os-release > ${OUTPUT_PATH}.sources/armhf-distro.tsv
     cd ${BUILD_PATH}
     rm -rf ${work}
-    du -sh ${BUILD_PATH}/armhf-out ${OUTPUT_PATH}.sources/armhf-debian
+    du -sh ${BUILD_PATH}/armhf-out
 }
 
-# Checks the ARM build with QEMU's emulator (as a Cortex-A9, the ARM models' processors' kind), at the path the app links
-# to it (where it finds its loader and libraries), without the Debian stage's libraries anywhere it could find them:
-# each program runs, mariadb-install-db makes a new database, the server starts on it, stores and reads back data with
-# InnoDB, mariadb-dump dumps it, and it shuts down cleanly. Its programs are run through scripts calling QEMU, so that
-# MariaDB's own scripts can run them as on the NAS.
+# Lists an Alpine system's packages holding static libraries, as the survey lists an Alpine stage's (ci/survey_inside.sh).
+#
+# $1 root    The Alpine system's folder
+# $2 release Its Alpine release's os-release file (the ARM system has none of its own: this image's, the same release)
+#
+# Prints a line per package: os, its version, stage (armhf), source package, version, license, why (static), aports
+# commit and package name - tab separated
+function alpine_packages() {
+    local osv
+
+    osv="$(sed -n 's/^VERSION_ID=//p' "$2")"
+    awk -v osv="${osv}" '
+        function flush() {
+            if (name != "" && static) {
+                printf "alpine\t%s\tarmhf\t%s\t%s\t%s\tstatic\t%s\t%s\n", osv, origin, version, license, commit, name
+            }
+            name = ""; version = ""; origin = ""; commit = ""; license = ""; folder = ""; static = 0
+        }
+        /^$/ { flush(); next }
+        /^P:/ { name = substr($0, 3) }
+        /^V:/ { version = substr($0, 3) }
+        /^o:/ { origin = substr($0, 3) }
+        /^c:/ { commit = substr($0, 3) }
+        /^L:/ { license = substr($0, 3) }
+        /^F:/ { folder = substr($0, 3) }
+        /^R:/ { if (substr($0, 3) ~ /\.a$/ && folder ~ /^(usr\/)?lib/) static = 1 }
+        END { flush() }
+    ' "$1/lib/apk/db/installed"
+}
+
+# Checks the ARM build: laid out for the ARM models' large memory pages (ci/check_arm_pages.py), then with QEMU's
+# emulator (as a Cortex-A9, the ARM models' processors' kind), at the path the app links to it: each program runs, mariadb-install-db makes a new database, the
+# server starts on it, stores and reads back data with InnoDB, mariadb-dump dumps it, and it shuts down cleanly. Its
+# programs are run through scripts calling QEMU, so that MariaDB's own scripts can run them as on the NAS.
 function check_arm() {
-    local qemu='qemu-arm -cpu cortex-a9'
-    local data=${BUILD_PATH}/armhf-test
-    local socket=${BUILD_PATH}/armhf-test.sock
-    local client program waited
+    local prefix=${ARM_PREFIX}
+    local program
 
-    rm -rf ${ARM_PREFIX} ${data}
-    cp -a ${BUILD_PATH}/armhf-out ${ARM_PREFIX}
-    mv ${ARM_PREFIX}/bin ${ARM_PREFIX}/bin-arm
-    mkdir ${ARM_PREFIX}/bin
+    # (a copy kept until it passes, to look into a failure: build_static.sh skips a build whose armhf folder isn't empty,
+    # so it's kept beside it)
+    rm -rf ${OUTPUT_ROOT}/armhf-unchecked
+    cp -a ${BUILD_PATH}/armhf-out ${OUTPUT_ROOT}/armhf-unchecked
+    python3 /data/ci/check_arm_pages.py ${BUILD_PATH}/armhf-out
 
-    for program in ${ARM_PREFIX}/bin-arm/*; do
-        printf '#!/bin/sh\nexec %s %s "$@"\n' "${qemu}" "${program}" > ${ARM_PREFIX}/bin/$(basename ${program})
-        chmod 755 ${ARM_PREFIX}/bin/$(basename ${program})
+    rm -rf ${prefix} /check
+    cp -a ${BUILD_PATH}/armhf-out ${prefix}
+    mv ${prefix}/bin ${prefix}/bin-arm
+    mkdir -p ${prefix}/bin /check
+
+    for program in ${prefix}/bin-arm/*; do
+        printf '#!/bin/sh\nexec qemu-arm -cpu cortex-a9 %s "$@"\n' "${ARM_PREFIX}/bin-arm/$(basename ${program})" \
+            > ${prefix}/bin/$(basename ${program})
+        chmod 755 ${prefix}/bin/$(basename ${program})
     done
 
-    ${ARM_PREFIX}/bin/mariadbd --version | tee ${BUILD_PATH}/armhf-version.txt
-    grep "Ver ${VERSION}-MariaDB" ${BUILD_PATH}/armhf-version.txt > /dev/null
-    ${ARM_PREFIX}/bin/mariadb-backup --version
-    ${ARM_PREFIX}/scripts/mariadb-install-db --no-defaults --basedir=${ARM_PREFIX} --datadir=${data} --user=root \
-        --auth-root-authentication-method=normal --skip-test-db
+    cat > /check/check.sh <<'CHECK'
+set -e
+set -o pipefail
+set -x
+prefix=/usr/local/mysql
+data=/check/data
+socket=/check/mariadb.sock
+${prefix}/bin/mariadbd --version > /check/version.txt
+cat /check/version.txt
+grep "Ver ${VERSION}-MariaDB" /check/version.txt > /dev/null
+${prefix}/bin/mariadb-backup --version
+${prefix}/scripts/mariadb-install-db --no-defaults --basedir=${prefix} --datadir=${data} --user=root \
+    --auth-root-authentication-method=normal --skip-test-db
+${prefix}/bin/mariadbd --no-defaults --basedir=${prefix} --datadir=${data} --user=root --socket=${socket} \
+    --skip-networking --lc-messages-dir=${prefix}/share --character-sets-dir=${prefix}/share/charsets \
+    --log-error=${data}/server.err &
+client="${prefix}/bin/mariadb --no-defaults --socket=${socket} -uroot"
+waited=0
 
-    ${ARM_PREFIX}/bin/mariadbd --no-defaults --basedir=${ARM_PREFIX} --datadir=${data} --user=root \
-        --socket=${socket} --skip-networking --lc-messages-dir=${ARM_PREFIX}/share \
-        --character-sets-dir=${ARM_PREFIX}/share/charsets --log-error=${data}/server.err &
-    client="${ARM_PREFIX}/bin/mariadb --no-defaults --socket=${socket} -uroot"
-    waited=0
+until ${client} -e 'SELECT 1' > /dev/null 2>&1; do
+    if [ ${waited} -ge 180 ]; then
+        cat ${data}/server.err
 
-    until ${client} -e 'SELECT 1' > /dev/null 2>&1; do
-        if [ ${waited} -ge 120 ]; then
-            cat ${data}/server.err
+        exit 1
+    fi
 
-            exit 1
-        fi
+    sleep 1
+    waited=$((waited + 1))
+done
 
-        sleep 1
-        waited=$((waited + 1))
-    done
-
-    ${client} -N -e 'SELECT VERSION()' | grep "^${VERSION}-MariaDB" > /dev/null
-    ${client} -e "CREATE DATABASE armtest CHARACTER SET utf8mb4; CREATE TABLE armtest.t (id INT PRIMARY KEY,
-        v VARCHAR(20)) ENGINE=InnoDB; INSERT INTO armtest.t VALUES (1, 'Grüße vom ARM')"
-    ${client} -N -e 'SELECT v FROM armtest.t WHERE id = 1' | grep 'Grüße vom ARM' > /dev/null
-    ${client} -N -e "SHOW VARIABLES LIKE 'version_ssl_library'" | grep OpenSSL > /dev/null
-    ${ARM_PREFIX}/bin/mariadb-dump --no-defaults --socket=${socket} -uroot armtest | grep 'Grüße vom ARM' > /dev/null
-    ${ARM_PREFIX}/bin/mariadb-admin --no-defaults --socket=${socket} -uroot shutdown
-    wait
-    grep 'Shutdown complete' ${data}/server.err > /dev/null
-    rm -rf ${ARM_PREFIX} ${data}
+${client} -N -e 'SELECT VERSION()' | grep "^${VERSION}-MariaDB" > /dev/null
+${client} -e "CREATE DATABASE armtest CHARACTER SET utf8mb4; CREATE TABLE armtest.t (id INT PRIMARY KEY,
+    v VARCHAR(20)) ENGINE=InnoDB; INSERT INTO armtest.t VALUES (1, 'Grüße vom ARM')"
+${client} -N -e 'SELECT v FROM armtest.t WHERE id = 1' | grep 'Grüße vom ARM' > /dev/null
+${client} -N -e "SHOW VARIABLES LIKE 'version_ssl_library'" | grep OpenSSL > /dev/null
+${prefix}/bin/mariadb-dump --no-defaults --socket=${socket} -uroot armtest | grep 'Grüße vom ARM' > /dev/null
+${prefix}/bin/mariadb-admin --no-defaults --socket=${socket} -uroot shutdown
+wait
+grep 'Shutdown complete' ${data}/server.err > /dev/null
+CHECK
+    VERSION=${VERSION} bash /check/check.sh
+    rm -rf ${prefix} /check ${OUTPUT_ROOT}/armhf-unchecked
 }
 
 function run() {

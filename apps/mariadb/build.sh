@@ -3,7 +3,7 @@
 
 # MariaDB is prepared by static/mariadb (which the root build.sh runs first; its amd64 build makes both): for the Intel
 # models, MariaDB's own Linux release, cut down and given a stand-in libsystemd; for the ARM ones, the same version built
-# from its source, with the libraries and glibc it uses (lib/runtime)
+# from its source, fully static
 declare -A MODELS
 MODELS[amd64]='MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100'
 MODELS[armhf]='WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra'
@@ -14,9 +14,9 @@ for ARCH in "${!MODELS[@]}"; do
 
     STATIC_PATH="${REPO_PATH}/packages/static/${APP_NAME}/${APP_UPSTREAM_VERSION}/${ARCH}"
 
-    # (the Intel build's stand-in libsystemd, the ARM build's bundled libraries)
+    # (the Intel build's stand-in libsystemd; the ARM build is static)
     NEEDS="${STATIC_PATH}/lib/libsystemd.so.0"
-    [ "${ARCH}" = armhf ] && NEEDS="${STATIC_PATH}/lib/runtime/ld-linux-armhf.so.3"
+    [ "${ARCH}" = armhf ] && NEEDS="${STATIC_PATH}/scripts/mariadb-install-db"
 
     if [ ! -x "${STATIC_PATH}/bin/mariadbd" ] || [ ! -f "${NEEDS}" ]; then
         abort "MariaDB not found in: ${STATIC_PATH} (set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} amd64)"
