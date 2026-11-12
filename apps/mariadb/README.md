@@ -1,8 +1,9 @@
 # MariaDB App
 
-Replaces the NAS's own MariaDB 10.5 *(out of support since 2025)* with **MariaDB 11.8 LTS** *(supported until 2030)* - e.g. for the [phpMyAdmin app](../phpMyAdmin/README.md). Intel models only.
+Replaces the NAS's own MariaDB 10.5 *(out of support since 2025)* with **MariaDB 11.8 LTS** *(supported until 2030)* - e.g. for the [phpMyAdmin app](../phpMyAdmin/README.md). For the Intel models and the ARM ones.
 
-- MariaDB's own Linux release is used, checked against its published checksum and cut down by `static/mariadb` to what a server needs *(the server, the client tools incl. `mariadb-dump`, `mariadb-backup` and `mariadb-upgrade`, and the plugins that need nothing beyond the NAS's own libraries)*. Its server only needs `libsystemd` to tell systemd it's ready - the NAS doesn't run systemd - so a stand-in library is added.
+- On the Intel models, MariaDB's own Linux release is used, checked against its published checksum and cut down by `static/mariadb` to what a server needs *(the server, the client tools incl. `mariadb-dump`, `mariadb-backup` and `mariadb-upgrade`, and the plugins that need nothing beyond the NAS's own libraries)*. Its server only needs `libsystemd` to tell systemd it's ready - the NAS doesn't run systemd - so a stand-in library is added.
+- On the ARM models *(MariaDB publishes no 32-bit ARM release)*, the same version is built from MariaDB's source by `static/mariadb`, with Debian 12's cross-compiler and Debian's builds of the libraries it uses *(OpenSSL, zlib, PCRE2, ncurses)*, which come with it with Debian's glibc *(in `lib/runtime`: the NAS's own are too old)*. Its programs find them through `/usr/local/mysql`, the path the app links to its MariaDB anyway. It's checked with QEMU's emulator: a new database, the server, InnoDB, the client tools.
 - **Enabling** the app switches the NAS to MariaDB 11.8, **disabling** it switches back to WD's 10.5. The NAS's `/` and `/etc` are rebuilt on every boot, so the switch is made again on every boot. If 11.8 doesn't start, the NAS goes back to 10.5 by itself.
 - It listens where WD's did: the NAS only *(socket `/var/lib/mysql/mysql.sock`, port `3306`)*, with the same accounts *(`root` without a password, which WD's own scripts rely on)*.
 
@@ -11,6 +12,14 @@ Replaces the NAS's own MariaDB 10.5 *(out of support since 2025)* with **MariaDB
 MariaDB 11.8 converts the data files it runs on, and 10.5 couldn't read them afterwards - so 11.8 runs on **a copy** of WD's data *(`Nas_Prog/_mariadb/data`, made the first time)*, and WD's own data folder stays untouched. Disabling the app brings back 10.5 with WD's data as it was; anything changed under 11.8 stays in the copy *(and is there again when the app is enabled)*. To start over from WD's data, disable the app and delete the copy.
 
 Data that started life on MySQL *(e.g. 5.1, on older firmware)* can have an internal catalogue too inconsistent for 11.8, which then refuses some system tables *(e.g. "Expected tablespace id ... but found ...")* and can't finish upgrading them. Then `mariadb_swap.sh fresh` *(over SSH, in the app's install directory)* starts 11.8 with new, empty system tables instead - the previous copy is kept as `data.old-<date>`, and WD's own data is untouched. Accounts made by other apps *(e.g. phpMyAdmin's `admin`)* are made again by reinstalling them.
+
+## A NAS without a MariaDB of its own
+
+If the NAS has no MariaDB of its own *(no `startup-mysql` or WD's server - perhaps the case on some ARM models)*, the app runs MariaDB 11.8 **by itself** instead, chosen on its first start and remembered *(the page shows which)*:
+
+- On its own new data *(`Nas_Prog/_mariadb/data`, with `root` without a password, as WD sets its own up)*.
+- Started when the app is enabled *(and at every boot)* and stopped when it's disabled - as `/usr/libexec/mariadbd`, listening where WD's would *(socket `/var/lib/mysql/mysql.sock`, `127.0.0.1:3306`)*, so apps find it just as they would WD's.
+- The phpMyAdmin app restarts MariaDB with WD's `mysql_reset.py`, which such a NAS wouldn't have.
 
 ## How it works
 

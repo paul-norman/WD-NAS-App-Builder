@@ -17,12 +17,14 @@ header('Cache-Control: no-store');
     <h2>MariaDB</h2>
     <table>
         <tr><td>Running</td><td data-md="version">…</td></tr>
+        <tr><td>Mode</td><td data-md="mode">…</td></tr>
         <tr><td>Data</td><td data-md="data">…</td></tr>
         <tr><td>WD's own data</td><td data-md="wd">…</td></tr>
     </table>
     <p class="mg-note">MariaDB 11.8 runs on a copy of WD's data (made the first time), so WD's own stays untouched: disable
         the app to switch the NAS back to WD's MariaDB 10.5 with it (anything changed under 11.8 stays in the copy). It
-        listens where WD's did (the NAS only, socket /var/lib/mysql/mysql.sock, port 3306), so phpMyAdmin works as before.</p>
+        listens where WD's did (the NAS only, socket /var/lib/mysql/mysql.sock, port 3306), so phpMyAdmin works as before.
+        On a NAS without a MariaDB of its own, the app runs MariaDB by itself, on its own new data, in the same place.</p>
 
     <h3>Warnings and errors (since it last started)</h3>
     <pre data-md="problems">…</pre>
@@ -48,6 +50,7 @@ header('Cache-Control: no-store');
 
             part('data').textContent     = response.app_server ? response.copy + (response.copy_size ? ' (' + response.copy_size + ')' : '') : 'WD\'s own';
             part('wd').textContent       = response.wd_datadir || '-';
+            part('mode').textContent     = response.mode === 'own' ? 'By itself (the NAS has no MariaDB of its own)' : 'Underneath WD\'s own MariaDB';
             part('problems').textContent = response.problems.length ? response.problems.join('\n') : 'None.';
         });
     })();

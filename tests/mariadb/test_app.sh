@@ -2,7 +2,7 @@
 # The MariaDB app from its package (tests/common/nas.sh), on a stand-in for WD's own MariaDB 10.5 (wd.sh): 11.8 swapped
 # in underneath WD's startup-mysql (WD's scripts still find and restart it), on an upgraded copy of WD's data (WD's own
 # left as it was), WD's lock left free, the page, switching back (my.cnf exactly as before) and again, starting afresh
-# ("fresh"), removal
+# ("fresh"), removal - then, on a NAS without a MariaDB of its own, MariaDB run by the app itself
 . /t/common/nas.sh mariadb
 # The NAS's ps takes "ps -aux", as WD's mysql_reset.py and the app use it to find the data folder - the test BusyBox's
 # doesn't
@@ -54,3 +54,33 @@ wait_version 11.8 && q 'SHOW DATABASES' | grep -qv family && ! q 'SHOW DATABASES
 echo '== removed'
 finish_app
 wait_version 10.5 && [ "$(q 'SELECT name FROM family.recipes')" = "Crème brûlée" ] && cmp -s /etc/my.cnf /tmp/my.cnf.before && pass "WD's MariaDB 10.5 back, with WD's data" || fail "after removal: $(q 'SELECT VERSION()')"
+
+echo "== a NAS without a MariaDB of its own"
+# WD's MariaDB taken away (its server, startup-mysql and client - as perhaps on some ARM models), and the app's earlier
+# data, so that it starts as on such a NAS
+killall mysqld mysqld_safe mariadbd mariadbd-safe 2>/dev/null; i=0; while pidof mariadbd > /dev/null && [ $i -lt 60 ]; do sleep 1; i=$((i + 1)); done
+rm -f /usr/bin/startup-mysql /usr/local/modules/mysql/libexec/mariadbd /usr/libexec/mariadbd /etc/my.cnf
+for c in mysql mariadb; do [ -e /usr/bin/$c ] && mv /usr/bin/$c /usr/bin/$c.wd; done
+rm -rf $D
+install_app
+own() { $P/mariadb/binaries/mariadb/bin/mariadb --socket=$SOCK -uroot -N -e "$1" 2>&1; }
+i=0; until own 'SELECT VERSION()' | grep -q '^11.8' || [ $i -ge 90 ]; do sleep 1; i=$((i + 1)); done
+own 'SELECT VERSION()' | grep -q '^11.8.9' && [ "$(cat $D/mode)" = own ] && [ -f $D/data/mysql_upgrade_info ] \
+    && ps -aux | grep -q "/usr/libexec/mariadbd .*--datadir=$D/data" \
+    && pass "MariaDB $(own 'SELECT VERSION()') runs by itself, on new data of its own, as /usr/libexec/mariadbd" \
+    || fail "own mode: $(own 'SELECT VERSION()') $(cat $D/mode 2>/dev/null) $(tail -n 8 /tmp/debug_apkg)"
+own "CREATE DATABASE family; CREATE TABLE family.recipes (name varchar(50)) DEFAULT CHARSET utf8mb4; INSERT INTO family.recipes VALUES ('Pain perdu')" > /dev/null
+awk 'NR > 1 && $4 == "0A" && index($2, ":0CEA") { print $2 }' /proc/net/tcp | grep -q '^0100007F:0CEA$' \
+    && [ "$(own 'SELECT name FROM family.recipes')" = 'Pain perdu' ] \
+    && pass 'where WD'"'"'s would be: the socket, 127.0.0.1:3306 only, root without a password' || fail "listening: $(cat /proc/net/tcp | head -n 5)"
+READ_ONLY_PAGE=1 page_up
+ST=$(get status)
+[ "$(echo "$ST" | j '$d["mode"]')" = '"own"' ] && [ "$(echo "$ST" | j '$d["app_server"]')" = true ] && echo "$ST" | j '$d["version"]' | grep -q '"11.8.9' \
+    && pass 'the page: running by itself' || fail "page: $(echo "$ST" | head -c 300)"
+sh $P/mariadb/stop.sh $P/mariadb > /dev/null 2>&1
+! pidof mariadbd > /dev/null && [ ! -e /usr/libexec/mariadbd ] && [ ! -e /usr/local/mysql ] && pass 'disabled: stopped, its links gone' || fail "stop: $(ps -aux | grep mariadbd | head -n 2)"
+sh $P/mariadb/start.sh $P/mariadb > /dev/null 2>&1
+i=0; until own 'SELECT 1' | grep -q '^1$' || [ $i -ge 60 ]; do sleep 1; i=$((i + 1)); done
+[ "$(own 'SELECT name FROM family.recipes')" = 'Pain perdu' ] && pass 'enabled again (as at boot): its data kept' || fail "restart: $(own 'SELECT VERSION()')"
+finish_app
+! pidof mariadbd > /dev/null && [ -d $D/data/family ] && pass 'removed: stopped, its data kept' || fail 'removal (own)'

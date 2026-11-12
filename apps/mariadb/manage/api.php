@@ -41,6 +41,8 @@ if ($action === 'status') {
         'running'    => $code === 0,
         'version'    => $code === 0 ? $version : '',
         'app_server' => $app_server,
+        // wd: underneath WD's own MariaDB; own: by itself (the NAS has no MariaDB of its own)
+        'mode'       => trim((string)@file_get_contents($data_path.'/mode')) ?: 'wd',
         'wd_datadir' => trim((string)@file_get_contents($data_path.'/wd_datadir')),
         'copy'       => $data_path.'/data',
         'copy_size'  => preg_match('/^(\S+)/', $size, $m) ? $m[1] : '',

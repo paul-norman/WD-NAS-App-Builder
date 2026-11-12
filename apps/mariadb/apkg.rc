@@ -1,9 +1,9 @@
 Package:			mariadb
-Version:			11.8.9
+Version:			11.8.9-1
 Packager:			PDN
 Email:
 Homepage:			https://mariadb.org/
-Description:		MariaDB 11.8 LTS: replaces the NAS's own MariaDB 10.5 (on a copy of its data), e.g. for phpMyAdmin (Intel models).
+Description:		MariaDB 11.8 LTS: replaces the NAS's own MariaDB 10.5 (on a copy of its data), or runs by itself on a NAS without one - e.g. for phpMyAdmin, BookStack and phpBB.
 Icon:				logo.svg
 AddonShowName:		MariaDB
 AddonIndexPage:		index.php
