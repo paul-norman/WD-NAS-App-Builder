@@ -3,7 +3,7 @@ Version:			8.5.12-7
 Packager:			PDN
 Email:
 Homepage:			https://www.php.net/
-Description:		PHP 8.5: replaces the NAS's own PHP 7.4, for its web interface and its PHP scripts (Intel models).
+Description:		PHP 8.5: replaces the NAS's own PHP 7.4, for its web interface and its PHP scripts.
 Icon:				logo.svg
 AddonShowName:		PHP
 AddonIndexPage:		index.php
