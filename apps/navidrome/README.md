@@ -8,7 +8,7 @@
 - **Transcoding** uses a small ffmpeg built for audio only *(Opus, MP3, AAC, FLAC and WAV out; the common music formats in)*, included in the app - it doesn't need the NAS's or Jellyfin's.
 - **Privacy**: artist images and biographies from Deezer, Last.fm and ListenBrainz are off by default *(a switch on the management page)*, and so are Navidrome's anonymous usage statistics and its plugins.
 - Its data is kept next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_navidrome`, and survives reinstalls and removal: the database *(users, playlists, favourites, play counts)*, caches and the generated `navidrome.toml` in `data/`, the database backups *(made by Navidrome every night, keeping 7)* in `backups/`, the admin password and the key that encrypts the users' passwords *(root only)*, the page's settings, and `navidrome.log` *(warnings only, kept under 1MB)*. The music itself stays where it is.
-- It's the official static program *(prepared by `static/navidrome`, with ffmpeg)*. Navidrome doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release is out, checked weekly.
+- It's the official static program *(prepared by `static/navidrome`, with ffmpeg)*, for the Intel and ARM models *(the ARM ones' ffmpeg is cross-compiled with Zig; their packages are checked under emulation when they're built - Navidrome's version, ffmpeg making Opus and MP3 files - but haven't yet been tried on an ARM NAS)*. Navidrome doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release is out, checked weekly.
 
 ## Management page
 
