@@ -16,7 +16,7 @@ header('Cache-Control: no-store');
         <tr><td>python3</td><td data-py="active">…</td></tr>
         <tr><td>The app's Python</td><td data-py="app">-</td></tr>
         <tr><td>WD's Python</td><td data-py="wd">-</td></tr>
-        <tr><td>pip / uv</td><td data-py="tools">-</td></tr>
+        <tr><td>pip<span data-py="uv-label"> / uv</span></td><td data-py="tools">-</td></tr>
         <tr><td>Commands</td><td data-py="links">-</td></tr>
     </table>
     <p><button type="button" data-py-action="use-app">Use the app's Python</button>
@@ -31,10 +31,12 @@ header('Cache-Control: no-store');
     <pre>python3 -m venv /home/root/venvs/myproject
 /home/root/venvs/myproject/bin/pip install requests
 /home/root/venvs/myproject/bin/python myscript.py</pre>
-    <p>Or with uv, which also runs tools and single scripts with their own packages:</p>
-    <pre>uv venv /home/root/venvs/myproject
+    <div data-py="uv-help" hidden>
+        <p>Or with uv, which also runs tools and single scripts with their own packages:</p>
+        <pre>uv venv /home/root/venvs/myproject
 uvx ruff check myscript.py
 uv run --with requests myscript.py</pre>
+    </div>
     <p class="mg-note">Virtual environments use the app's Python, so they keep working across the app's updates within
         3.14 (a new 3.x line needs them made again). The NAS has no compiler: packages are installed from ready-built
         wheels, which almost all popular packages have.</p>
@@ -67,6 +69,8 @@ uv run --with requests myscript.py</pre>
                 part('app').textContent   = response.app_version || 'not found';
                 part('wd').textContent    = response.wd_version || 'not found';
                 part('tools').textContent = [response.pip, response.uv].filter(Boolean).join(', ') || '-';
+                part('uv-label').hidden   = !response.uv;
+                part('uv-help').hidden    = !response.uv;
                 part('links').textContent = response.links.length ? response.links.join(', ') : 'none (WD\'s python3 only)';
                 part('wsdd').textContent  = response.wsdd ? ', now running on ' + response.wsdd : '';
 

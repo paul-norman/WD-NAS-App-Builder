@@ -17,7 +17,8 @@ if ($action === 'status') {
     list(, $active) = manage_run(['/usr/bin/python3', '--version']);
     list(, $app)    = manage_run([$app_path.'/binaries/python/bin/python3', '--version']);
     list(, $wd)     = manage_run([$wd_python, '--version']);
-    list(, $uv)     = manage_run([$app_path.'/binaries/python/bin/uv', '--version']);
+    $uv_path        = $app_path.'/binaries/python/bin/uv';
+    list(, $uv)     = is_file($uv_path) ? manage_run([$uv_path, '--version']) : [0, ''];
     list(, $pip)    = manage_run([$app_path.'/binaries/python/bin/python3', '-m', 'pip', '--version']);
 
     // The Python wsdd (Windows network discovery) runs on: WD starts it at boot, before the apps
