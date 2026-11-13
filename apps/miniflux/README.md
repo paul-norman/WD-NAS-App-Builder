@@ -15,7 +15,7 @@
   ```
 
 - It runs as its own user *(`miniflux`, ID 63)*. Its other data is kept in `Nas_Prog/_miniflux`, across reinstalls and removal: its configuration *(`conf/miniflux.conf`, written by the app at every start - readable by its user's group only)*, passwords, settings, backups and `miniflux.log` *(kept under 1MB)* are root's. Its database stays in PostgreSQL when the app is removed *(drop it there to start afresh: `DROP DATABASE miniflux; DROP ROLE miniflux;`, and delete `Nas_Prog/_miniflux`)*.
-- It's Miniflux's official static program *(checked by its published SHA256)*. Miniflux doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release is out, checked weekly. Intel models only *(the PostgreSQL app is)*.
+- It's Miniflux's official static program *(checked by its published SHA256)*. Miniflux doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release is out, checked weekly. For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)*.
 
 ## Management page
 

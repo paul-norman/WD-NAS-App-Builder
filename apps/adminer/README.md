@@ -10,7 +10,7 @@
 - It's the official single PHP file *(every driver and language - its release publishes no checksums, so the build checks it against the SHA256 pinned in `static/adminer/build.sh`)*, run by PHP's own web server, with 4 workers, as its own user *(`adminer`, ID 88)*, never as root. Imports of up to 512MB go through.
 - Its PHP: the [PHP app](../php/README.md)'s PHP 8.5 if it's installed *(MariaDB, PostgreSQL and SQLite)*, else the NAS's own PHP 7.4 *(MariaDB and SQLite only - it has no PostgreSQL driver)*. After installing the PHP app, restart Adminer *(its page)* to move to it.
 - Its password and sessions are kept in `Nas_Prog/_adminer`, across reinstalls and removal. The NAS shows an alert when a new release is out *(checked weekly)*.
-- Intel models only.
+- For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)*.
 
 ## Building the Adminer app
 

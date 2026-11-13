@@ -8,8 +8,8 @@
 - A **read only** setting on the page stops changes and deletions. Emptying a whole database *(FLUSHDB / FLUSHALL)* is always blocked.
 - At boot it waits for Valkey to answer *(in the background, for up to 10 minutes)*, and once running it reconnects by itself if Valkey restarts.
 - It runs as its own user *(`kvweb`, ID 87)*. Its settings and password are kept in `Nas_Prog/_kvweb`, across reinstalls and removal.
-- It's the official static program *(checked against the SHA256 its release publishes, pinned in `static/kvweb/build.sh`)*. The NAS shows an alert when a new release is out *(checked weekly)*. kvweb is a young project from one developer, under the AGPL-3.0.
-- Intel models only *(as the Valkey app)*.
+- On the Intel models it's the official static program *(checked against the SHA256 its release publishes, pinned in `static/kvweb/build.sh`)*. The NAS shows an alert when a new release is out *(checked weekly)*. kvweb is a young project from one developer, under the AGPL-3.0.
+- For the Intel and ARM models, as the Valkey app. kvweb has no release for the ARM ones' 32-bit processors, so there it's built from the same release's source *(its web app, then kvweb with Go - prepared by `static/kvweb`)*. The ARM packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS.
 
 ## Building the kvweb app
 

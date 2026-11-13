@@ -7,7 +7,7 @@
 - **Its page** shows whether it reaches Valkey, whether Prometheus collects its metrics, and links to its dashboard. **Read Valkey's password again** picks up a changed one.
 - Its scrape job is `prometheus/redis.yml` and its dashboard `dashboards/valkey.json`: the Prometheus and Grafana apps pick up every app's *(see their READMEs)*, and drop them when the app is removed.
 - The dashboard is redis_exporter's own dashboard (contrib/grafana_prometheus_redis_dashboard.json, MIT, Copyright (c) 2016 Oliver), unchanged apart from its title, a `nas` tag and its `namespace` filter (a Kubernetes label, which the NAS hasn't).
-- It's the official static program, checked against the SHA256 its release publishes *(pinned in `static/redis_exporter/build.sh`)*. Intel models only.
+- It's the official static program, checked against the SHA256s its release publishes *(pinned in `static/redis_exporter/build.sh`)*. For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)*.
 
 ## Building the Valkey Exporter app
 

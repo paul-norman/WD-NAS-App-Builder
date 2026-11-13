@@ -1,5 +1,5 @@
 Package:			redis_exporter
-Version:			1.97.0-1
+Version:			1.97.0-2
 Packager:			PDN
 Email:
 Homepage:			https://github.com/oliver006/redis_exporter
