@@ -17,8 +17,8 @@ install_app
 wait_port 8095 240 && pass 'answering on 8095' || { fail "not answering: $(tail -n 10 /tmp/start.log; tail -n 10 $D/console.log)"; exit 1; }
 page_up
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["version"]')" = '"2.10.9"' ] && [ "$(echo "$ST" | j '$d["has_admin"]')" = true ] && [ "$(echo "$ST" | j 'is_array($d["players"])')" = true ] \
-    && pass 'the page: Music Assistant 2.10.9, its admin account, the players (with its own token)' || fail "status: $(echo "$ST" | head -c 300)"
+[ "$(echo "$ST" | j '$d["version"]')" = '"2.10.11"' ] && [ "$(echo "$ST" | j '$d["has_admin"]')" = true ] && [ "$(echo "$ST" | j 'is_array($d["players"])')" = true ] \
+    && pass 'the page: Music Assistant 2.10.11, its admin account, the players (with its own token)' || fail "status: $(echo "$ST" | head -c 300)"
 [ "$(awk '/^Uid:/ { print $2 }' /proc/$(cat /var/run/music-assistant.pid)/status)" = 79 ] && [ "$(stat -c '%u %a' $D/data)" = '79 700' ] \
     && [ "$(stat -c '%u %a' $D/admin_password)" = '0 600' ] && [ "$(stat -c '%u %a' $D/page_token)" = '0 600' ] \
     && pass "runs as its own user (79); the admin password and page token root's only" || fail "users: $(stat -c '%n %u %a' $D/data $D/admin_password $D/page_token)"
