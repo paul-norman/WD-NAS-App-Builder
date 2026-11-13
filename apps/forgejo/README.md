@@ -8,7 +8,7 @@
 - It runs as its own `forgejo` user *(created by the app, ID 77)*, not as root, using about 200MB of memory.
 - Everything is kept next to the app, e.g. `/mnt/HD/HD_a2/Nas_Prog/_forgejo`, and survives reinstalls and removal: the repositories in `repositories/`, the database, attachments, LFS files and SSH host keys in `data/`, Forgejo's settings in `custom/conf/app.ini`, backups in `backups/`, the admin password *(root only)*, the page's settings, and `forgejo.log` *(warnings only, kept under 1MB)*.
 - It includes **Git** *(2.56, built by `static/forgejo`)*, which Forgejo needs for every repository operation - the NAS has none. It's also linked as `/usr/bin/git` *(unless there's one already)*, for your own use over SSH, with HTTPS remotes working too.
-- Forgejo is the official static program. It doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release of the installed line *(15.x)* is out, checked weekly.
+- Forgejo is the official static program, for the Intel and ARM models *(on the ARM ones, Forgejo's 32-bit ARM build, and Git cross-compiled with Zig; their packages are checked under emulation when they're built - Forgejo's version, Git making a repository and a commit - but haven't yet been tried on an ARM NAS)*. It doesn't update itself: updates come with new versions of the app, and the NAS shows an alert when a new release of the installed line *(15.x)* is out, checked weekly.
 
 ## Settings
 
