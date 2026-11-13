@@ -2,9 +2,11 @@
 . '../build_helpers.sh'
 
 # Vaultwarden, its web vault and the tools used alongside it (sqlite3, argon2, vw_runas) are prepared by
-# static/vaultwarden (which the root build.sh runs first) - for the Intel models only
+# static/vaultwarden (which the root build.sh runs first) - for the Intel models and the ARM ones (its amd64 build makes
+# both)
 declare -A MODELS
 MODELS[amd64]='MyCloudPR4100 MyCloudPR2100 WDMyCloudDL4100 WDMyCloudDL2100'
+MODELS[armhf]='WDCloud WDMyCloud WDMyCloudMirror WDMyCloudEX4100 WDMyCloudEX2100 MyCloudEX2Ultra'
 
 for ARCH in "${!MODELS[@]}"; do
     # Skip architectures without a wanted model (MODEL_OVERRIDE)
@@ -15,7 +17,8 @@ for ARCH in "${!MODELS[@]}"; do
 
     for file in vaultwarden sqlite3 argon2 vw_runas ca-certificates.crt web-vault/index.html; do
         if [ ! -e "${STATIC_PATH}/${file}" ]; then
-            abort "${file} not found in: ${STATIC_PATH} (set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh and run: ./build_static.sh ${APP_NAME} ${ARCH})"
+            how="set VERSION=${APP_UPSTREAM_VERSION} in static/${APP_NAME}/build.sh"
+            abort "${file} not found in: ${STATIC_PATH} (${how} and run: ./build_static.sh ${APP_NAME} amd64)"
         fi
     done
 

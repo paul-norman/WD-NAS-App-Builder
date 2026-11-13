@@ -12,6 +12,7 @@
   - `vaultwarden.log` - its warnings and errors *(e.g. failed logins), kept under 1MB*
 - The database is SQLite: a single file, nothing else to run.
 - It's built from Vaultwarden's official Alpine image *(a static program, plus the web vault)* by `static/vaultwarden`, which also builds the tools used alongside it: `sqlite3` *(for backups)*, `argon2` *(to hash the admin token)* and `vw_runas` *(to switch to its user - the NAS has no `su`)*.
+- For the Intel and ARM models. On the ARM ones Vaultwarden is built from the same release's source, with the same features, in the toolchain image Vaultwarden's own images are built with *(its official ARM program is laid out for 4KB memory pages, and the ARM models' kernels use larger ones - it wouldn't start there)*. The ARM packages are checked under emulation when they're built *(Vaultwarden started, answering)*, but haven't yet been tried on an ARM NAS.
 - Vaultwarden doesn't update itself: updates come with new versions of the app, and the NAS shows an alert *(and sends an email, if set up)* when a new release is out, checked weekly.
 
 ## Management page
@@ -67,6 +68,6 @@ From the project root directory:
 ./build.sh vaultwarden
 ```
 
-This first runs `static/vaultwarden` *(once per version)*, which copies Vaultwarden out of its official image *(pinned by digest in `static/vaultwarden/amd64.Dockerfile`)* and builds the tools. The WD bin files will be created in `packages/vaultwarden/`. To update, change the version in `apkg.rc`, `static/vaultwarden/build.sh` and the Dockerfile's image tag and digest.
+This first runs `static/vaultwarden` *(once per version)*, which copies Vaultwarden out of its official image *(pinned by digest in `static/vaultwarden/amd64.Dockerfile`)* and builds the tools. The WD bin files will be created in `packages/vaultwarden/`. To update, change the version in `apkg.rc`, `static/vaultwarden/build.sh` and the Dockerfile's image tag and digest, its ARM build's version and source SHA256 *(`VW_VERSION`, `VW_SOURCE_SHA256`)*, and - if Vaultwarden's `rust-toolchain.toml` changed - its toolchain image's tag and digest.
 
 If you don't have docker installed, see the [guide](../../docker/README.md) in the `docker` directory. If you're on Windows 10 or 11, see the [Windows guide](../../docker/WINDOWS.md) for WSL / docker installation.
