@@ -11,6 +11,7 @@ To make this process as simple as possible for non-expert users, a [Store](https
 - [OpenSSH](https://paul-norman.github.io/WD-NAS-App-Builder/openssh/)
 - [Python](https://paul-norman.github.io/WD-NAS-App-Builder/python/)
 - [PHP](https://paul-norman.github.io/WD-NAS-App-Builder/php/)
+- [MariaDB](https://paul-norman.github.io/WD-NAS-App-Builder/mariadb/)
 
 In addition, the [Nginx](https://paul-norman.github.io/WD-NAS-App-Builder/nginx/) app will allow access to all web-based apps via friendly URLs and offer SSL security.
 

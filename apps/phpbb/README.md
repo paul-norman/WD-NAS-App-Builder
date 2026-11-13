@@ -20,7 +20,7 @@
 - It runs as its own user *(`phpbb`, ID 69)*, on PHP's own web server with 4 workers *(enough for a family or a club; opcache on)*. Its data is kept in `Nas_Prog/_phpbb`, across reinstalls and removal: `cache/`, `store/` *(phpBB's own backups and logs)*, `files/` and `avatars/` are phpBB's own; its settings *(`conf/config.php`, written by the app at every start)*, passwords and backups are root's. Its database stays in MariaDB when the app is removed *(drop it there to start afresh: `DROP DATABASE phpbb; DROP USER 'phpbb'@'localhost';`, and delete `Nas_Prog/_phpbb`)*.
 - Moving from WD's old phpBB *(or another board)*: phpBB's converters and its update packages need its own installer, which the app keeps aside *(`install.dist`)* - the simplest route is a fresh board here.
 - The app checks weekly for a new phpBB release in the 3.3 line *(a NAS alert)*.
-- It's phpBB's release tag *(its source, checked by its SHA256 - phpBB's own download site refuses scripted downloads)* with its PHP packages installed by Composer *(exactly those in its `composer.lock`)*, as phpBB's own packages are made. phpBB is GPL-2.0 licensed. Intel models only.
+- It's phpBB's release tag *(its source, checked by its SHA256 - phpBB's own download site refuses scripted downloads)* with its PHP packages installed by Composer *(exactly those in its `composer.lock`)*, as phpBB's own packages are made. phpBB is GPL-2.0 licensed. For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)*.
 
 ## Building the phpBB app
 

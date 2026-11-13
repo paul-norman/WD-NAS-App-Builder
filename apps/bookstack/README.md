@@ -20,7 +20,7 @@
   and start it again *(its database is brought up to date at every start)*.
 - It runs as its own user *(`bookstack`, ID 98)*, on PHP's own web server with 4 workers *(enough for a family; opcache on)*. Its data is kept in `Nas_Prog/_bookstack`, across reinstalls and removal: `storage/` is BookStack's own *(uploads, sessions, caches, its log)*; its settings *(`conf/.env`, written by the app at every start)*, passwords, key and backups are root's. Its database stays in MariaDB when the app is removed *(drop it there to start afresh: `DROP DATABASE bookstack; DROP USER 'bookstack'@'localhost';`, and delete `Nas_Prog/_bookstack`)*.
 - The app checks weekly for a new BookStack release *(a NAS alert)*.
-- It's BookStack's release *(its source, with its built web interface - checked by its SHA256)* with its PHP packages installed by Composer *(exactly those in its `composer.lock`)*. BookStack is MIT licensed. Intel models only.
+- It's BookStack's release *(its source, with its built web interface - checked by its SHA256)* with its PHP packages installed by Composer *(exactly those in its `composer.lock`)*. BookStack is MIT licensed. For the Intel and ARM models *(the ARM ones' packages are checked under emulation when they're built, but haven't yet been tried on an ARM NAS)*.
 
 ## Building the BookStack app
 
