@@ -9,9 +9,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=35.0.2
+VERSION=35.0.3
 # As Nextcloud publishes it (<file>.sha256)
-NEXTCLOUD_SHA256=dfc7955eaec5621de90e031d10f76006173b3f3e31d5d6e174821d1da14f162d
+NEXTCLOUD_SHA256=58401440ce81b7f8d445a8c2a8027572b616ef83592f96b121fd15ec8a1aed35
 
 BUILD_PATH=/build
 OUTPUT_PATH=/data/packages/static/nextcloud/${VERSION}/amd64
