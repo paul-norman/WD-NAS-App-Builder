@@ -15,10 +15,9 @@ header('Cache-Control: no-store');
     <table>
         <tr><td>Node.js</td><td data-nj="node">…</td></tr>
         <tr><td>npm</td><td data-nj="npm">…</td></tr>
-        <tr><td>Corepack</td><td data-nj="corepack">…</td></tr>
         <tr><td>pnpm</td><td data-nj="pnpm">…</td></tr>
     </table>
-    <p class="mg-note"><code>node</code>, <code>npm</code>, <code>npx</code>, <code>pnpm</code>, <code>pnpx</code> and <code>corepack</code> can be used over SSH.</p>
+    <p class="mg-note"><code>node</code>, <code>npm</code>, <code>npx</code>, <code>pnpm</code> and <code>pnpx</code> can be used over SSH.</p>
 
     <h3>Test server</h3>
     <p>A small example server on port <code>30290</code>, showing that Node.js works on the NAS: <span data-nj="server">…</span></p>
@@ -45,7 +44,7 @@ header('Cache-Control: no-store');
                     return;
                 }
 
-                ['node', 'npm', 'corepack', 'pnpm'].forEach(function (tool) {
+                ['node', 'npm', 'pnpm'].forEach(function (tool) {
                     part(tool).textContent = response.versions[tool] || 'not found';
                 });
 

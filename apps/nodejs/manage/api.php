@@ -8,7 +8,7 @@ manage_require_admin('nodejs');
 $app_path = dirname(__DIR__);
 $bin_path = $app_path.'/binaries/bin';
 
-// npm and corepack are scripts run by node, which they find in the PATH
+// npm (and pnpm on the ARM models) are scripts run by node, which they find in the PATH
 $env = ['PATH' => $bin_path.':/usr/bin:/bin:/usr/sbin:/sbin'];
 
 $action = $_GET['action'] ?? 'status';
@@ -16,7 +16,7 @@ $action = $_GET['action'] ?? 'status';
 if ($action === 'status') {
     $versions = [];
 
-    foreach (['node', 'npm', 'corepack', 'pnpm'] as $tool) {
+    foreach (['node', 'npm', 'pnpm'] as $tool) {
         list($code, $output) = manage_run([$bin_path.'/'.$tool, '--version'], $env);
 
         $versions[$tool] = $code === 0 ? ltrim($output, 'v') : '';
