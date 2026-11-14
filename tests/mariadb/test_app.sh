@@ -25,12 +25,12 @@ install_app
 wait_version 11.8 && pass "MariaDB $(q 'SELECT VERSION()') is the NAS's MariaDB" || fail "not swapped: $(q 'SELECT VERSION()') $(tail -n 8 /tmp/debug_apkg)"
 ps -aux | grep -q "/usr/libexec/mariadbd .*--datadir=$WD_DATA" && [ "$(cat $D/wd_datadir)" = "$WD_DATA" ] && grep -q " $WD_DATA " /proc/mounts \
     && pass "run by WD's startup-mysql, as /usr/libexec/mariadbd on WD's data folder (as WD's scripts look for it) - a copy mounted over it" || fail "how it runs: $(ps -aux | grep mariadbd | head -n 2)"
-[ "$(q 'SELECT name FROM family.recipes')" = "Crème brûlée" ] && grep -q '^11.8.9' $D/data/mysql_upgrade_info && [ "$(q "SELECT COUNT(*) FROM mysql.global_priv WHERE User = 'root'")" -ge 1 ] \
+[ "$(q 'SELECT name FROM family.recipes')" = "Crème brûlée" ] && grep -q '^11.8.10' $D/data/mysql_upgrade_info && [ "$(q "SELECT COUNT(*) FROM mysql.global_priv WHERE User = 'root'")" -ge 1 ] \
     && pass "the user's data carried over (accents intact), upgraded once (recorded where WD's mysql_reset.py looks)" || fail "data: $(q 'SELECT name FROM family.recipes') $(cat $D/data/mysql_upgrade_info)"
 flock -n /run/lock/mysql_reset.py.lock true && pass "WD's MariaDB lock left free (WD's mysql_reset.py isn't blocked)" || fail 'the lock is still held'
 READ_ONLY_PAGE=1 page_up
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["app_server"]')" = true ] && echo "$ST" | j '$d["version"]' | grep -q '"11.8.9' && [ "$(echo "$ST" | j 'count(array_filter($d["problems"], function ($l) { return strpos($l, "[ERROR]") !== false; }))')" = 0 ] \
+[ "$(echo "$ST" | j '$d["app_server"]')" = true ] && echo "$ST" | j '$d["version"]' | grep -q '"11.8.10' && [ "$(echo "$ST" | j 'count(array_filter($d["problems"], function ($l) { return strpos($l, "[ERROR]") !== false; }))')" = 0 ] \
     && pass 'the page: 11.8 running, no errors since it started' || fail "page: $(echo "$ST" | head -c 400)"
 q "INSERT INTO family.recipes VALUES ('Tarte Tatin'); CREATE TABLE family.t (j json, d datetime(6))" > /dev/null
 
@@ -90,7 +90,7 @@ rm -rf $D
 install_app
 own() { $P/mariadb/binaries/mariadb/bin/mariadb --socket=$SOCK -uroot -N -e "$1" 2>&1; }
 i=0; until own 'SELECT VERSION()' | grep -q '^11.8' || [ $i -ge 90 ]; do sleep 1; i=$((i + 1)); done
-own 'SELECT VERSION()' | grep -q '^11.8.9' && [ "$(cat $D/mode)" = own ] && [ -f $D/data/mysql_upgrade_info ] \
+own 'SELECT VERSION()' | grep -q '^11.8.10' && [ "$(cat $D/mode)" = own ] && [ -f $D/data/mysql_upgrade_info ] \
     && ps -aux | grep -q "/usr/libexec/mariadbd .*--datadir=$D/data" \
     && pass "MariaDB $(own 'SELECT VERSION()') runs by itself, on new data of its own, as /usr/libexec/mariadbd" \
     || fail "own mode: $(own 'SELECT VERSION()') $(cat $D/mode 2>/dev/null) $(tail -n 8 /tmp/debug_apkg)"
@@ -100,7 +100,7 @@ awk 'NR > 1 && $4 == "0A" && index($2, ":0CEA") { print $2 }' /proc/net/tcp | gr
     && pass 'where WD'"'"'s would be: the socket, 127.0.0.1:3306 only, root without a password' || fail "listening: $(cat /proc/net/tcp | head -n 5)"
 READ_ONLY_PAGE=1 page_up
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["mode"]')" = '"own"' ] && [ "$(echo "$ST" | j '$d["app_server"]')" = true ] && echo "$ST" | j '$d["version"]' | grep -q '"11.8.9' \
+[ "$(echo "$ST" | j '$d["mode"]')" = '"own"' ] && [ "$(echo "$ST" | j '$d["app_server"]')" = true ] && echo "$ST" | j '$d["version"]' | grep -q '"11.8.10' \
     && pass 'the page: running by itself' || fail "page: $(echo "$ST" | head -c 300)"
 sh $P/mariadb/stop.sh $P/mariadb > /dev/null 2>&1
 ! pidof mariadbd > /dev/null && [ ! -e /usr/libexec/mariadbd ] && [ ! -e /usr/local/mysql ] && pass 'disabled: stopped, its links gone' || fail "stop: $(ps -aux | grep mariadbd | head -n 2)"
