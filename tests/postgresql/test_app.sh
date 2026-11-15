@@ -12,8 +12,8 @@ install_app
 wait_port 5432 60 && pass 'answering on 5432' || { fail "not answering: $(tail -n 10 /tmp/start.log; tail -n 10 /tmp/debug_apkg)"; exit 1; }
 page_up
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["version"]')" = '"18.6"' ] && [ "$(echo "$ST" | j '$d["network"]')" = false ] && echo "$ST" | grep -q '"name":"postgres"' \
-    && pass 'the page: PostgreSQL 18.6, its databases, only on the NAS itself' || fail "status: $(echo "$ST" | head -c 300)"
+[ "$(echo "$ST" | j '$d["version"]')" = '"18.7"' ] && [ "$(echo "$ST" | j '$d["network"]')" = false ] && echo "$ST" | grep -q '"name":"postgres"' \
+    && pass 'the page: PostgreSQL 18.7, its databases, only on the NAS itself' || fail "status: $(echo "$ST" | head -c 300)"
 PID=$(head -n 1 $D/data/postmaster.pid)
 [ "$(awk '/^Uid:/ { print $2 }' /proc/$PID/status)" = 70 ] && [ "$(stat -c '%u %a' $D/data)" = '70 700' ] && [ "$(stat -c '%u %a' $D/postgres_password)" = '0 600' ] \
     && pass "runs as its own user (70, through pg_runas); its data its own, the postgres password root's" || fail "users: $(stat -c '%n %u %a' $D/data $D/postgres_password)"

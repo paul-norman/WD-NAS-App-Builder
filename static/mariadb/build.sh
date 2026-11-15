@@ -15,10 +15,10 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=11.8.9
-SHA256=32f8871a2aa38b36aa418b7f4abc6fc0c6ef1ba5a45798cacb2afa52c8a6113b
+VERSION=11.8.10
+SHA256=15ca40274597af84fa8f89f8248b37740c5a712c003df80b4c7b32a4486e2027
 # MariaDB's source, for the ARM build (its published SHA256: source/sha256sums.txt)
-SOURCE_SHA256=2e015b7e91004142eda8b3a20d3ceb875cf2ae55e72603e7222cd497d4e56fc6
+SOURCE_SHA256=77d62a86477d5b836da960f5228eb4e13458692ab775f2ad95d55fd4a4d3b117
 # The architectures built (each into packages/static/mariadb/<version>/<arch>)
 ARCHES='amd64 armhf'
 
