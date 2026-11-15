@@ -21,7 +21,9 @@ entry that no longer matches its release is put right).
 
 cleanup: deletes the releases no longer needed - each app keeps its newest
 two, and any whose replacement is less than 14 days old, and never one
-store.json uses - and the build cache's assets no static build uses any more.
+store.json uses - and the build cache's assets no static build uses any more
+(on main), unless less than 14 days old: a pull request's (e.g. an update's)
+is kept for main to reuse once it's merged.
 Only prints what it would delete, without --apply. Git tags are kept.
 """
 
@@ -356,6 +358,14 @@ def cleanup(store_path, apply):
     keep = cache_assets_in_use()
 
     for asset in assets:
+        # (a build made for a pull request: main uses it once that's merged)
+        uploaded = datetime.datetime.fromisoformat(
+            asset["updatedAt"].replace("Z", "+00:00")
+        )
+
+        if (now - uploaded).days < KEEP_DAYS:
+            continue
+
         if asset["name"] not in keep:
             action = "deleting" if apply else "would delete"
             print(f"{action} build cache asset {asset['name']}")
