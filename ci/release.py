@@ -267,7 +267,8 @@ def index(output):
 def cache_assets_in_use():
     """
     The build cache's assets the static builds use now (ci/package.sh's
-    names).
+    names), and the compiler caches the slow ones carry on from
+    (ci/slow_build.sh's).
 
     :return: Their names
     """
@@ -291,6 +292,7 @@ def cache_assets_in_use():
         tree = plan.git("rev-parse", f"HEAD:static/{folder.name}")
         key = hashlib.sha256(f"{tree} {builders}".encode()).hexdigest()[:16]
         names.add(f"{folder.name}_{match.group(1)}_amd64_{key}.tar.zst")
+        names.add(f"ccache_{folder.name}.tar.zst")
 
     return names
 

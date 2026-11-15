@@ -1,0 +1,158 @@
+# Static builds that take longer than one job may run (ci/package.sh's SLOW_STATIC: Node.js's ARM build, about 5 hours
+# on a runner), made in up to three jobs one after another - each carries on from the compiler cache the last one kept
+# (ci/slow_build.sh) - and added to the build cache. build-test-release's job for such an app fails at once while its
+# build isn't there: once it is, this runs build-test-release again (on a branch: for the app; on a pull request: its
+# last run's failed jobs). Only while the repository variable RELEASES is on (the build cache with it), and not for
+# pull requests from forks (they can't add to it).
+name: slow-builds
+
+on:
+  pull_request:
+    paths:
+      - static/nodejs/**
+      - build_static.sh
+      - ci/survey.sh
+      - ci/survey_inside.sh
+      - ci/slow_build.sh
+      - .github/workflows/slow-builds.yml
+  push:
+    branches: [main]
+    paths:
+      - static/nodejs/**
+      - build_static.sh
+      - ci/survey.sh
+      - ci/survey_inside.sh
+      - ci/slow_build.sh
+      - .github/workflows/slow-builds.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to a pull request replaces its run; on main, one after another (the next carries on from this one's cache)
+concurrency:
+  group: slow-builds-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  APP: nodejs
+  # The compiling each job may do (its limit is 350 minutes; the rest is for setting up, and for keeping the cache)
+  MINUTES: 290
+  CACHE_UPLOAD: yes
+
+jobs:
+  part1:
+    if: vars.RELEASES == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    permissions:
+      # The build cache is a release
+      contents: write
+    outputs:
+      done: ${{ steps.build.outputs.done }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Free disk space
+        run: bash ci/free_disk.sh
+
+      - name: Build (part 1)
+        id: build
+        run: bash ci/slow_build.sh "${APP}" "${MINUTES}"
+
+  part2:
+    needs: part1
+    if: needs.part1.outputs.done == 'no'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    permissions:
+      contents: write
+    outputs:
+      done: ${{ steps.build.outputs.done }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Free disk space
+        run: bash ci/free_disk.sh
+
+      - name: Build (part 2)
+        id: build
+        run: bash ci/slow_build.sh "${APP}" "${MINUTES}"
+
+  part3:
+    needs: part2
+    if: needs.part2.outputs.done == 'no'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    permissions:
+      contents: write
+    outputs:
+      done: ${{ steps.build.outputs.done }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Free disk space
+        run: bash ci/free_disk.sh
+
+      - name: Build (part 3)
+        id: build
+        run: bash ci/slow_build.sh "${APP}" "${MINUTES}"
+
+      - name: Still not done
+        if: steps.build.outputs.done == 'no'
+        run: |
+          echo "::error::${APP} didn't finish building in three jobs: more parts are needed (slow-builds.yml)"
+          exit 1
+
+  # Once this built it: build-test-release again, so the app is tested (and, on main, released) with it
+  rerun:
+    needs: [part1, part2, part3]
+    if: always() && (needs.part1.outputs.done == 'yes' || needs.part2.outputs.done == 'yes' || needs.part3.outputs.done == 'yes')
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      - name: Run build-test-release again
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "${EVENT}" != pull_request ]; then
+              gh workflow run build-test-release.yml --ref "${BRANCH}" -f apps="${APP}"
+              echo "build-test-release started for ${APP} on ${BRANCH}"
+              exit 0
+          fi
+
+          # A pull request's last run, once it has finished (it may still be testing other apps)
+          for attempt in $(seq 1 120); do
+              run="$(gh run list --workflow build-test-release.yml --branch "${BRANCH}" --event pull_request \
+                  --limit 1 --json databaseId,status,conclusion \
+                  --jq '.[0] | "\(.databaseId) \(.status) \(.conclusion)"')"
+              read -r id status conclusion <<< "${run}"
+
+              if [ -z "${id}" ] || [ "${id}" = null ]; then
+                  echo "No build-test-release run for ${BRANCH}"
+                  exit 0
+              fi
+
+              if [ "${status}" = completed ]; then
+                  break
+              fi
+
+              sleep 60
+          done
+
+          if [ "${status}" != completed ]; then
+              echo "::error::build-test-release run ${id} hasn't finished: run its failed jobs again by hand"
+              exit 1
+          fi
+
+          if [ "${conclusion}" = success ]; then
+              echo "build-test-release run ${id} passed already"
+              exit 0
+          fi
+
+          gh run rerun "${id}" --failed
+          echo "build-test-release run ${id}: its failed jobs run again"

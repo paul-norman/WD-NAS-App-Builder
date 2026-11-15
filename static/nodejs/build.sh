@@ -1,14 +1,19 @@
 #!/bin/bash
 
 # Prepares Node.js for the NAS - for the Intel models its official build (checked against its SHA256), for the ARM ones
-# built from its source (Node.js publishes no 32-bit ARM builds since version 24): node fully static (musl), with npm
-# and Corepack, as Node's own release is laid out (bin, include, lib, share).
+# built from its source (Node.js publishes no 32-bit ARM builds since version 24): node fully static (musl), with npm,
+# as Node's own release is laid out (bin, include, lib, share).
 
 # The ARM build is cross-compiled on this (Intel) machine with Zig: node for the ARM models' ARMv7 processors
 # (hard-float, NEON), laid out for their kernels' large memory pages - 32KB on the EX2 Ultra - and Node's build-time
 # tools for 32-bit Intel (V8 makes its start-up snapshot with them, and they must match the ARM program's 32-bit memory
 # layout). Checked for that layout (ci/check_arm_pages.py) and run with QEMU's emulator: crypto, Intl (all of ICU's
 # data, built in), npm.
+
+# On CI (ci/slow_build.sh) the ARM build takes longer than one job may run: given packages/build-state/nodejs/, it
+# compiles through ccache (its cache in there, kept between jobs and runs) and stops after the seconds in its time-limit
+# file, leaving a timed-out file - the next job then carries on, everything compiled so far coming from the cache. A
+# new version mostly reuses the last one's cache too (its source unpacked in the same place, so its commands match).
 
 set -e
 set -o pipefail
@@ -23,6 +28,15 @@ ARCHES='amd64 armhf'
 
 BUILD_PATH=/build
 TOOLS_PATH=/build/tools
+STATE_PATH=/data/packages/build-state/nodejs
+# (ccache only with a state folder to keep its cache in)
+CCACHE=''
+
+if [ -d ${STATE_PATH} ]; then
+    CCACHE='ccache '
+    # (its size under a release asset's limit: CI keeps it as one)
+    export CCACHE_DIR=${STATE_PATH}/ccache CCACHE_MAXSIZE=1800M CCACHE_BASEDIR=${BUILD_PATH}/src
+fi
 
 # Writes the compilers' commands: Zig's for the ARM models (arm-cc, arm-c++, arm-ar, arm-ranlib) and for 32-bit Intel,
 # for the build-time tools (host-cc, host-c++).
@@ -59,7 +73,7 @@ for arg in "\$@"; do
     set -- "\$@" "\${arg}"
 done
 
-zig ${tool#*-} -target ${target} "\$@"
+${CCACHE}zig ${tool#*-} -target ${target} "\$@"
 status=\$?
 [ -n "\${input}" ] && rm -f "\${input}" "\${input%.c}"
 
@@ -74,10 +88,14 @@ SH
 
 # Builds Node.js for the ARM models and installs it into ${BUILD_PATH}/install. Without Temporal (the new date and time
 # API, which Node's Intel build has): Node builds its Rust part for the machine it's built on, not for the ARM models.
+# With a time limit (see above), a build that reaches it stops the whole build (exit 75), leaving the timed-out file.
 function build_node() {
-    cd ${BUILD_PATH}
-    tar -xf node.tar.xz
-    cd node-v${VERSION}
+    local limit status
+
+    # (in a folder without the version in its name, for ccache - see above)
+    mkdir -p ${BUILD_PATH}/src
+    tar -xf ${BUILD_PATH}/node.tar.xz -C ${BUILD_PATH}/src --strip-components=1
+    cd ${BUILD_PATH}/src
 
     # Node's OpenSSL picks its settings for x32 (64-bit Intel with 32-bit pointers) wherever __ILP32__ is defined - as
     # gcc defines it only there, but Zig's clang does for every 32-bit processor, ARM too: x32 only on 64-bit Intel
@@ -92,8 +110,26 @@ function build_node() {
     # (what it found: ARM for node, 32-bit Intel for its build-time tools, OpenSSL 3)
     grep -E '"(host_arch|target_arch|arm_fpu|openssl_version)"' config.gypi
     grep '"host_arch": "ia32"' config.gypi > /dev/null
-    make -j "$(nproc)" CC=${TOOLS_PATH}/arm-cc CXX=${TOOLS_PATH}/arm-c++ CC.host=${TOOLS_PATH}/host-cc \
-        CXX.host=${TOOLS_PATH}/host-c++
+    limit="$(cat ${STATE_PATH}/time-limit 2>/dev/null || true)"
+    rm -f ${STATE_PATH}/timed-out
+    status=0
+    # (GNU timeout: it stops make's whole process group, its compilers too)
+    timeout --kill-after=120 "${limit:-0}" make -j "$(nproc)" CC=${TOOLS_PATH}/arm-cc CXX=${TOOLS_PATH}/arm-c++ \
+        CC.host=${TOOLS_PATH}/host-cc CXX.host=${TOOLS_PATH}/host-c++ || status=$?
+
+    if [ -n "${CCACHE}" ]; then
+        ccache --show-stats
+    fi
+
+    if [ "${status}" = 124 ] || [ "${status}" = 137 ]; then
+        echo "The build reached its time limit (${limit} seconds): a next job carries on from its cache"
+        touch ${STATE_PATH}/timed-out
+        chown -R "${HOST_IDS:-1000:1000}" ${STATE_PATH}
+
+        exit 75
+    fi
+
+    [ "${status}" = 0 ]
     make install DESTDIR=${BUILD_PATH}/install PREFIX=/
     arm-none-eabi-strip ${BUILD_PATH}/install/bin/node
 }

@@ -9,6 +9,10 @@
 # when there, and added to it when not and CACHE_UPLOAD=yes. fetch: downloads the PR4100 package and the amd64 bundle
 # the tests use from the release of its version, and builds it if there's none. Needs gh (GH_TOKEN) and zstd. Each app
 # is only got once per job.
+#
+# A static build that takes longer than a job may run (SLOW_STATIC) is only built by the slow-builds workflow
+# (ci/slow_build.sh, which sets SLOW_BUILD=yes): anywhere else on CI it must be in the build cache, or the job fails at
+# once - that workflow runs these jobs again once it has added it.
 set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
@@ -19,6 +23,8 @@ CACHE_RELEASE='build-cache'
 MIRROR_RELEASE='source-mirror'
 # GitHub's limit for a release asset
 CACHE_MAX_BYTES=$((2 * 1024 * 1024 * 1024 - 1))
+# The static builds only the slow-builds workflow makes (see above; a list, space separated)
+SLOW_STATIC='nodejs'
 VERSION="$(sed -n 's/^Version:[[:space:]]*//p' "apps/${APP}/apkg.rc" | tr -d '\r')"
 DIR="packages/${APP}/${VERSION}"
 TEMP="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ci-package"
@@ -206,6 +212,15 @@ RESTORED=1
 if [ -d "static/${APP}" ]; then
     restore_static
     RESTORED=$?
+fi
+
+if [ "${RESTORED}" != 0 ] && [ "${GITHUB_ACTIONS:-}" = true ] && [ "${SLOW_BUILD:-no}" != yes ] \
+    && [[ " ${SLOW_STATIC} " == *" ${APP} "* ]] \
+    && [ -z "$(ls -A "packages/static/${APP}/$(static_version)/amd64" 2>/dev/null)" ]; then
+    echo "::error::Static ${APP} $(static_version) isn't in the build cache yet: it takes longer than a job may run," \
+        "so the slow-builds workflow builds it (in several jobs), then runs this job again"
+
+    exit 1
 fi
 
 echo "::group::Building ${APP} ${VERSION}"

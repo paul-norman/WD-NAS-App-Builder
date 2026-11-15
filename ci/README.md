@@ -40,6 +40,8 @@ One release per app version, tagged `<app>-v<version>` *(e.g. `navidrome-v0.64.2
 
 **The build cache**: static builds *(e.g. Jellyfin's, Calibre-Web's - some take an hour)* are kept as assets of the `build-cache` release, named after a hash of `static/<app>/`, `build_static.sh` and the survey's scripts, so a build only redoes them when they change. Each keeps its survey *(below)* with it. Nothing there is for installing. Assets no build uses any more are removed with old releases.
 
+**Slow builds**: a static build that takes longer than a job may run *(Node.js's ARM one, built from its source: about 5 hours on a runner - `SLOW_STATIC` in [`package.sh`](package.sh))* is only made by the [`slow-builds`](../.github/workflows/slow-builds.yml) workflow, when it changes: in up to three jobs one after another *([`slow_build.sh`](slow_build.sh))*, each compiling for up to 290 minutes through ccache and keeping its compiler cache in the build cache *(`ccache_<app>.tar.zst`)*, so the next job carries on where it stopped - as does the next version's build, mostly from the cache. Meanwhile build-test-release's job for that app fails at once *(it isn't in the build cache yet)*; once it is, `slow-builds` runs build-test-release again *(on a branch: for the app; on a pull request: its last run's failed jobs)*.
+
 ## Updates
 
 The [`updates`](../.github/workflows/updates.yml) workflow *(the full check twice a day, or by hand)* compares every app with its upstream releases - where they are is in [`updates.conf`](updates.conf) *(GitHub releases, git tags, PyPI, npm, a download folder's listing)*, with each app's line *(e.g. Forgejo's 15.x LTS, PostgreSQL 18)* - using [`updates.py`](updates.py):
