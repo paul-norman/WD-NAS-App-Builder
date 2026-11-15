@@ -7,7 +7,8 @@
 - **The first time**, Tautulli's setup asks for the Plex server to follow. With [Plex Media Server](https://www.plex.tv/) on the NAS *(the Store lists Plex's own package)*, that's `127.0.0.1`, port `32400`; signing in with your Plex account there gives Tautulli Plex's token.
 - Tautulli's own update checks are turned off *(at every start)*: they'd offer an update it can't install itself. The Store updates it.
 - It runs as its own user *(`tautulli`, ID 93)*. Its data is kept in `Nas_Prog/_tautulli`, across reinstalls and removal: `data/` is Tautulli's own *(its settings `config.ini`, its database, logs, daily database backups and cache)*; the app's settings and the password it set are root's.
-- It's Tautulli's source as released *(GitHub's archive of its tag, pinned by SHA256 in `static/tautulli/build.sh`)*, with a portable build of Python 3.14 *(python-build-standalone, trimmed: no IDLE, Tk, tests or pip)* - Tautulli brings its own packages. Intel models only.
+- It's Tautulli's source as released *(GitHub's archive of its tag, pinned by SHA256 in `static/tautulli/build.sh`)*, with a portable build of Python 3.14 *(python-build-standalone, trimmed: no IDLE, Tk, tests or pip)* - Tautulli brings its own packages.
+- For the Intel models and the ARM ones. The ARM models' kernels use large memory pages, which Python's own ARM build isn't laid out for: there, Python starts through a small launcher of the app's own *(as in the [Python app](../python/README.md))* - checked under emulation, not yet tried on an ARM NAS.
 
 ## Building the Tautulli app
 
