@@ -1,0 +1,23 @@
+Package:			retroassembly
+Version:			7.261011.1345
+Packager:			PDN
+Email:
+Homepage:			https://retroassembly.com/
+Description:		RetroAssembly: your retro game collection (NES, SNES, Game Boy, Mega Drive, arcade...), played in the browser - kept on the NAS.
+Icon:				retroassembly.svg
+AddonShowName:		RetroAssembly
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

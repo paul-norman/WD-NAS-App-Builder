@@ -54,6 +54,7 @@
         "qbittorrent":        { "categories": ["media", "files"], "license": "GPL-2.0-or-later", "data_folder": "_qbittorrent", "keeps_data": true, "web": { "port": 8092, "nginx": { "name": "qbittorrent" } } },
         "rclone":             { "categories": ["backup", "files"], "license": "MIT", "data_folder": "_rclone", "keeps_data": true, "web": { "port": 5572, "nginx": { "name": "rclone" } } },
         "redis_exporter":     { "categories": ["monitoring", "databases"], "license": "MIT", "data_folder": "_redis_exporter", "keeps_data": true, "requires": { "apps": ["valkey"] } },
+        "retroassembly":      { "categories": ["media", "home"], "license": "MIT", "data_folder": "_retroassembly", "keeps_data": true, "web": { "local_port": 8098, "nginx": { "name": "games" } } },
         "ruby":               { "categories": ["development"], "license": "Ruby OR BSD-2-Clause", "data_folder": "_ruby", "keeps_data": true },
         "scrutiny":           { "categories": ["monitoring"], "license": "MIT", "data_folder": "_scrutiny", "keeps_data": true, "requires": { "apps": ["nginx"] }, "web": { "local_port": 8091, "nginx": { "name": "scrutiny" } } },
         "store":              { "categories": ["system"], "data_folder": "_store", "keeps_data": true },
