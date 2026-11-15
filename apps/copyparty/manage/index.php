@@ -53,12 +53,14 @@ header('Cache-Control: no-store');
 
     <h3>Settings</h3>
     <p><label><input type="checkbox" data-cp="local"> Only through the Nginx app (HTTPS)</label><br>
-        <label><input type="checkbox" data-cp="sftp"> SFTP server <span data-cp="sftp-address"></span></label><br>
+        <span data-cp="sftp-option"><label><input type="checkbox" data-cp="sftp"> SFTP server
+            <span data-cp="sftp-address"></span></label><br></span>
         <label><input type="checkbox" data-cp="tags"> Music tags (artist, album, title - searchable, and shown in its
             player; read from every music file once)</label></p>
     <p><button type="button" data-cp-action="settings">Save</button></p>
     <p class="mg-note">WebDAV is always on, at the same address (e.g. Windows' "Map network drive", macOS's "Connect to
-        Server", or a phone's file manager). SFTP logs in with the same user names and passwords. copyparty restarts.</p>
+        Server", or a phone's file manager). <span data-cp="sftp-note">SFTP logs in with the same user names and
+        passwords.</span> copyparty restarts.</p>
 
     <details class="mg-section">
         <summary>copyparty's log</summary>
@@ -432,6 +434,10 @@ header('Cache-Control: no-store');
                 state.folders = response.folders;
 
                 fillFolders(response.folders);
+
+                // (no SFTP server on the ARM models)
+                part('sftp-option').hidden = !response.sftp_ok;
+                part('sftp-note').hidden   = !response.sftp_ok;
 
                 if (!loaded) {
                     part('local').checked = response.listen === 'local';

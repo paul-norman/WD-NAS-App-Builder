@@ -12,6 +12,7 @@ shows them) and its argon2 hash, made here once per password - only the
 hashes go into copyparty's configuration
 """
 import argparse
+import importlib.util
 import json
 import os
 import secrets
@@ -218,7 +219,8 @@ def write(data_path, app_path):
         # music player
         lines.append("  e2ts")
 
-    if settings.get("sftp"):
+    # (only where its Python has paramiko: the ARM models' has no SFTP server)
+    if settings.get("sftp") and importlib.util.find_spec("paramiko"):
         lines += ["  sftp: %d" % SFTP_PORT, "  sftp-pw"]
 
         if settings.get("listen") == "local":

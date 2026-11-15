@@ -28,23 +28,39 @@ RUN tar -xJf ffmpeg-9.0.2.tar.xz && cd ffmpeg-9.0.2 && \
 	strip ffmpeg ffprobe && \
 	cp ffmpeg ffprobe /
 
-FROM debian:bullseye
+# A Debian ARM glibc runtime, only to check the ARM models' copyparty with QEMU's emulator (it uses the NAS's own glibc)
+FROM debian:bookworm AS armhf-runtime
+RUN dpkg --add-architecture armhf && \
+	apt-get update && \
+	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libc6:armhf libgcc-s1:armhf && \
+	rm -rf /var/lib/apt/lists/*
+
+FROM debian:bookworm
 
 ENV LANG=C.UTF-8
 
-# Bullseye (the NAS's Debian version) is end of life, so its packages are only on the archive mirror
-RUN printf 'deb http://archive.debian.org/debian bullseye main\ndeb http://archive.debian.org/debian-security bullseye-security main\n' > /etc/apt/sources.list && \
-	rm -f /etc/apt/sources.list.d/*
-
-# Installing CopyParty's packages on the NAS's Debian version means their compiled parts suit the NAS's libraries
+# The Intel models' packages are PyPI's wheels (their compiled parts built for old glibc versions - checked against the
+# NAS's), so only the run-as helper is compiled for them here. The ARM models' are cross-compiled with Zig (by
+# static/copyparty/build.sh): ffmpeg and its libraries, and the packages' compiled parts with theirs - CMake and
+# pkg-config for those; ARM binutils strip and inspect them, and QEMU and Python check them, with the ARM runtime above
 RUN apt-get update && \
-	DEBIAN_FRONTEND=noninteractive apt-get install -yy \
+	DEBIAN_FRONTEND=noninteractive apt-get install -yy --no-install-recommends \
 	binutils \
+	binutils-arm-linux-gnueabihf \
 	ca-certificates \
+	cmake \
+	file \
 	gcc \
 	libc6-dev \
-	wget && \
+	make \
+	pkg-config \
+	python3 \
+	qemu-user \
+	wget \
+	xz-utils && \
 	rm -rf /var/lib/apt/lists/*
+
+COPY --from=armhf-runtime / /armhf-root/
 
 # Volume that will point to the whole repository
 VOLUME /data

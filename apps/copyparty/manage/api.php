@@ -10,6 +10,8 @@ $apps_path     = dirname($app_path);
 $data_path     = $apps_path.'/_copyparty';
 $settings_file = $data_path.'/settings.json';
 $ctl           = $app_path.'/cpp_ctl.sh';
+// Its SFTP server needs paramiko, which the ARM models' build leaves out
+$sftp_ok       = is_dir($app_path.'/binaries/python/lib/python3.14/site-packages/paramiko');
 
 require $app_path.'/lib/cpp.php';
 
@@ -194,7 +196,8 @@ if ($action === 'status') {
         'users'     => array_map(function (array $user) { return $user['name']; }, $settings['users']),
         'folders'   => $folders,
         'listen'    => $settings['listen'] === 'local' ? 'local' : 'all',
-        'sftp'      => (bool)$settings['sftp'],
+        'sftp'      => $sftp_ok && $settings['sftp'],
+        'sftp_ok'   => $sftp_ok,
         'tags'      => (bool)$settings['tags'],
         'log'       => array_slice($log, -30),
     ]);
@@ -346,7 +349,7 @@ if ($action === 'remove_folder') {
 
 if ($action === 'settings') {
     $settings['listen'] = isset($_POST['listen']) && $_POST['listen'] === 'local' ? 'local' : 'all';
-    $settings['sftp']   = !empty($_POST['sftp']);
+    $settings['sftp']   = $sftp_ok && !empty($_POST['sftp']);
     $settings['tags']   = !empty($_POST['tags']);
 
     cpp_save($settings_file, $settings);
