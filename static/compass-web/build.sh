@@ -6,7 +6,10 @@
 # exactly the same packages; delete it to take newer ones) - and its own Node.js runtime (its compiled parts are built
 # for one Node version, so it doesn't share the Node.js app's). package.json holds @fastify/secure-session at 8.2.0
 # (within compass-web's range): newer ones use sodium-native 5, whose ready-built module needs a newer glibc than the
-# NAS's and which can't be built on its Debian version. Plus:
+# NAS's and which can't be built on its Debian version. It also overrides, for their security fixes, packages compass-web
+# holds back: @fastify/static (it serves the web interface) and glob (its), and zod (used only by the AI features, which
+# the app turns off). Not stream-json, which its JSON imports use: its fixed versions are rewritten as ES modules, under
+# other names. Plus:
 #  - cw_runas: switches to Compass Web's own user (the NAS has no su or similar) before running it
 
 set -e

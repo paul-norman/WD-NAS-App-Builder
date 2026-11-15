@@ -27,9 +27,10 @@ CW_METADATA="rarfile>=3.2,<5.0 markdown2>=2.0.0,<2.6.0 html2text>=2020.1.16,<202
 beautifulsoup4>=4.0.1,<4.16.0 faust-cchardet>=2.1.18,<2.1.20 py7zr>=0.15.0,<0.21.0 mutagen>=1.40.0,<1.50.0
 pycountry>=20.0.0,<27.0.0"
 # Newer than Calibre-Web allows (its caps lag behind security fixes): versions with their fixes, which keep the parts it uses
-# (pypdf's PdfReader, tornado's WSGI server, cryptography's Fernet, certifi's CAs). Not py7zr: 1.x drops the read() it
-# and comicapi use - its open advisories are for extractall() (unused) and CPU / memory use on a crafted .cb7 upload
-CW_OVERRIDES="pypdf==6.21.4 tornado==6.6 cryptography==50.0.2 certifi==2026.10.23"
+# (pypdf's PdfReader, tornado's WSGI server, cryptography's Fernet, certifi's CAs, Beautiful Soup's CSS selectors through
+# soupsieve). Not py7zr: 1.x drops the read() it and comicapi use - its open advisories are for extractall() (unused) and
+# CPU / memory use on a crafted .cb7 upload
+CW_OVERRIDES="pypdf==6.21.4 tornado==6.6.1 cryptography==50.0.2 certifi==2026.10.23 soupsieve==4.1.1"
 CALIBRE_VERSION=9.17.0
 # Calibre's own, from https://calibre-ebook.com/signatures/calibre-<version>-x86_64.txz.sha512
 CALIBRE_SHA512=9faf38f6bb0593598208fbde1be247d698a98d9f16e130ca6507049a02b1d9b65f7d10eeca15f5073d0372f7bb2d45d6c63d39a37f1b13a3cbaf81918e715711

@@ -5,6 +5,9 @@
         "compass-web": "0.5.2"
     },
     "overrides":    {
-        "@fastify/secure-session": "8.2.0"
+        "@fastify/secure-session": "8.2.0",
+        "@fastify/static":         "10.1.11",
+        "glob":                    "14.0.6",
+        "zod":                     "4.6.7"
     }
 }
