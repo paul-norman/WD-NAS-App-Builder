@@ -10,6 +10,7 @@ parameters:
         # (the apps' pages include it from their own folder once installed: it's copied there)
         - apps/manage_helpers.php
         - apps/nginx/lib
+        - apps/adguardhome/lib
         - apps/adminer/lib
         - apps/audiobookshelf/lib
         - apps/calibre-web/lib
@@ -33,6 +34,7 @@ parameters:
         - apps/vaultwarden/lib
         - apps/wireguard/lib
         - apps/nginx/manage/api.php
+        - apps/adguardhome/manage/api.php
         - apps/adminer/manage/api.php
         - apps/audiobookshelf/manage/api.php
         - apps/calibre-web/manage/api.php

@@ -1,0 +1,23 @@
+Package:			adguardhome
+Version:			0.107.80
+Packager:			PDN
+Email:
+Homepage:			https://adguard.com/adguard-home/overview.html
+Description:		AdGuard Home: blocks ads and trackers for every device on the network, as its DNS server - with its own web interface.
+Icon:				adguardhome.svg
+AddonShowName:		AdGuard Home
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

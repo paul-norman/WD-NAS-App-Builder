@@ -7,6 +7,7 @@
         "maintainer": "Paul Norman"
     },
     "apps": {
+        "adguardhome":        { "categories": ["network", "security"], "license": "GPL-3.0-only", "data_folder": "_adguardhome", "keeps_data": true, "web": { "local_port": 8094, "nginx": { "name": "adguard" } } },
         "adminer":            { "categories": ["databases"], "license": "Apache-2.0", "data_folder": "_adminer", "keeps_data": true, "web": { "local_port": 8084, "nginx": { "name": "adminer" } } },
         "audiobookshelf":     { "categories": ["books", "music"], "license": "GPL-3.0-only", "data_folder": "_audiobookshelf", "keeps_data": true, "web": { "port": 13378, "nginx": { "name": "audiobooks" } } },
         "bookstack":          { "categories": ["productivity"], "license": "MIT", "data_folder": "_bookstack", "keeps_data": true, "requires": { "apps": ["php"], "ram_mb": 512 }, "web": { "local_port": 6875, "nginx": { "name": "bookstack" } } },

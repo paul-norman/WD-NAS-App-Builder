@@ -1,0 +1,5 @@
+{
+    "name":    "adguard",
+    "label":   "AdGuard Home",
+    "target":  "http://127.0.0.1:8094"
+}
