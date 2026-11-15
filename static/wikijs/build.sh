@@ -1,15 +1,17 @@
 #!/bin/bash
 
-# Prepares Wiki.js for the NAS: its release (its server, with its packages installed, and its prebuilt web interface)
-# and its own Node.js runtime (Wiki.js 3 needs Node.js 26 - it runs its TypeScript directly), plus:
+# Prepares Wiki.js for the NAS: its release (its server and its prebuilt web interface) with its server's packages
+# installed - since 3.3.1 its release holds only their lock file, as its own Docker image installs them: with npm ci,
+# each version checked against the lock's checksum - and its own Node.js runtime (Wiki.js 3 needs Node.js 26 - it
+# runs its TypeScript directly), plus:
 #  - wikijs_runas: switches to Wiki.js's own user (the NAS has no su or similar) before running it
 
 set -e
 set -o pipefail
 set -x
 
-VERSION=3.3.0
-WIKIJS_SHA256=c6f18bcb12ce50b7e12284b79be4e8eed1679de979f99479676cdd08016f8f0f
+VERSION=3.4.0
+WIKIJS_SHA256=e00c1fbd0b8f6361ca0929ba6a66948f52ac52d424eb6c949249d7e6a36574f5
 NODE_VERSION=26.13.0
 NODE_SHA256=d28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997
 # The newest glibc / libstdc++ symbol versions the NAS has (OS5: glibc 2.31, GLIBCXX 3.4.28)
@@ -75,6 +77,15 @@ function build_wikijs() {
     tar -xzf wiki-js.tar.gz -C wiki
     # The version Wiki.js reports is its package's
     grep -q "\"version\": \"${VERSION}\"" wiki/backend/package.json
+    # Its server's packages, from its lock file (without the tools only its development uses). No install scripts: the
+    # only ones in it build optional speed-ups for SSH (ssh2's crypto, cpu-features), which work without them - its
+    # image processing (sharp) comes ready-built for Linux, as an optional package of its own
+    (
+        cd wiki/backend
+        PATH="${BUILD_PATH}/node/bin:${PATH}" npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
+            --cache ${BUILD_PATH}/npm-cache
+    )
+    [ -d wiki/backend/node_modules/@img/sharp-linux-x64 ]
     check_compiled wiki/backend/node_modules
 }
 
@@ -121,7 +132,7 @@ function run() {
 
     rm -rf ${OUTPUT_PATH}
     mkdir -p ${OUTPUT_PATH}
-    # Only Node.js itself: Wiki.js's packages come installed (no npm needed)
+    # Only Node.js itself: Wiki.js's packages are installed (no npm needed on the NAS)
     cp ${BUILD_PATH}/node/bin/node ${BUILD_PATH}/wikijs_runas ${OUTPUT_PATH}/
     cp ${BUILD_PATH}/node/LICENSE ${OUTPUT_PATH}/node-LICENSE
     cp -r ${BUILD_PATH}/wiki ${OUTPUT_PATH}/
