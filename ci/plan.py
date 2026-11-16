@@ -450,7 +450,7 @@ def plan(args):
     recipes = sorted(
         recipe
         for recipe in found["recipes"] | found["recipe_tests"]
-        | ({"immich", "pihole", "arr", "frigate"} if found["suites_all"]
+        | ({"immich", "pihole", "arr", "frigate", "linkwarden"} if found["suites_all"]
            else set())
         if f"recipe:{recipe}" in known_suites
     )

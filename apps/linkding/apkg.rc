@@ -1,0 +1,23 @@
+Package:			linkding
+Version:			1.47.0
+Packager:			PDN
+Email:
+Homepage:			https://linkding.link/
+Description:		linkding: a fast, simple bookmark manager - tags, notes, search, a browser extension, and archived copies on the Wayback Machine.
+Icon:				linkding.svg
+AddonShowName:		linkding
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

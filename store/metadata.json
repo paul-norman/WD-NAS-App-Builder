@@ -27,6 +27,7 @@
         "k3s":                { "categories": ["system", "development"], "license": "Apache-2.0", "data_folder": "_k3s", "keeps_data": true, "requires": { "ram_mb": 3072 } },
         "kopia":              { "categories": ["backup"], "license": "Apache-2.0", "data_folder": "_kopia", "keeps_data": true, "web": { "local_port": 51515, "nginx": { "name": "kopia" } } },
         "kvweb":              { "categories": ["databases"], "license": "AGPL-3.0-only", "data_folder": "_kvweb", "keeps_data": true, "requires": { "apps": ["nginx", "valkey"] }, "web": { "local_port": 8082, "nginx": { "name": "kvweb" } } },
+        "linkding":           { "categories": ["productivity"], "license": "MIT", "data_folder": "_linkding", "keeps_data": true, "web": { "local_port": 9099, "nginx": { "name": "linkding" } } },
         "loki":               { "categories": ["monitoring"], "license": "AGPL-3.0-only", "data_folder": "_loki", "keeps_data": true },
         "mailpit":            { "categories": ["development"], "license": "MIT", "keeps_data": true, "web": { "port": 8025, "nginx": { "name": "mailpit" } } },
         "mariadb":            { "categories": ["databases"], "license": "GPL-2.0-only", "data_folder": "_mariadb", "keeps_data": true, "replaces": ["mariadb"], "security": "Replaces WD's MariaDB 10.5, which has had no security fixes since June 2025" },
@@ -100,6 +101,7 @@
     },
     "recipes": {
         "immich":  { "categories": ["photos", "media"], "homepage": "https://immich.app/", "license": "AGPL-3.0-only" },
-        "frigate": { "categories": ["security", "home"], "homepage": "https://frigate.video/", "license": "MIT" }
+        "frigate": { "categories": ["security", "home"], "homepage": "https://frigate.video/", "license": "MIT" },
+        "linkwarden": { "categories": ["productivity"], "homepage": "https://linkwarden.app/", "license": "AGPL-3.0-only" }
     }
 }

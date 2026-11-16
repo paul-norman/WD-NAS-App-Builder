@@ -1,0 +1,49 @@
+{
+    "recipe_version": 1,
+    "id":             "linkwarden",
+    "name":           "Linkwarden",
+    "version":        "2.17.0-1",
+    "summary":        "Bookmarks kept for good: each saved page archived as a screenshot, a PDF and a readable copy - with collections, tags, highlights and sharing",
+    "description":    "description.md",
+    "compose":        "compose.yaml",
+    "project":        "linkwarden",
+    "data_folder":    "_linkwarden",
+    "requires":       {
+        "arch":             "amd64",
+        "apps":             ["docker", "nginx"],
+        "docker_memory_mb": 1536,
+        "disk_mb":          4096
+    },
+    "web":     { "port": 3003, "path": "/login", "ready_timeout": 600, "nginx": { "name": "links", "uploads": true } },
+    "options": [
+        {
+            "key":          "ADMIN_USERNAME",
+            "type":         "string",
+            "label":        "Admin user name",
+            "help":         "Linkwarden's first account, which adds the others (Settings -> Admin). Lower-case letters, digits, _ and - (3 to 50).",
+            "default":      "admin",
+            "pattern":      "^[a-z0-9_-]{3,50}$",
+            "install_only": true
+        },
+        {
+            "key":          "ADMIN_PASSWORD",
+            "type":         "password",
+            "label":        "Admin password",
+            "help":         "Change it later in Linkwarden (Settings -> Password).",
+            "min_length":   8,
+            "install_only": true
+        },
+        { "key": "POSTGRES_PASSWORD", "type": "secret", "generate": { "length": 32, "charset": "alnum" } },
+        { "key": "NEXTAUTH_SECRET", "type": "secret", "generate": { "length": 48, "charset": "alnum" } },
+        { "key": "MEILI_MASTER_KEY", "type": "secret", "generate": { "length": 32, "charset": "alnum" } },
+        { "key": "DATA_LOCATION", "type": "hidden", "default": "{data}/data", "create": true },
+        { "key": "PG_LOCATION", "type": "hidden", "default": "{data}/pgdata", "create": true },
+        { "key": "MEILI_LOCATION", "type": "hidden", "default": "{data}/meili_data", "create": true },
+        { "key": "LINKWARDEN_VERSION", "type": "hidden", "default": "v2.17.0" }
+    ],
+    "hooks":     {
+        "post_install": "hooks/post_install.sh",
+        "post_update":  "hooks/site.sh",
+        "post_change":  "hooks/site.sh"
+    }
+}

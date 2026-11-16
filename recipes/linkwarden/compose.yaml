@@ -1,0 +1,72 @@
+# Linkwarden on a WD My Cloud NAS (OS5, Intel models) - based on Linkwarden's own docker-compose.yml for v2.17.0:
+#     https://github.com/linkwarden/linkwarden/blob/v2.17.0/docker-compose.yml
+#
+# Changes from Linkwarden's file (see README.md):
+#  - each container is given only the settings it needs (no shared env_file: .env also holds the admin's password)
+#  - Linkwarden listens on the NAS itself only (127.0.0.1:3003 - port 3000 is the Grafana app's): it's reached through
+#    the Nginx app's site, https://links.<domain>
+#  - sign-ups are off (the recipe's install step makes the admin account first)
+#  - its address (NEXTAUTH_URL, BASE_URL) comes from site.env, written by the recipe's hooks from the Nginx app's site
+#  - Meilisearch's anonymous usage statistics are off
+#  - container logs are capped (Docker keeps them on the NAS's disk, forever otherwise)
+#
+# Its images are Linkwarden's (version pinned: LINKWARDEN_VERSION in .env), PostgreSQL 16's and Meilisearch's. Run it
+# from the folder holding this file and its .env (setup.sh puts both in /mnt/HD/HD_a2/Nas_Prog/_linkwarden).
+
+name: linkwarden
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
+
+services:
+  postgres:
+    container_name: linkwarden_postgres
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${PG_LOCATION}:/var/lib/postgresql/data
+    restart: always
+    <<: *logging
+
+  linkwarden:
+    container_name: linkwarden
+    image: ghcr.io/linkwarden/linkwarden:${LINKWARDEN_VERSION}
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      MEILI_HOST: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      # Off, but while the recipe's install step makes the admin account (only on the NAS itself, before its Nginx site
+      # exists): the admin adds the others, in Linkwarden's settings
+      NEXT_PUBLIC_DISABLE_REGISTRATION: ${DISABLE_REGISTRATION:-true}
+      NEXT_PUBLIC_CREDENTIALS_ENABLED: 'true'
+    env_file:
+      # Its address: https://links.<domain> (written by hooks/site.sh)
+      - path: site.env
+        required: false
+    ports:
+      - '127.0.0.1:3003:3000'
+    volumes:
+      # Its archives (screenshots, PDFs, readable copies) and uploads
+      - ${DATA_LOCATION}:/data/data
+    depends_on:
+      - postgres
+      - meilisearch
+    restart: always
+    <<: *logging
+
+  meilisearch:
+    container_name: linkwarden_meilisearch
+    image: getmeili/meilisearch:v1.13.3
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_NO_ANALYTICS: 'true'
+    volumes:
+      - ${MEILI_LOCATION}:/meili_data
+    restart: always
+    <<: *logging

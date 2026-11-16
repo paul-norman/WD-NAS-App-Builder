@@ -21,6 +21,7 @@ parameters:
         - apps/icecast/lib
         - apps/kopia/lib
         - apps/kvweb/lib
+        - apps/linkding/lib
         - apps/music-assistant/lib
         - apps/navidrome/lib
         - apps/nextcloud/lib
@@ -49,6 +50,7 @@ parameters:
         - apps/jellyfin/manage/api.php
         - apps/kopia/manage/api.php
         - apps/kvweb/manage/api.php
+        - apps/linkding/manage/api.php
         - apps/loki/manage/api.php
         - apps/mailpit/manage/api.php
         - apps/mariadb/manage/api.php
