@@ -61,9 +61,9 @@ grep -q 'proxy_pass *http://127.0.0.1:5230' $P/_nginx/sites/60-app-memos.conf 2>
 echo '== its page'
 page_up memos
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["running"] && $d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"26.11.0"' ] \
+[ "$(echo "$ST" | j '$d["running"] && $d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"26.11.1"' ] \
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://memos.$DOMAIN/\"" ] && [ "$(echo "$ST" | j '$d["restart_needed"]')" = false ] \
-    && [ "$(post password -d show=1 | j '$d["password"]')" = "\"$PW\"" ] && pass 'status: running, Memos 26.11.0, its site, its password' \
+    && [ "$(post password -d show=1 | j '$d["password"]')" = "\"$PW\"" ] && pass 'status: running, Memos 26.11.1, its site, its password' \
     || fail "status: $(echo "$ST" | head -c 400)"
 R=$(post new_password -d confirm=1); NEW=$(echo "$R" | j '$d["password"]' | tr -d '"')
 [ -n "$NEW" ] && [ "$NEW" != "$PW" ] && [ -n "$(signin admin "$NEW")" ] && [ -z "$(signin admin "$PW")" ] \
