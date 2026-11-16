@@ -69,6 +69,7 @@ Every file a static build downloads is pinned by its SHA256 and fetched with `st
   - `/recipes`  - [Docker recipes](recipes/README.md): compose files for apps best run in Docker, tested on the NAS
   - `/store`    - the [Store and recipe format](store/SPEC.md) (draft): `store.json`, `recipe.json`, their schemas, `tools/build_store.py` (builds `store.json` from the repository) `tools/make_test_repo.sh` (a test repository) - used by the [Store app](apps/store/README.md)
   - `/static`   - build instructions / required files for statically linked programs
+  - `/tools`    - [stand-alone scripts](tools/README.md) to run on the NAS by hand *(e.g. a check for Plex's Plex2Shell vulnerability)*
   - `/tests`    - [tests](tests/README.md) that run without a NAS, in containers standing in for it *(every app's package, and suites for the Store and the apps with logic of their own)*
   - ---
   - `/packages` - the built apps (static and for devices)
