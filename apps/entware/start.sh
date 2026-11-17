@@ -26,10 +26,25 @@
 . "$1/helpers.sh" "$0" "$1"
 
 OPT_ROOT="${APP_PERSISTENT_DATA_PATH}/opt"
+INCOMPATIBLE_FILE="${APP_PERSISTENT_DATA_PATH}/incompatible"
+
+# Not set up on this NAS (Entware's programs can't run on it: see init.sh)
+[ -f "${INCOMPATIBLE_FILE}" ] && exit 0
 
 if ! grep -q ' /opt ' /proc/mounts; then
     log "mounting ${OPT_ROOT} on /opt"
     mount --bind "${OPT_ROOT}" /opt
+fi
+
+# Checked again now that it's mounted: its opkg is started, in case the kernel's page size couldn't be read - if it
+# crashes, Entware is removed (it would silently break the NAS's commands)
+if ! reason="$(sh "${APP_PATH}/compat.sh" check)"; then
+    log "Entware can't run on this NAS: ${reason} - removing it"
+    printf '%s\n' "${reason}" > "${INCOMPATIBLE_FILE}"
+    sh "${APP_PATH}/compat.sh" remove "${OPT_ROOT}" >> ${LOG} 2>&1
+    cron_remove "${APP_NAME}-update-check"
+
+    exit 0
 fi
 
 # Start the services installed with Entware's packages

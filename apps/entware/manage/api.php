@@ -209,6 +209,8 @@ if ($action === 'status') {
     $log  = (string)@file_get_contents($job_log_file);
 
     manage_json([
+        // Why Entware can't run on this NAS, when it can't (it was then removed - see compat.sh)
+        'incompatible'       => trim((string)@file_get_contents($data_path.'/incompatible')),
         'mounted'            => $mounted,
         'installed'          => $installed,
         'arch'               => preg_match('#bin\.entware\.net/([^/\s]+)#', $conf, $m) ? $m[1] : '',

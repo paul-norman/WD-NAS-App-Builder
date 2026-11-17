@@ -212,6 +212,14 @@ opkg upgrade              # update installed packages</pre>
                     (response.job_running ? 'Busy (see Progress below)' : 'Ready');
                 status.className   = response.installed ? 'mg-ok' : 'mg-bad';
 
+                // Entware can't run on this NAS: it isn't installed (and any installed before was removed)
+                if (response.incompatible) {
+                    status.textContent = 'Not available on this NAS: ' + response.incompatible + '. Entware isn\'t ' +
+                        'installed (any installed before has been removed, as it broke the NAS\'s own commands). The ' +
+                        'app still keeps root\'s home folder (SSH keys, shell history) across reboots - remove it if ' +
+                        'you don\'t need that.';
+                }
+
                 part('arch').textContent   = response.arch || '-';
                 part('https').textContent  = response.installed ? (response.https ? 'HTTPS' : 'HTTP (not encrypted)') : '-';
                 part('https').className    = response.installed && !response.https ? 'mg-bad' : '';

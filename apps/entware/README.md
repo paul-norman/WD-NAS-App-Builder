@@ -18,6 +18,12 @@ opkg upgrade              # update installed packages
 - The NAS shows an alert *(and sends an email, if set up)* when package updates are available, checked weekly.
 - Removing the app keeps `Nas_Prog/_entware`, so reinstalling it brings everything back.
 
+## ARM models with large memory pages
+
+Entware's ARM packages are built for the usual 4KB memory pages, but some WD ARM models' kernels use larger ones *(32KB on the My Cloud EX2 Ultra)*. There, Entware's programs - `opkg` itself, its `grep`, `bash`, `busybox`... - crash as soon as they start *("Segmentation fault")*. Installed anyway, Entware silently breaks the NAS: its commands come first in the `PATH`, so scripts that run e.g. `grep` get a crash instead, which most of them read as "nothing found".
+
+So the app checks the kernel's page size when it's installed and at every boot *(and that Entware's `opkg` starts, once `/opt` is mounted)*. On a NAS where Entware can't run, it **doesn't install it, and removes any Entware installed before** - by an earlier version of this app or by the older WDCommunity app: its lines in `/etc/profile`, the `/opt` mount *(WD's own `/opt` comes back)*, and Entware's folder *(`Nas_Prog/_entware/opt`, and the older app's `entware` / `entware.bak` folders)*. Its management page says why. Root's home folder is kept as before *(`Nas_Prog/_entware/home`)*: it doesn't need Entware. Whether a NAS is affected is in its log: `cat /tmp/debug_apkg | grep "Entware can't run"`.
+
 ## Management page
 
 Entware's page in the NAS dashboard *(Apps → Entware)* can:

@@ -25,6 +25,8 @@
 OPT_ROOT="${APP_PERSISTENT_DATA_PATH}/opt"
 HOME_ROOT="${APP_PERSISTENT_DATA_PATH}/home"
 PROFILE_MARK='# added by the entware app'
+# Why Entware can't run on this NAS (see compat.sh), for the management page - none when it can
+INCOMPATIBLE_FILE="${APP_PERSISTENT_DATA_PATH}/incompatible"
 
 # Create folder for the webpage
 log "creating web path: ${APP_WEB_PATH}"
@@ -38,8 +40,36 @@ log "linking management page from: ${APP_PATH}/manage/* to: ${APP_MANAGE_PATH}"
 mkdir -p ${APP_MANAGE_PATH}
 ln -sf ${APP_PATH}/manage/* ${APP_PATH}/web/* ${APP_MANAGE_PATH} >> ${LOG} 2>&1
 
+mkdir -p "${HOME_ROOT}"
+
+# A persistent home folder for root (SSH keys, shell history...), which is otherwise reset on every boot
+if [ "$(readlink /home/root)" != "${HOME_ROOT}" ]; then
+    log "linking root's home folder: /home/root -> ${HOME_ROOT}"
+
+    if [ -d /home/root ] && [ ! -L /home/root ]; then
+        cp -a /home/root/. "${HOME_ROOT}/" 2>/dev/null
+        rm -rf /home/root
+    fi
+
+    rm -f /home/root
+    ln -s "${HOME_ROOT}" /home/root
+fi
+
+# Entware's programs crash on some ARM models (their kernels' larger memory pages): there, Entware isn't set up - and
+# any left from before is removed (it would silently break the NAS's commands). Root's home folder above stays
+if ! reason="$(sh "${APP_PATH}/compat.sh" check)"; then
+    log "Entware can't run on this NAS: ${reason} - not setting it up, and removing any left"
+    printf '%s\n' "${reason}" > "${INCOMPATIBLE_FILE}"
+    sh "${APP_PATH}/compat.sh" remove "${OPT_ROOT}" >> ${LOG} 2>&1
+    cron_remove "${APP_NAME}-update-check"
+
+    exit 0
+fi
+
+rm -f "${INCOMPATIBLE_FILE}"
+
 # Mount Entware's root on /opt
-mkdir -p "${OPT_ROOT}" "${HOME_ROOT}"
+mkdir -p "${OPT_ROOT}"
 
 if ! grep -q ' /opt ' /proc/mounts; then
     log "mounting ${OPT_ROOT} on /opt"
@@ -55,19 +85,6 @@ fi
 # /opt/sbin comes before the system's own folders in the PATH, so provide a reboot that stops Entware cleanly first
 mkdir -p /opt/sbin
 ln -sf "${APP_PATH}/bin/reboot" /opt/sbin/reboot
-
-# A persistent home folder for root (SSH keys, shell history...), which is otherwise reset on every boot
-if [ "$(readlink /home/root)" != "${HOME_ROOT}" ]; then
-    log "linking root's home folder: /home/root -> ${HOME_ROOT}"
-
-    if [ -d /home/root ] && [ ! -L /home/root ]; then
-        cp -a /home/root/. "${HOME_ROOT}/" 2>/dev/null
-        rm -rf /home/root
-    fi
-
-    rm -f /home/root
-    ln -s "${HOME_ROOT}" /home/root
-fi
 
 # Put Entware's commands first in the PATH (marked so that clean.sh can remove the lines again)
 if ! grep -q "${PROFILE_MARK}" /etc/profile 2>/dev/null; then

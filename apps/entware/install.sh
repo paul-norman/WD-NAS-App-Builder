@@ -24,6 +24,11 @@
 
 OPT_ROOT="${APP_PERSISTENT_DATA_PATH}/opt"
 HOME_ROOT="${APP_PERSISTENT_DATA_PATH}/home"
+# Entware roots left by the older WDCommunity app (same package name), which this app takes over
+OLD_ROOTS="$(dirname "${APPS_PATH}")/entware.bak $(dirname "${APPS_PATH}")/entware /shares/Volume_1/entware.bak"
+OLD_ROOTS="${OLD_ROOTS} /shares/Volume_1/entware"
+# Why Entware can't run on this NAS (see compat.sh), for the management page - none when it can
+INCOMPATIBLE_FILE="${APP_PERSISTENT_DATA_PATH}/incompatible"
 mkdir -p "${APP_PERSISTENT_DATA_PATH}"
 
 # Take over an existing Entware from the older WDCommunity app (same package name), whose upgrade scripts rename its
@@ -34,7 +39,7 @@ if [ ! -d "${HOME_ROOT}" ] && [ -d "${APP_PATH}/home" ]; then
 fi
 
 if [ ! -d "${OPT_ROOT}" ]; then
-    for old in "$(dirname "${APPS_PATH}")/entware.bak" "$(dirname "${APPS_PATH}")/entware" /shares/Volume_1/entware.bak /shares/Volume_1/entware; do
+    for old in ${OLD_ROOTS}; do
         if [ -x "${old}/bin/opkg" ]; then
             log "Moving the existing Entware from: ${old} to: ${OPT_ROOT}"
             mv "${old}" "${OPT_ROOT}"
@@ -51,6 +56,18 @@ fi
 
 log "Moving files from: ${APP_UPLOAD_PATH} to: ${APPS_PATH}"
 mv -f "${APP_UPLOAD_PATH}" "${APPS_PATH}"
+
+# Entware's programs crash on some ARM models (their kernels' larger memory pages): there, don't install it - and
+# remove any that was installed before (by this app or the older one), which silently breaks the NAS's commands
+if ! reason="$(sh "${APP_PATH}/compat.sh" check)"; then
+    log "Entware can't run on this NAS: ${reason} - not installing it, and removing any installed before"
+    printf '%s\n' "${reason}" > "${INCOMPATIBLE_FILE}"
+    sh "${APP_PATH}/compat.sh" remove "${OPT_ROOT}" ${OLD_ROOTS} >> ${LOG} 2>&1
+
+    exit 0
+fi
+
+rm -f "${INCOMPATIBLE_FILE}"
 
 # A fresh install: run Entware's installer (bundled at build time) in the new root
 if [ ! -x "${OPT_ROOT}/bin/opkg" ]; then
