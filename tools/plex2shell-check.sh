@@ -66,7 +66,7 @@ broken_tool() {
 # Makes sure the tools this script relies on work: any that doesn't is replaced by BusyBox's own (when the NAS has
 # BusyBox and its one works), else the script stops - nothing it found could be trusted.
 use_working_tools() {
-    local tool
+    local tool path
     local replaced=' '
 
     while true; do
@@ -76,6 +76,8 @@ use_working_tools() {
         case "${replaced}" in
             *" ${tool} "*) ;;
             *)
+                path="$(command -v "${tool}" 2>/dev/null)"
+
                 if command -v busybox > /dev/null 2>&1; then
                     eval "${tool}() { busybox ${tool} \"\$@\"; }"
                     replaced="${replaced}${tool} "
@@ -84,10 +86,9 @@ use_working_tools() {
                 ;;
         esac
 
-        printf 'Nothing was checked: the NAS'"'"'s %s does not work (it crashed, or answered wrongly), and this\n' \
-            "${tool}" >&2
-        printf 'script relies on it. Is an add-on (e.g. Entware) replacing it? Its path: %s\n' \
-            "$(command -v "${tool}" 2>/dev/null)" >&2
+        printf 'Nothing was checked: the NAS'"'"'s %s (%s) does not work - it crashed, or answered wrongly - nor\n' \
+            "${tool}" "${path:-not found}" >&2
+        printf 'does BusyBox'"'"'s, and every check relies on it. Is an add-on (e.g. Entware) replacing it?\n' >&2
 
         exit 3
     done
