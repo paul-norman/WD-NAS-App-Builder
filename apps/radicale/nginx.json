@@ -1,0 +1,6 @@
+{
+    "name":    "calendar",
+    "label":   "Radicale",
+    "target":  "http://127.0.0.1:5232",
+    "uploads": true
+}

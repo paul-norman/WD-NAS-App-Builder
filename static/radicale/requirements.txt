@@ -1,0 +1,32 @@
+defusedxml==0.7.1 \
+    --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
+    --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
+    # via radicale
+libpass==1.9.4 \
+    --hash=sha256:4ff9a5ebf51aad1e8164453bc29c4a06926cf175a9501d87205612ba247f3cbd \
+    --hash=sha256:a608621af2d7d64579957988fac287f230f88792c83a2d0f895afb05ee429489
+    # via radicale
+python-dateutil==4.0.0 \
+    --hash=sha256:a5e246f79eb80475e691bf93862cead98decd8a498cf53ba0516fcdc0f50dc1c \
+    --hash=sha256:d7295ff14fdc0f92f662100bfb6c551d160ca090f2939f1ec5b9794265c03f06
+    # via vobject
+pytz==2026.6 \
+    --hash=sha256:3b0fc2727707663d6e517936f444fd8a8b240f1fc32f4bf7ee03274245945284 \
+    --hash=sha256:7fed3fee8fd6bd4a2b7b75a8d56021d0624127bf69bd5691f115db929ac570b3
+    # via vobject
+radicale==3.9.2 \
+    --hash=sha256:88a28c460af1f1c09745fefe1fb91aaf1b631499240eaaef5796a347b4c965ba \
+    --hash=sha256:d0ac4d537d0d357507eab9792183aee8861bfe8330fa4787574a276a4b091695
+    # via -r requirements.in
+six==1.17.0 \
+    --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
+    --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
+    # via vobject
+tzdata==2026.6 \
+    --hash=sha256:0a10eec6e13ef16b627fabed9a5f2ba61a62b1c67f327305f4e7e412a70b4aec \
+    --hash=sha256:85d2cd9c09f81f0bb29db27759fc83af4f1e620efb814f8c5bf8b4cc4feece6d
+    # via python-dateutil
+vobject==0.9.9 \
+    --hash=sha256:0fbdb982065cf4d1843a5d5950c88510041c6de026bda49c3502721de1c6ac3d \
+    --hash=sha256:ac44e5d7e2079d84c1d52c50a615b9bec4b1ba958608c4c7fe40cbf33247b38e
+    # via radicale

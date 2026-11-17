@@ -1,0 +1,23 @@
+Package:			radicale
+Version:			3.9.2-1
+Packager:			PDN
+Email:
+Homepage:			https://radicale.org/
+Description:		Radicale: your own calendars and contacts (CalDAV and CardDAV), synced with phones and computers - with a shared Family calendar and address book.
+Icon:				radicale.svg
+AddonShowName:		Radicale
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

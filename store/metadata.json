@@ -55,6 +55,7 @@
         "prometheus":         { "categories": ["monitoring"], "license": "Apache-2.0", "data_folder": "_prometheus", "keeps_data": true },
         "python":             { "categories": ["development", "system"], "license": "PSF-2.0", "data_folder": "_python", "keeps_data": true, "replaces": ["python3"], "security": "Replaces WD's Python 3.9, which has had no security fixes since October 2025" },
         "qbittorrent":        { "categories": ["media", "files"], "license": "GPL-2.0-or-later", "data_folder": "_qbittorrent", "keeps_data": true, "web": { "port": 8092, "nginx": { "name": "qbittorrent" } } },
+        "radicale":           { "categories": ["productivity", "home"], "license": "GPL-3.0-or-later", "data_folder": "_radicale", "keeps_data": true, "web": { "local_port": 5232, "nginx": { "name": "calendar" } } },
         "rclone":             { "categories": ["backup", "files"], "license": "MIT", "data_folder": "_rclone", "keeps_data": true, "web": { "port": 5572, "nginx": { "name": "rclone" } } },
         "redis_exporter":     { "categories": ["monitoring", "databases"], "license": "MIT", "data_folder": "_redis_exporter", "keeps_data": true, "requires": { "apps": ["valkey"] } },
         "retroassembly":      { "categories": ["media", "home"], "license": "MIT", "data_folder": "_retroassembly", "keeps_data": true, "web": { "local_port": 8098, "nginx": { "name": "games" } } },
