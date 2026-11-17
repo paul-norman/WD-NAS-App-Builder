@@ -15,6 +15,7 @@ parameters:
         - apps/audiobookshelf/lib
         - apps/calibre-web/lib
         - apps/copyparty/lib
+        - apps/firefly-iii/lib
         - apps/forgejo/lib
         - apps/grafana/lib
         - apps/homebox/lib
@@ -42,6 +43,7 @@ parameters:
         - apps/copyparty/manage/api.php
         - apps/docker/manage/api.php
         - apps/entware/manage/api.php
+        - apps/firefly-iii/manage/api.php
         - apps/forgejo/manage/api.php
         - apps/golang/manage/api.php
         - apps/grafana/manage/api.php

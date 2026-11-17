@@ -17,6 +17,7 @@
         "copyparty":          { "categories": ["files", "photos"], "license": "MIT", "data_folder": "_copyparty", "keeps_data": true, "web": { "port": 3923, "nginx": { "name": "files" } } },
         "docker":             { "categories": ["system", "development"], "license": "Apache-2.0", "data_folder": "_docker", "keeps_data": true, "web": { "port": 9000, "nginx": { "name": "portainer" } } },
         "entware":            { "categories": ["system"], "license": "GPL-2.0-only", "data_folder": "_entware", "keeps_data": true },
+        "firefly-iii":        { "categories": ["productivity", "home"], "license": "AGPL-3.0-or-later", "data_folder": "_firefly-iii", "keeps_data": true, "requires": { "apps": ["php"], "ram_mb": 512 }, "web": { "local_port": 8088, "nginx": { "name": "firefly" } } },
         "forgejo":            { "categories": ["development"], "license": "GPL-3.0-or-later", "data_folder": "_forgejo", "keeps_data": true, "web": { "port": 3002, "nginx": { "name": "git" } } },
         "golang":             { "categories": ["development"], "license": "BSD-3-Clause", "keeps_data": true },
         "grafana":            { "categories": ["monitoring"], "license": "AGPL-3.0-only", "data_folder": "_grafana", "keeps_data": true, "web": { "port": 3000, "nginx": { "name": "grafana" } } },

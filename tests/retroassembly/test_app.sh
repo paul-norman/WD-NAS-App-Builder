@@ -38,9 +38,9 @@ install_app
 curl -s $H/login | grep -q 'RetroAssembly' \
     && pass 'answering on 8098' || { fail "not answering: $(tail -n 10 $D/retroassembly.log; grep retroassembly /tmp/debug_apkg | tail -n 15)"; exit 1; }
 PID=$(cat /var/run/retroassembly.pid)
-[ "$(awk '/^Uid:/ { print $2 }' /proc/$PID/status)" = 70 ] && [ "$(stat -c '%U %a' $D/data)" = 'retroassembly 700' ] \
+[ "$(awk '/^Uid:/ { print $2 }' /proc/$PID/status)" = 54 ] && [ "$(stat -c '%U %a' $D/data)" = 'retroassembly 700' ] \
     && [ "$(stat -c '%U %a' $D/admin_password)" = 'root 600' ] && [ "$(stat -c '%U %a' $D/settings)" = 'root 600' ] && [ -f $DB ] \
-    && pass 'runs as its own user (70), its data its own; its password and settings root'"'"'s' \
+    && pass 'runs as its own user (54), its data its own; its password and settings root'"'"'s' \
     || fail "user: $(grep '^Uid:' /proc/$PID/status) $(ls -la $D $D/data)"
 ! listens_beyond && grep -q '^LISTEN=local$' $D/settings && pass 'only on the NAS itself (127.0.0.1:8098) - with the Nginx app installed' \
     || fail "listens beyond the NAS: $(cat $D/settings)"

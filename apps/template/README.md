@@ -35,7 +35,7 @@ How it behaves:
    ```
 
    Then check what that changed: `Package` in `apkg.rc` must be exactly the folder's name.
-2. Pick its port and its user's ID, unused by the other apps *(the IDs count down from 99: see the other apps' `*_ctl.sh`)*, and set them in `myapp_ctl.sh`, `nginx.json`, `manage/` and the test.
+2. Pick its port, unused by the other apps, and its user's ID: the one `python3 ci/ids.py next` prints *(add it to the [list of IDs](../README.md#user-and-group-ids))*. Set them in `myapp_ctl.sh`, `nginx.json`, `manage/` and the test.
 3. In `static/myapp/build.sh`, download the app's own program instead of miniserve *(its release's SHA256 pinned; or build it)*, and list its files in `apps/myapp/build.sh`. Drop the ARM models *(`armhf`)* from both if it's for the Intel models only.
 4. In `myapp_ctl.sh`, change `start()` to run the program with its settings, and `wait_up()` to check that it's the program answering. Set `check_update.sh`'s releases address, and the version in `manage/api.php`.
 5. Write `apkg.rc`'s `Description` and `web/desc.xml`, replace `web/logo.svg` with the app's icon, and rewrite this README for the app.

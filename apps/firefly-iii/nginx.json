@@ -1,0 +1,6 @@
+{
+    "name":    "firefly",
+    "label":   "Firefly III",
+    "target":  "http://127.0.0.1:8088",
+    "uploads": true
+}

@@ -147,6 +147,61 @@ To add one:
 
 Never trust the `login_username` cookie: browsers can set it to anything.
 
+## User and group IDs
+
+Apps that don't run as root create a user and a group of their own on the NAS *(in its `*_ctl.sh` `setup`, with BusyBox's `adduser` / `addgroup` - both with the same ID)*. The NAS's user list is in RAM, so they're created again at every boot - always with the same ID, as their files on the volumes keep it. Two apps with the same ID would clash: whichever starts second can't create its user, and doesn't start.
+
+So each app has its own ID, listed here. They count down from 99 *(below 51 are the systems' own IDs)*. For a new app, take the one `python3 ci/ids.py next` prints and add it here. CI's `plan` job runs `python3 ci/ids.py check`, which fails if two apps share an ID, an app takes a reserved one, or this list no longer matches the apps' scripts *(`python3 ci/ids.py list` shows what they use)*.
+
+| ID | App | Its user and group |
+|---|---|---|
+| 99 | [`wikijs`](wikijs/README.md) | `wikijs` |
+| 98 | [`bookstack`](bookstack/README.md) | `bookstack` |
+| 97 | [`transmission`](transmission/README.md) | `transmission` |
+| 96 | [`paperless-ngx`](paperless-ngx/README.md) | `paperless` |
+| 95 | The NAS itself: WD's `ftp` user | - |
+| 94 | [`headlamp`](headlamp/README.md) | `headlamp` |
+| 93 | [`tautulli`](tautulli/README.md) | `tautulli` |
+| 92 | [`bugsink`](bugsink/README.md) | `bugsink` |
+| 91 | [`redis_exporter`](redis_exporter/README.md) | `redis_exporter` |
+| 90 | [`mysqld_exporter`](mysqld_exporter/README.md) | `mysqld_exporter` |
+| 89 | [`postgres_exporter`](postgres_exporter/README.md) | `postgres_exporter` |
+| 88 | [`adminer`](adminer/README.md) | `adminer` |
+| 87 | [`kvweb`](kvweb/README.md) | `kvweb` |
+| 86 | [`pgweb`](pgweb/README.md) | `pgweb` |
+| 85 | [`openssh`](openssh/README.md) | `sshpriv` |
+| 84 | [`qbittorrent`](qbittorrent/README.md) | `qbittorrent` |
+| 83 | [`audiobookshelf`](audiobookshelf/README.md) | `audiobookshelf` |
+| 82 | [`icecast`](icecast/README.md) | `icecast` |
+| 81 | [`copyparty`](copyparty/README.md) | `copyparty` |
+| 80 | [`calibre-web`](calibre-web/README.md) | `calibreweb` |
+| 79 | [`music-assistant`](music-assistant/README.md) | `musicassistant` |
+| 78 | [`navidrome`](navidrome/README.md) | `navidrome` |
+| 77 | [`forgejo`](forgejo/README.md) | `forgejo` |
+| 76 | [`ntfy`](ntfy/README.md) | `ntfy` |
+| 75 | [`loki`](loki/README.md) | `loki` |
+| 74 | [`grafana`](grafana/README.md) | `grafana` |
+| 73 | [`prometheus`](prometheus/README.md) | `prometheus` |
+| 72 | [`uptime-kuma`](uptime-kuma/README.md) | `uptimekuma` |
+| 71 | [`vaultwarden`](vaultwarden/README.md) | `vaultwarden` |
+| 70 | [`postgresql`](postgresql/README.md) | `postgres` |
+| 69 | [`phpbb`](phpbb/README.md) | `phpbb` |
+| 68 | [`rclone`](rclone/README.md) | `rclone` |
+| 67 | [`mongodb`](mongodb/README.md) | `mongodb` |
+| 66 | [`compass-web`](compass-web/README.md) | `compassweb` |
+| 65 | [`scrutiny`](scrutiny/README.md) | `scrutiny` |
+| 64 | [`nextcloud`](nextcloud/README.md) | `nextcloud` |
+| 63 | [`miniflux`](miniflux/README.md) | `miniflux` |
+| 62 | [`template`](template/README.md) | `template` |
+| 61 | [`memos`](memos/README.md) | `memos` |
+| 60 | Debian's and Ubuntu's `games` group, in the test suites' stand-ins for the NAS | - |
+| 59 | [`vikunja`](vikunja/README.md) | `vikunja` |
+| 58 | [`homebox`](homebox/README.md) | `homebox` |
+| 57 | [`adguardhome`](adguardhome/README.md) | `adguardhome` |
+| 56 | [`linkding`](linkding/README.md) | `linkding` |
+| 55 | [`firefly-iii`](firefly-iii/README.md) | `firefly` |
+| 54 | [`retroassembly`](retroassembly/README.md) | `retroassembly` |
+
 ## APKG Helpers
 
 The helpers for the `apkg.rc` file may be used **both** in the local build script and on the WD NAS devices, so it has been separated into its own file.

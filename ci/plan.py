@@ -33,6 +33,7 @@ import build_store  # noqa: E402
 
 sys.path.insert(0, str(REPO / "ci"))
 
+import ids  # noqa: E402
 import sources  # noqa: E402
 
 # Files every app's build uses: a change rebuilds (and tests) every app
@@ -238,8 +239,9 @@ def served_recipe_files(recipe):
 def check_rules(all_apps, problems):
     """
     Checks the rules that hold whatever changed: every app is in the shared
-    package test, states keeps_data (true, or false on purpose), and lists
-    the sources of what its build downloads (ci/sources/<app>.conf).
+    package test, states keeps_data (true, or false on purpose), lists the
+    sources of what its build downloads (ci/sources/<app>.conf), and has user
+    and group IDs of its own (listed in apps/README.md - ci/ids.py).
 
     :param list all_apps: The apps
     :param list problems: Where problems are added
@@ -248,6 +250,7 @@ def check_rules(all_apps, problems):
         (REPO / "store" / "metadata.json").read_text(encoding="utf-8")
     )["apps"]
     tier1 = tier1_apps()
+    problems += ids.check()
 
     for app in all_apps:
         if app not in tier1:

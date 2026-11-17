@@ -1,0 +1,23 @@
+Package:			firefly-iii
+Version:			6.7.9
+Packager:			PDN
+Email:
+Homepage:			https://www.firefly-iii.org/
+Description:		Firefly III: a personal finance manager - accounts, budgets, bills, categories, rules and reports - kept in MariaDB.
+Icon:				firefly-iii.png
+AddonShowName:		Firefly III
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:			php
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

@@ -40,7 +40,7 @@ PID_FILE=/var/run/retroassembly.pid
 PORT=8098
 ADMIN_USER='admin'
 # Its own user and group (created if missing): the IDs used when creating them
-RA_ID=70
+RA_ID=54
 LOG=/tmp/debug_apkg
 
 # Writes a line to the NAS's app log (/tmp/debug_apkg), with the time and the script's name, and prints it.
@@ -80,7 +80,7 @@ running() {
 
 # The user's ID and group ID, from the NAS's own user list.
 #
-# Prints them (e.g. 70 70), or nothing if there's no such user
+# Prints them (e.g. 54 54), or nothing if there's no such user
 ra_ids() {
     awk -F: '$1 == "retroassembly" { print $3 " " $4 }' /etc/passwd
 }

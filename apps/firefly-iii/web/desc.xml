@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<en-US>Firefly III: a personal finance manager - accounts, budgets, bills, categories, rules and reports - kept in MariaDB.</en-US>
+	<fr-FR>Firefly III : un gestionnaire de finances personnelles - comptes, budgets, factures, catégories, règles et rapports - conservé dans MariaDB.</fr-FR>
+	<es-ES>Firefly III: un gestor de finanzas personales - cuentas, presupuestos, facturas, categorías, reglas e informes - guardado en MariaDB.</es-ES>
+	<de-DE>Firefly III: eine Verwaltung der persönlichen Finanzen - Konten, Budgets, Rechnungen, Kategorien, Regeln und Berichte - gespeichert in MariaDB.</de-DE>
+</config>

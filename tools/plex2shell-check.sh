@@ -13,19 +13,25 @@
 # with the NAS's BusyBox tools; a check that can't run says SKIP, never PASS.
 #
 # Exit codes: 0 no indicators found and Plex patched; 1 action needed (vulnerable, version unknown, or an indicator);
-# 2 Plex not found on the NAS
+# 2 Plex not found on the NAS; 3 nothing checked (one of the NAS's tools this script needs doesn't work)
 
 set -u
 
 # The first fixed Plex build
 FIX_MIN=1.43.3.10861
 # Known indicators: process names / command lines, file names, and the ports miners connect to
-BAD_PROCESS='xmrig|myawesomeproxy|cryptonight|stratum\+tcp|minerd|kdevtmpfsi|kinsing'
+BAD_PROCESS='xmrig myawesomeproxy cryptonight stratum+tcp minerd kdevtmpfsi kinsing'
 BAD_FILE='xmrig|myawesomeproxy|miner'
 MINING_PORTS='3333 14444 14433 45700'
 # The exploit's traces in Plex's logs: its server-side request (an external url= to the universal transcoder), and the
 # junk requests and token seen with it
 BAD_LOG='transcode/universal\?[^ ]*url=(https?|ftp|gopher)|GET /player/timeline\?\$|\$X-Plex-Token|myawesomeproxy'
+
+# The NAS's own tools first: when Entware is installed, its programs come first in the PATH - and a check for an
+# attack shouldn't rely on add-on programs (on the ARM models, ones built for other Linux systems can also crash on the
+# NAS's kernel, which uses larger memory pages)
+PATH="/usr/bin:/bin:/usr/sbin:/sbin:${PATH}"
+export PATH
 
 FAILS=0
 WARNS=0
@@ -39,6 +45,53 @@ if [ -t 1 ]; then
 else
     GREEN='' YELLOW='' RED='' BOLD='' RESET=''
 fi
+
+# The first of the tools this script relies on that doesn't work as it uses them (e.g. a grep that crashes, or that
+# says it found nothing when it can't run - every check would then PASS without having looked).
+#
+# Prints its name, or nothing if they all work
+broken_tool() {
+    [ "$(printf 'Ab\nc\n' | grep -iE 'x|b' 2>/dev/null)" = Ab ] || { echo grep; return; }
+    printf 'a\n' | grep -qE '^(b|c)' 2>/dev/null
+    [ $? = 1 ] || { echo grep; return; }
+    [ "$(printf 'a b\n' | awk '{ print $2 }' 2>/dev/null)" = b ] || { echo awk; return; }
+    [ "$(printf 'a\n' | sed 's/a/b/' 2>/dev/null)" = b ] || { echo sed; return; }
+    [ "$(printf 'A\0B' | tr '\0' ' ' 2>/dev/null | tr 'A-Z' 'a-z' 2>/dev/null)" = 'a b' ] || { echo tr; return; }
+    [ "$(printf 'x.y\n' | cut -d . -f 2 2>/dev/null)" = y ] || { echo cut; return; }
+    [ "$(printf 'b\na\n' | sort 2>/dev/null | head -n 1)" = a ] || { echo sort; return; }
+    [ "$(find / -maxdepth 0 2>/dev/null)" = / ] || { echo find; return; }
+    [ -n "$(readlink /proc/self/exe 2>/dev/null)" ] || { echo readlink; return; }
+}
+
+# Makes sure the tools this script relies on work: any that doesn't is replaced by BusyBox's own (when the NAS has
+# BusyBox and its one works), else the script stops - nothing it found could be trusted.
+use_working_tools() {
+    local tool
+    local replaced=' '
+
+    while true; do
+        tool="$(broken_tool)"
+        [ -n "${tool}" ] || return 0
+
+        case "${replaced}" in
+            *" ${tool} "*) ;;
+            *)
+                if command -v busybox > /dev/null 2>&1; then
+                    eval "${tool}() { busybox ${tool} \"\$@\"; }"
+                    replaced="${replaced}${tool} "
+                    continue
+                fi
+                ;;
+        esac
+
+        printf 'Nothing was checked: the NAS'"'"'s %s does not work (it crashed, or answered wrongly), and this\n' \
+            "${tool}" >&2
+        printf 'script relies on it. Is an add-on (e.g. Entware) replacing it? Its path: %s\n' \
+            "$(command -v "${tool}" 2>/dev/null)" >&2
+
+        exit 3
+    done
+}
 
 # Prints a check's result (and counts warnings and failures).
 #
@@ -158,6 +211,8 @@ log_version() {
 
 printf '%sPlex2Shell check for WD My Cloud OS5 (CVE-2026-96652/54/55/56)%s - read-only, nothing is changed\n\n' \
     "${BOLD}" "${RESET}"
+
+use_working_tools
 
 if [ "$(id -u)" != 0 ]; then
     warn 'Not running as root: other users'"'"' processes, connections and files can'"'"'t all be read (run it as root)'
@@ -294,11 +349,12 @@ while IFS='|' read -r pid data; do
     done
 
     if [ -n "${strangers}" ]; then
-        if printf '%s' "${strangers}" | grep -qE '/tmp/|/var/tmp/|/dev/shm/|\(deleted\)'; then
-            fail 'Plex has started programs from a temporary folder (or deleted since) - a payload:'
-        else
-            warn 'Plex has started programs that aren'"'"'t its own - check them:'
-        fi
+        case "${strangers}" in
+            *'/tmp/'*|*'/var/tmp/'*|*'/dev/shm/'*|*'(deleted)'*)
+                fail 'Plex has started programs from a temporary folder (or deleted since) - a payload:'
+                ;;
+            *) warn 'Plex has started programs that aren'"'"'t its own - check them:' ;;
+        esac
 
         details "${strangers}"
     else
@@ -345,14 +401,21 @@ for dir in /proc/[0-9]*; do
     [ "${pid}" = $$ ] && continue
     exe="$(readlink "${dir}/exe" 2>/dev/null)"
     line="$(cmdline "${pid}")"
+    # (its program and command line in lower case, for the names - matched by the shell itself)
+    text="$(printf '%s %s' "${exe}" "${line}" | tr 'A-Z' 'a-z')"
+    bad=''
 
-    # (this script's own searches: their command lines hold the patterns)
-    case "${line}" in
-        *'stratum\+tcp'*) continue ;;
+    for word in ${BAD_PROCESS}; do
+        case "${text}" in
+            *"${word}"*) bad=1 ;;
+        esac
+    done
+
+    case "${exe}" in
+        /tmp/*|/var/tmp/*|/dev/shm/*) bad=1 ;;
     esac
 
-    if printf '%s %s' "${exe}" "${line}" | grep -qiE "${BAD_PROCESS}" \
-        || printf '%s' "${exe}" | grep -qE '^(/tmp|/var/tmp|/dev/shm)/'; then
+    if [ -n "${bad}" ]; then
         found="${found}PID ${pid}: ${exe:-?} - ${line}
 "
     fi
