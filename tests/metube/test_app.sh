@@ -59,6 +59,13 @@ BP=$(post add_user -d name=bob | j '$d["password"]' | tr -d '"')
 [ "$AP" = '"Alice.Pass-1"' ] && [ ${#BP} = 16 ] && grep -q '"hash": "pbkdf2_sha256\$100000\$' $D/users.json && ! grep -q Alice.Pass $D/users.json \
     && [ "$(stat -c '%U %a' $D/users.json)" = 'metube 640' ] && pass 'alice and bob added (only PBKDF2 hashes kept)' || fail "add: $AP $(cat $D/users.json)"
 
+P1=$(curl -s -H "$CK" $PAGE/index.php)
+echo "$P1" | grep -q '<input type="password" data-mt="password"' && echo "$P1" | grep -q '<input type="password" data-mt="renew-password"' \
+    && echo "$P1" | grep -q 'data-mt-action="show-renew">Show' && pass 'the page: password fields (hidden as typed) with Show, New password takes a typed one' || fail 'password fields'
+R=$(post new_password -d name=bob --data-urlencode 'password=Bob chose^this1')
+[ "$(echo "$R" | j '$d["password"]')" = '"Bob chose^this1"' ] && pass 'a new password typed on the page (not generated)' || fail "new password: $R"
+BP='Bob chose^this1'
+
 echo '== logging in'
 [ "$(wcode alice /api/videos)" = 401 ] && pass 'nothing without logging in (401)' || fail 'videos without login'
 login alice Wrong.Pass-1; grep -q 'Wrong name or password' /tmp/login.json && pass 'a wrong password refused' || fail "wrong password: $(cat /tmp/login.json)"

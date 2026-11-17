@@ -58,6 +58,10 @@ RC=$(post add_user -d name=carol --data-urlencode 'password=Caret^Pass word!1')
     && pass 'a control character refused' || fail 'control character accepted'
 post remove_user -d name=carol > /dev/null
 
+P1=$(curl -s -H "$CK" $PAGE/index.php)
+echo "$P1" | grep -q '<input type="password" data-rd="password"' && echo "$P1" | grep -q '<input type="password" data-rd="renew-password"' \
+    && echo "$P1" | grep -q 'data-rd-action="show-renew">Show' && pass 'the page: password fields (hidden as typed) with Show, New password takes a typed one' || fail 'password fields'
+
 echo '== phones'
 W=$(code -o /dev/null -w '%{http_code} %{redirect_url}' $U/.well-known/caldav)
 echo "$W" | grep -q '^30[1-8] ' && pass "phones' discovery: /.well-known/caldav redirects ($W)" || fail "well-known: $W"

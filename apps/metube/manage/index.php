@@ -25,8 +25,14 @@ header('Cache-Control: no-store');
 
     <h3>People</h3>
     <table data-mt="users"></table>
+    <p data-mt="renew-box" hidden>New password for <strong data-mt="renew-name"></strong>:
+        <input type="password" data-mt="renew-password" placeholder="Leave empty to generate one" autocomplete="new-password">
+        <button type="button" data-mt-action="show-renew">Show</button>
+        <button type="button" data-mt-action="renew-save">Save</button>
+        <button type="button" data-mt-action="renew-cancel">Cancel</button></p>
     <p><input type="text" data-mt="name" placeholder="Name (e.g. alex)" autocomplete="off" spellcheck="false">
-        <input type="text" data-mt="password" placeholder="Password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+        <input type="password" data-mt="password" placeholder="Password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-mt-action="show-password">Show</button>
         <button type="button" data-mt-action="add">Add</button></p>
     <p data-mt="users-message"></p>
     <p class="mg-note">Names are lower-case letters, digits and . _ - ; passwords are 8-128 characters (letters, digits,
@@ -101,6 +107,7 @@ header('Cache-Control: no-store');
 
         let loaded     = false;
         let shown      = '';
+        let renewing   = '';
         let siteStates = {
             no_nginx:  'the Nginx app isn\'t set up',
             no_domain: 'set a domain in the Nginx app',
@@ -108,13 +115,36 @@ header('Cache-Control: no-store');
         };
 
         /**
-         * Shows a password just set, once (it isn't kept).
+         * Makes a password field show what's typed in it, or hide it again, with its Show / Hide button.
          *
-         * @param {Object} response The API's answer: the user's name and password
+         * @param {string} field  The field's part name
+         * @param {string} toggle The button's action name
          *
          * @return {void}
          */
-        function showPassword(response) {
+        function showHide(field, toggle) {
+            let input = part(field);
+            let hide  = input.type === 'text';
+
+            input.type                 = hide ? 'password' : 'text';
+            button(toggle).textContent = hide ? 'Show' : 'Hide';
+        }
+
+        /**
+         * Shows a password just set, once (it isn't kept).
+         *
+         * @param {Object} response The API's answer: the user's name and password
+         * @param {string} typed    The password typed ('' when generated): one typed isn't shown again
+         *
+         * @return {void}
+         */
+        function showPassword(response, typed) {
+            if (typed) {
+                part('shown').hidden = true;
+
+                return;
+            }
+
             shown = response.password;
 
             part('shown-name').textContent     = response.name;
@@ -156,11 +186,12 @@ header('Cache-Control: no-store');
                 remove.textContent = 'Remove';
 
                 renew.addEventListener('click', function () {
-                    actAt('users-message', 'new_password', { name: user.name }, 'Saving…', `New password for ${user.name} (shown below).`).then(function (response) {
-                        if (response) {
-                            showPassword(response);
-                        }
-                    });
+                    renewing = user.name;
+
+                    part('renew-name').textContent = renewing;
+                    part('renew-password').value   = '';
+                    part('renew-box').hidden       = false;
+                    part('renew-password').focus();
                 });
 
                 remove.addEventListener('click', function () {
@@ -297,16 +328,52 @@ header('Cache-Control: no-store');
         });
 
         button('add').addEventListener('click', function () {
-            let name = part('name').value.trim();
+            let name  = part('name').value.trim();
+            let typed = part('password').value.trim();
 
-            actAt('users-message', 'add_user', { name: name, password: part('password').value.trim() }, `Adding ${name}…`, `${name} added (their password is shown below).`).then(function (response) {
+            actAt('users-message', 'add_user', { name: name, password: typed }, `Adding ${name}…`,
+                typed ? `${name} added, with the password you typed.` : `${name} added (their password is shown below).`).then(function (response) {
                 if (response) {
-                    showPassword(response);
+                    showPassword(response, typed);
 
                     part('name').value     = '';
                     part('password').value = '';
                 }
             });
+        });
+
+        button('show-password').addEventListener('click', function () {
+            showHide('password', 'show-password');
+        });
+
+        button('show-renew').addEventListener('click', function () {
+            showHide('renew-password', 'show-renew');
+        });
+
+        button('renew-cancel').addEventListener('click', function () {
+            part('renew-box').hidden     = true;
+            part('renew-password').value = '';
+        });
+
+        button('renew-save').addEventListener('click', function () {
+            let name  = renewing;
+            let typed = part('renew-password').value.trim();
+
+            actAt('users-message', 'new_password', { name: name, password: typed }, 'Saving…',
+                typed ? `New password for ${name} saved.` : `New password for ${name} (shown below).`).then(function (response) {
+                if (response) {
+                    showPassword(response, typed);
+
+                    part('renew-box').hidden     = true;
+                    part('renew-password').value = '';
+                }
+            });
+        });
+
+        part('renew-password').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                button('renew-save').click();
+            }
         });
 
         button('copy').addEventListener('click', function () {
