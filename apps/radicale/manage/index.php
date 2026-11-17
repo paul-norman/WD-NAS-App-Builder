@@ -19,6 +19,7 @@ header('Cache-Control: no-store');
     </table>
     <p><a class="mg-button" data-rd="link" href="#" target="_blank" rel="noopener">Open Radicale</a>
         <button type="button" data-rd-action="restart">Restart Radicale</button></p>
+    <p data-rd="top-message"></p>
     <p class="mg-note">Radicale's own web page (log in as one of the users below) creates more calendars and address books,
         and imports or exports them (.ics and .vcf files).</p>
 
@@ -29,8 +30,9 @@ header('Cache-Control: no-store');
     <p><input type="text" data-rd="name" placeholder="New user's name (e.g. alex)" autocomplete="off" spellcheck="false">
         <input type="text" data-rd="password" placeholder="Password (leave empty to generate one)" autocomplete="off" spellcheck="false">
         <button type="button" data-rd-action="add">Add user</button></p>
-    <p class="mg-note">Names are lower-case letters, digits and . _ - ; passwords are 12-128 characters: letters, digits and
-        . _ ~ - . A password is shown once, when it's set - "New password" makes another. Removing a user keeps their
+    <p data-rd="users-message"></p>
+    <p class="mg-note">Names are lower-case letters, digits and . _ - ; passwords are 12-128 characters (letters, digits,
+        symbols or spaces). A password is shown once, when it's set - "New password" makes another. Removing a user keeps their
         calendars and contacts (adding them again with the same name gets them back). Radicale remembers a login for 15
         seconds, so a removed user or an old password still works that long.</p>
     <p data-rd="shown" hidden>Password for <strong data-rd="shown-name"></strong>: <code data-rd="shown-password"></code>
@@ -46,6 +48,7 @@ header('Cache-Control: no-store');
     <h3>Access</h3>
     <p><label><input type="checkbox" data-rd="local"> Only through the Nginx app (HTTPS)</label>
         <button type="button" data-rd-action="listen">Save</button></p>
+    <p data-rd="access-message"></p>
     <p class="mg-note">Otherwise Radicale is also reachable on port 5232 from the local network, over plain HTTP (passwords
         then cross the network unencrypted - and iPhones warn about it). Radicale restarts.</p>
 
@@ -119,7 +122,7 @@ header('Cache-Control: no-store');
                 remove.textContent = 'Remove';
 
                 renew.addEventListener('click', function () {
-                    act('new_password', { name: name }, 'Saving…', 'New password for ' + name + ' (shown below).').then(function (response) {
+                    actAt('users-message', 'new_password', { name: name }, 'Saving…', 'New password for ' + name + ' (shown below).').then(function (response) {
                         if (response) {
                             showPassword(response);
                         }
@@ -131,7 +134,7 @@ header('Cache-Control: no-store');
                         return;
                     }
 
-                    act('remove_user', { name: name }, 'Removing…', name + ' removed.');
+                    actAt('users-message', 'remove_user', { name: name }, 'Removing…', name + ' removed.');
                 });
 
                 controls.appendChild(renew);
@@ -196,23 +199,51 @@ header('Cache-Control: no-store');
 
         // Keep the page current, until the dashboard removes it
         <?php manage_timer_script(); ?>
-        <?php manage_act_script(); ?>
+
+        /**
+         * Runs one of the API's actions as act() does, but says how it went in the page's section that asked for it
+         * (where the person is looking), not at the bottom of the page.
+         *
+         * @param {string} where   The section's message part (e.g. users-message)
+         * @param {string} action  The API's action
+         * @param {Object} data    What to post
+         * @param {string} working What to say meanwhile
+         * @param {string} done    What to say once it's done
+         *
+         * @return {Promise.<(Object|null)>} Its answer (null if it failed)
+         */
+        function actAt(where, action, data, working, done) {
+            say(working, true, where);
+
+            return call(action, data).then(function (response) {
+                if (!response.ok) {
+                    say(response.error, false, where);
+
+                    return null;
+                }
+
+                say(done, true, where);
+                setTimeout(refresh, 2000);
+
+                return response;
+            });
+        }
 
         button('restart').addEventListener('click', function () {
-            act('restart', { confirm: 1 }, 'Restarting Radicale…', 'Radicale restarted.');
+            actAt('top-message', 'restart', { confirm: 1 }, 'Restarting Radicale…', 'Radicale restarted.');
         });
 
         button('listen').addEventListener('click', function () {
             let local = part('local').checked;
 
-            act('listen', { listen: local ? 'local' : 'all' }, 'Saving…', local ? 'Radicale is now only reachable through the Nginx app.' :
+            actAt('access-message', 'listen', { listen: local ? 'local' : 'all' }, 'Saving…', local ? 'Radicale is now only reachable through the Nginx app.' :
                 'Radicale is reachable on port 5232 too.');
         });
 
         button('add').addEventListener('click', function () {
             let name = part('name').value.trim();
 
-            act('add_user', { name: name, password: part('password').value.trim() }, 'Adding ' + name + '…', name + ' added (their password is shown below).').then(function (response) {
+            actAt('users-message', 'add_user', { name: name, password: part('password').value.trim() }, 'Adding ' + name + '…', name + ' added (their password is shown below).').then(function (response) {
                 if (response) {
                     showPassword(response);
 
@@ -224,7 +255,7 @@ header('Cache-Control: no-store');
 
         button('copy').addEventListener('click', function () {
             copyText(shown).then(function (copied) {
-                say(copied ? 'Password copied.' : 'Could not copy - select it instead.', copied);
+                say(copied ? 'Password copied.' : 'Could not copy - select it instead.', copied, 'users-message');
             });
         });
 

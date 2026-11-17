@@ -1,0 +1,5 @@
+{
+    "name":   "videos",
+    "label":  "Watch (MeTube)",
+    "target": "http://127.0.0.1:8086"
+}

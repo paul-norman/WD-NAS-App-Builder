@@ -1,0 +1,302 @@
+/* The Watch page: light and dark, from phone width up */
+:root {
+    --bg:     #f6f6f4;
+    --card:   #ffffff;
+    --text:   #1d1d1b;
+    --muted:  #6b6b66;
+    --line:   #deded8;
+    --accent: #c4302b;
+    --good:   #2e7d32;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg:     #161615;
+        --card:   #222220;
+        --text:   #ececea;
+        --muted:  #a0a09a;
+        --line:   #383835;
+        --accent: #ef5350;
+        --good:   #81c784;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Hidden means hidden, whatever display an element otherwise has (the login form is a flex box) */
+[hidden] {
+    display: none !important;
+}
+
+body {
+    margin:      0;
+    background:  var(--bg);
+    color:       var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.4;
+}
+
+header {
+    display:       flex;
+    align-items:   center;
+    gap:           12px;
+    padding:       10px 16px;
+    background:    var(--card);
+    border-bottom: 1px solid var(--line);
+}
+
+header h1 {
+    margin:    0;
+    font-size: 1.25rem;
+    color:     var(--accent);
+}
+
+#who {
+    margin-left: auto;
+    color:       var(--muted);
+}
+
+main {
+    max-width: 960px;
+    margin:    0 auto;
+    padding:   16px;
+}
+
+h2 {
+    font-size: 1rem;
+    margin:    20px 0 8px;
+}
+
+input,
+select,
+button {
+    font:          inherit;
+    padding:       8px 10px;
+    border:        1px solid var(--line);
+    border-radius: 6px;
+    background:    var(--card);
+    color:         var(--text);
+}
+
+button {
+    cursor:       pointer;
+    background:   var(--accent);
+    border-color: var(--accent);
+    color:        #ffffff;
+}
+
+button.quiet {
+    background:   transparent;
+    color:        var(--text);
+    border-color: var(--line);
+}
+
+#login {
+    display:        flex;
+    flex-direction: column;
+    gap:            10px;
+    max-width:      320px;
+    margin:         40px auto;
+}
+
+#login label {
+    display:        flex;
+    flex-direction: column;
+    gap:            4px;
+}
+
+#add {
+    display:   flex;
+    flex-wrap: wrap;
+    gap:       8px;
+}
+
+#url {
+    flex:      1 1 260px;
+    min-width: 0;
+}
+
+#player-box {
+    margin-top:    16px;
+    background:    #000000;
+    border-radius: 8px;
+    overflow:      hidden;
+}
+
+#player {
+    display:    block;
+    width:      100%;
+    max-height: 70vh;
+}
+
+.player-bar {
+    display:     flex;
+    align-items: center;
+    gap:         8px;
+    padding:     8px 10px;
+    background:  var(--card);
+}
+
+.player-bar strong {
+    flex:          1;
+    min-width:     0;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+    white-space:   nowrap;
+}
+
+ul {
+    list-style: none;
+    margin:     0;
+    padding:    0;
+}
+
+#videos,
+.grid {
+    display:               grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap:                   12px;
+}
+
+.video {
+    display:        flex;
+    flex-direction: column;
+    background:     var(--card);
+    border:         1px solid var(--line);
+    border-radius:  8px;
+    overflow:       hidden;
+}
+
+.thumb {
+    display:       block;
+    width:         100%;
+    aspect-ratio:  16 / 9;
+    object-fit:    cover;
+    background:    var(--line);
+    border:        0;
+    padding:       0;
+    border-radius: 0;
+    cursor:        pointer;
+}
+
+.video .info {
+    display:        flex;
+    flex-direction: column;
+    gap:            6px;
+    padding:        8px 10px 10px;
+}
+
+.video .title {
+    font-weight: 600;
+    word-break:  break-word;
+}
+
+.meta,
+.note {
+    color:     var(--muted);
+    font-size: 0.875rem;
+}
+
+.watched {
+    color: var(--good);
+}
+
+.actions {
+    display: flex;
+    gap:     6px;
+}
+
+.actions button {
+    padding:   4px 8px;
+    font-size: 0.875rem;
+}
+
+#queue li {
+    display:       flex;
+    align-items:   center;
+    gap:           8px;
+    padding:       8px 10px;
+    margin-bottom: 6px;
+    background:    var(--card);
+    border:        1px solid var(--line);
+    border-radius: 6px;
+}
+
+#queue .title {
+    flex:          1;
+    min-width:     0;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+    white-space:   nowrap;
+}
+
+#queue .error {
+    color: var(--accent);
+}
+
+progress {
+    width: 100px;
+}
+
+#settings-box {
+    margin-top: 24px;
+}
+
+#settings-box h3 {
+    font-size: 0.95rem;
+    margin:    16px 0 4px;
+}
+
+.choices {
+    display:   flex;
+    flex-wrap: wrap;
+    gap:       4px 14px;
+}
+
+#skipped {
+    white-space: nowrap;
+}
+
+.days {
+    width: 5em;
+}
+
+#message {
+    min-height: 1.4em;
+    margin:     0 0 8px;
+}
+
+#message.bad {
+    color: var(--accent);
+}
+
+.section-head {
+    display:     flex;
+    flex-wrap:   wrap;
+    align-items: center;
+    gap:         8px;
+    margin:      20px 0 8px;
+}
+
+.section-head h2 {
+    margin: 0;
+}
+
+.section-head button {
+    padding:   4px 8px;
+    font-size: 0.875rem;
+}
+
+.playlist-card .thumb {
+    position: relative;
+}
+
+.playlist-card .count {
+    font-weight: 600;
+}
+
+#add-into {
+    margin: 6px 0 0;
+}

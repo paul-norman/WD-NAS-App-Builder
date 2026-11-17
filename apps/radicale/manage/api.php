@@ -96,7 +96,7 @@ function radicale_hash(string $password): string
 }
 
 /**
- * The password asked for (letters, digits and . _ ~ -, 12-128 characters), or a random one - failing the request if
+ * The password asked for (12-128 characters, any but control characters), or a random one - failing the request if
  * the one given isn't allowed.
  *
  * @return string The password
@@ -109,8 +109,8 @@ function radicale_new_password(): string
         return substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 20);
     }
 
-    if (!preg_match('/^[A-Za-z0-9._~-]{12,128}$/', $password)) {
-        manage_fail(400, 'Passwords must be 12-128 characters: letters, digits and . _ ~ -');
+    if (!preg_match('/^[^\x00-\x1f\x7f]{12,128}$/u', $password)) {
+        manage_fail(400, 'Passwords must be 12-128 characters (any letters, digits, symbols or spaces)');
     }
 
     return $password;

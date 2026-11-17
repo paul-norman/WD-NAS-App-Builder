@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Watch</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <header>
+        <h1>Watch</h1>
+        <span id="who" hidden></span>
+        <button type="button" id="logout" class="quiet" hidden>Log out</button>
+    </header>
+
+    <main>
+        <p id="message" role="status"></p>
+
+        <form id="login" hidden>
+            <h2>Log in</h2>
+            <label>Name <input type="text" id="login-name" autocomplete="username" autocapitalize="none" required></label>
+            <label>Password <input type="password" id="login-password" autocomplete="current-password" required></label>
+            <button type="submit">Log in</button>
+            <p class="note">Your name and password come from whoever looks after the NAS (the MeTube app's page).</p>
+        </form>
+
+        <div id="app" hidden>
+            <form id="add">
+                <input type="url" id="url" placeholder="Paste a link (YouTube and many other sites)" required>
+                <select id="kind" aria-label="What to download">
+                    <option value="video">Video</option>
+                    <option value="audio">Audio only</option>
+                </select>
+                <select id="quality" aria-label="Video quality">
+                    <option value="best">Best quality</option>
+                    <option value="1080">1080p</option>
+                    <option value="720">720p</option>
+                    <option value="480">480p</option>
+                </select>
+                <select id="limit" aria-label="How many of a playlist's videos">
+                    <option value="10">Playlists: first 10</option>
+                    <option value="25" selected>Playlists: first 25</option>
+                    <option value="50">Playlists: first 50</option>
+                    <option value="0">Playlists: all</option>
+                </select>
+                <button type="submit">Download</button>
+            </form>
+            <p id="add-into" class="note" hidden></p>
+
+            <section id="player-box" hidden>
+                <video id="player" controls playsinline preload="metadata"></video>
+                <div class="player-bar">
+                    <strong id="player-title"></strong>
+                    <span id="skipped" class="note" role="status"></span>
+                    <select id="speed" aria-label="Playback speed"></select>
+                    <button type="button" id="player-close" class="quiet">Close</button>
+                </div>
+            </section>
+
+            <section id="queue-box" hidden>
+                <div class="section-head">
+                    <h2>Downloading</h2>
+                    <button type="button" id="clear-failed" class="quiet" hidden>Clear failed</button>
+                </div>
+                <ul id="queue"></ul>
+            </section>
+
+            <div id="main-view">
+                <section id="singles">
+                    <h2>Your videos</h2>
+                    <p id="empty" class="note" hidden>Nothing here yet: paste a link above.</p>
+                    <ul id="videos" class="grid"></ul>
+                </section>
+
+                <section>
+                    <div class="section-head">
+                        <h2>Playlists</h2>
+                        <button type="button" id="new-playlist" class="quiet">New playlist</button>
+                    </div>
+                    <p id="no-playlists" class="note" hidden>A playlist's link makes one; so does New playlist (open it, and what you
+                        download goes into it).</p>
+                    <ul id="playlists" class="grid"></ul>
+                </section>
+            </div>
+
+            <section id="playlist-view" hidden>
+                <div class="section-head">
+                    <button type="button" id="back" class="quiet">← All videos</button>
+                    <h2 id="playlist-name"></h2>
+                    <span id="playlist-count" class="meta"></span>
+                    <button type="button" id="play-all">Play all</button>
+                    <button type="button" id="rename-playlist" class="quiet">Rename</button>
+                    <button type="button" id="delete-playlist" class="quiet">Delete playlist</button>
+                </div>
+                <p id="playlist-empty" class="note" hidden>Nothing in it yet: what you download now goes into it.</p>
+                <ul id="playlist-videos" class="grid"></ul>
+            </section>
+
+            <details id="settings-box">
+                <summary>Settings</summary>
+                <h3>Clean-up</h3>
+                <p>Delete a video
+                    <input type="number" id="watched-days" min="0" max="3650" class="days"> days after it was last watched, or
+                    <input type="number" id="unwatched-days" min="0" max="3650" class="days"> days after downloading if never watched
+                    (0: never). Kept videos are never deleted.
+                    <button type="button" id="settings-save">Save</button></p>
+                <p class="note">Watching counts here, and in the household's media server if the NAS's admin connected one.</p>
+
+                <h3>SponsorBlock</h3>
+                <p><label><input type="checkbox" id="sb-skip"> Skip these parts of YouTube videos when playing here:</label></p>
+                <p id="sb-categories" class="choices"></p>
+                <p><label><input type="checkbox" id="sb-cut"> Cut sponsors out of new downloads (for watching on a TV - permanent;
+                    those videos aren't skipped here)</label></p>
+                <p class="note">From <a href="https://sponsor.ajay.app/" target="_blank" rel="noopener">SponsorBlock</a>'s
+                    viewers' submissions - very new videos may have none yet. Skipping looks them up each time a video plays.</p>
+                <button type="button" id="sponsor-save">Save</button>
+            </details>
+        </div>
+    </main>
+
+    <script src="static/app.js"></script>
+</body>
+</html>

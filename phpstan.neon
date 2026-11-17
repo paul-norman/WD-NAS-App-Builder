@@ -9,6 +9,7 @@ parameters:
     paths:
         # (the apps' pages include it from their own folder once installed: it's copied there)
         - apps/manage_helpers.php
+        - apps/metube/lib
         - apps/nginx/lib
         - apps/adguardhome/lib
         - apps/adminer/lib
@@ -35,6 +36,7 @@ parameters:
         - apps/uptime-kuma/lib
         - apps/vaultwarden/lib
         - apps/wireguard/lib
+        - apps/metube/manage/api.php
         - apps/nginx/manage/api.php
         - apps/adguardhome/manage/api.php
         - apps/adminer/manage/api.php

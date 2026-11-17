@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+	<!-- A play button with a download arrow: the app's own icon -->
+	<rect x="4" y="8" width="56" height="40" rx="10" fill="#c4302b"/>
+	<path d="M26 18v20l16-10z" fill="#ffffff"/>
+	<path d="M32 46v10M25 50l7 7 7-7" fill="none" stroke="#c4302b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

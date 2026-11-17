@@ -1,0 +1,23 @@
+Package:			metube
+Version:			2026.11.14-1
+Packager:			PDN
+Email:
+Homepage:			https://github.com/alexta69/metube
+Description:		MeTube: download videos and audio from YouTube and many other sites, for each person in the household - watch them on the Watch page (or in Plex, Jellyfin or Emby), then they're cleaned up.
+Icon:				metube.svg
+AddonShowName:		MeTube
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

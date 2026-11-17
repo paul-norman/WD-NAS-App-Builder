@@ -51,6 +51,13 @@ A=alice:Alice.Password-1; B="bob:$BP"
     && [ "$(readlink $R/bob/family-calendar)" = ../family/calendar ] && [ "$(readlink $R/bob/family-contacts)" = ../family/contacts ] \
     && pass "each user's folder: their own calendar and contacts, links to the Family ones" || fail "folders: $(ls -la $R/alice $R/bob)"
 
+RC=$(post add_user -d name=carol --data-urlencode 'password=Caret^Pass word!1')
+[ "$(echo "$RC" | j '$d["ok"]')" = true ] && [ "$(dav 'carol:Caret^Pass word!1' PROPFIND /carol/ -H 'Depth: 0')" = 207 ] \
+    && pass 'a password with symbols and a space (^ ! and a space) works' || fail "symbols: $RC"
+[ "$(post add_user -d name=dave --data-urlencode "password=$(printf 'Control\001char-pass')" | j '$d["ok"]')" = false ] \
+    && pass 'a control character refused' || fail 'control character accepted'
+post remove_user -d name=carol > /dev/null
+
 echo '== phones'
 W=$(code -o /dev/null -w '%{http_code} %{redirect_url}' $U/.well-known/caldav)
 echo "$W" | grep -q '^30[1-8] ' && pass "phones' discovery: /.well-known/caldav redirects ($W)" || fail "well-known: $W"

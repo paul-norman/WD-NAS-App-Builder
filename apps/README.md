@@ -202,6 +202,7 @@ So each app has its own ID, listed here. They count down from 99 *(below 51 are 
 | 55 | [`firefly-iii`](firefly-iii/README.md) | `firefly` |
 | 54 | [`retroassembly`](retroassembly/README.md) | `retroassembly` |
 | 53 | [`radicale`](radicale/README.md) | `radicale` |
+| 52 | [`metube`](metube/README.md) | `metube` *(in the share group)* |
 
 ## APKG Helpers
 
