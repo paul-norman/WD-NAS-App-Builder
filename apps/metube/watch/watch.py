@@ -66,11 +66,19 @@ SPONSOR_CACHE = 3600
 SPONSOR_API = os.environ.get(
     "WATCH_SPONSORBLOCK_URL", "https://sponsor.ajay.app"
 ).rstrip("/")
-# The video's ID at the end of a file's name, as the app names downloads:
-# Title [id].ext - any site's (hidden on the page), and YouTube's (11
-# characters, looked up in SponsorBlock)
-ID_PATTERN = re.compile(r" \[([^\]/]{1,64})\]$")
+# The site and video's ID at the end of a file's name, as the app names
+# downloads: Title [Site id].ext (yt-dlp's extractor, e.g. Youtube, Vimeo),
+# or Title [id].ext before 2026.11.14-2 - hidden on the page, the site shown
+# as a label, and YouTube's IDs (11 characters) looked up in SponsorBlock
+ID_PATTERN = re.compile(
+    r" \[(?:([A-Z][A-Za-z0-9]{0,39}) )?([^\]/]{1,64})\]$"
+)
 YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
+# Sites' names as people write them (others shown as yt-dlp names them;
+# Generic - a plain link - not shown)
+SITE_NAMES = {"Youtube": "YouTube", "Generic": None, "BiliBili": "Bilibili",
+              "Twitch": "Twitch", "Vimeo": "Vimeo", "Dailymotion":
+              "Dailymotion", "SoundCloud": "SoundCloud", "TikTok": "TikTok"}
 # A playlist's (or channel's) video: its position, before its title -
 # "<playlist>/001 - Title [id].ext"
 INDEX_PATTERN = re.compile(r"^(\d{1,5}) - ")
@@ -257,6 +265,28 @@ class Store:
         root = self.settings()["download_dir"]
 
         return os.path.join(root, name) if root else ""
+
+
+def video_ids(stem):
+    """
+    A file name's site and video ID, as the app names downloads.
+
+    :param str stem: The file's name without its extension
+
+    :return: (where the [...] starts, its site's name or None, its YouTube
+             ID or None) - (None, None, None) when it has none
+    """
+    match = ID_PATTERN.search(stem)
+
+    if not match:
+        return None, None, None
+
+    site, video_id = match.group(1), match.group(2)
+    youtube = (YOUTUBE_ID.match(video_id) and site in (None, "Youtube"))
+
+    return (match.start(), SITE_NAMES.get(site, site) if site else
+            ("YouTube" if youtube else None),
+            video_id if youtube else None)
 
 
 def check_password(password, stored):
@@ -765,8 +795,8 @@ async def videos_of(app, name):
                        if unwatched_days else None)
 
         stem = os.path.splitext(os.path.basename(relative))[0]
-        match = ID_PATTERN.search(stem)
-        title = stem[:match.start()] if match else stem
+        start, site, video_id = video_ids(stem)
+        title = stem[:start] if start is not None else stem
         playlist = relative.split("/")[0] if "/" in relative else None
         position = INDEX_PATTERN.match(title) if playlist else None
 
@@ -778,8 +808,8 @@ async def videos_of(app, name):
             "title": title,
             "playlist": playlist,
             "index": int(position.group(1)) if position else None,
-            "video_id": (match.group(1) if match
-                         and YOUTUBE_ID.match(match.group(1)) else None),
+            "video_id": video_id,
+            "site": site,
             "cut": bool(state["cut"].get(relative)),
             "audio": relative.lower().endswith(AUDIO),
             "size": info.st_size,
@@ -1276,9 +1306,9 @@ async def handle_rename(request):
 
     directory, base = os.path.split(relative)
     stem, ext = os.path.splitext(base)
-    match = ID_PATTERN.search(stem)
-    suffix = stem[match.start():] if match else ""
-    shown = stem[:match.start()] if match else stem
+    start = video_ids(stem)[0]
+    suffix = stem[start:] if start is not None else ""
+    shown = stem[:start] if start is not None else stem
     position = INDEX_PATTERN.match(shown) if directory else None
     prefix = shown[:position.end()] if position else ""
     new_stem = f"{prefix}{title}{suffix}"
@@ -1570,17 +1600,17 @@ async def handle_segments(request):
     store = request.app["store"]
     state = store.state(name)
     preferences = store.preferences(state)
-    match = ID_PATTERN.search(os.path.splitext(os.path.basename(relative))[0])
+    video_id = video_ids(os.path.splitext(os.path.basename(relative))[0])[2]
 
-    if (not match or not YOUTUBE_ID.match(match.group(1))
-            or not preferences["sb_skip"] or state["cut"].get(relative)):
+    if (not video_id or not preferences["sb_skip"]
+            or state["cut"].get(relative)):
         return web.json_response({"segments": []})
 
     wanted = set(preferences["sb_categories"])
     segments = [
         {"start": start, "end": end, "category": category}
         for start, end, category in await sponsor_segments(
-            request.app, match.group(1)
+            request.app, video_id
         )
         if category in wanted
     ]

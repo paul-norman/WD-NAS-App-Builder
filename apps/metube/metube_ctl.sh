@@ -43,11 +43,12 @@ METUBE_ID=52
 # What yt-dlp writes beside each video: its thumbnail, as a JPEG (for the Watch page, Plex, Jellyfin and Emby)
 YTDL_OPTIONS='{"writethumbnail": true, "postprocessors": [{"key": "FFmpegThumbnailsConvertor", "format": "jpg",'
 YTDL_OPTIONS="${YTDL_OPTIONS} \"when\": \"before_dl\"}]}"
-# Downloads named "Title [id]" (the Watch page shows the title, and looks YouTube videos up in SponsorBlock by the ID)
-# - a playlist's or channel's videos in a folder of its own, numbered in its order: "<playlist>/001 - Title [id]"
-OUTPUT_TEMPLATE='%(title)s [%(id)s].%(ext)s'
-OUTPUT_TEMPLATE_PLAYLIST='%(playlist_title)s/%(playlist_index)03d - %(title)s [%(id)s].%(ext)s'
-OUTPUT_TEMPLATE_CHANNEL='%(channel)s/%(channel_index)03d - %(title)s [%(id)s].%(ext)s'
+# Downloads named "Title [Site id]" (the Watch page shows the title with the site as a label, and looks YouTube videos up
+# in SponsorBlock by the ID) - a playlist's or channel's videos in a folder of its own, numbered in its order:
+# "<playlist>/001 - Title [Site id]"
+OUTPUT_TEMPLATE='%(title)s [%(extractor_key)s %(id)s].%(ext)s'
+OUTPUT_TEMPLATE_PLAYLIST='%(playlist_title)s/%(playlist_index)03d - %(title)s [%(extractor_key)s %(id)s].%(ext)s'
+OUTPUT_TEMPLATE_CHANNEL='%(channel)s/%(channel_index)03d - %(title)s [%(extractor_key)s %(id)s].%(ext)s'
 LOG=/tmp/debug_apkg
 
 # Writes a line to the NAS's app log (/tmp/debug_apkg), with the time and the script's name, and prints it.

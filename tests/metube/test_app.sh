@@ -109,13 +109,13 @@ V=$(videos alice)
 [ "$(echo "$V" | j '$d["videos"][0]["watched"] > 0')" = true ] && [ "$(echo "$V" | j '$d["videos"][0]["days_left"]')" = 3 ] \
     && pass 'watched: deleted in 3 days (the default)' || fail "watched: $V"
 wpost alice /api/add '{"url": "http://127.0.0.1:8999/second.mp4", "kind": "video"}' > /dev/null; wait_videos alice 2
-wpost alice /api/keep '{"file": "second [second].mp4", "keep": true}' > /dev/null
-wpost alice /api/watched '{"file": "second [second].mp4"}' > /dev/null
+wpost alice /api/keep '{"file": "second [Generic second].mp4", "keep": true}' > /dev/null
+wpost alice /api/watched '{"file": "second [Generic second].mp4"}' > /dev/null
 # Both watched 10 days ago (as if): the kept one stays
 $PY -c 'import json, sys, time; p = sys.argv[1]; s = json.load(open(p)); s["watched"] = {k: int(time.time()) - 10 * 86400 for k in s["watched"]}; json.dump(s, open(p, "w"))' $D/watch/alice.json
 restart_app
 sleep 3
-[ ! -f "$DL/alice/$F" ] && [ -f "$DL/alice/second [second].mp4" ] && [ "$(videos alice | j '$d["videos"][0]["kept"]')" = true ] \
+[ ! -f "$DL/alice/$F" ] && [ -f "$DL/alice/second [Generic second].mp4" ] && [ "$(videos alice | j '$d["videos"][0]["kept"]')" = true ] \
     && pass 'the clean-up: the video watched 10 days ago deleted, the kept one not' || fail "clean-up: $(ls "$DL/alice") $(tail -n 3 $D/watch.log)"
 grep -q "clean-up: deleted alice's" $D/watch.log && pass 'logged' || fail 'clean-up not logged'
 [ "$(wpost alice /api/settings '{"watched_days": 1, "unwatched_days": 0}' | head -c 2)" = '{}' ] && [ "$(videos alice | j '$d["settings"]["unwatched_days"]')" = 0 ] \
@@ -124,7 +124,7 @@ grep -q "clean-up: deleted alice's" $D/watch.log && pass 'logged' || fail 'clean
 
 echo '== a media server (a stand-in Jellyfin, then Plex)'
 wpost alice /api/add '{"url": "http://127.0.0.1:8999/third.mp4", "kind": "video"}' > /dev/null; wait_videos alice 2
-printf '{"_root": "%s", "%s/alice/third [third].mp4": %s}\n' "$DL" "$DL" "$(( $(date +%s) - 5 * 86400 ))" > /tmp/played.json
+printf '{"_root": "%s", "%s/alice/third [Generic third].mp4": %s}\n' "$DL" "$DL" "$(( $(date +%s) - 5 * 86400 ))" > /tmp/played.json
 ($PY /t/app/stubs.py media 8997 /tmp/played.json > /tmp/stub.log 2>&1 &)
 wait_port 8997 10
 R=$(post media_test -d type=jellyfin -d url=http://127.0.0.1:8997 -d token=stubtoken123)
@@ -134,28 +134,36 @@ post media_server -d type=jellyfin -d url=http://127.0.0.1:8997 -d token=stubtok
 [ "$(get status | j '$d["media_server"]["token_set"]')" = true ] && ! get status | grep -q stubtoken123 && pass 'saved; the key never shown' || fail 'media server save'
 restart_app
 sleep 3
-[ ! -f "$DL/alice/third [third].mp4" ] && pass "watched in Jellyfin 5 days ago (alice's days: 1): deleted" || fail "jellyfin clean-up: $(ls "$DL/alice") $(tail -n 3 $D/watch.log)"
+[ ! -f "$DL/alice/third [Generic third].mp4" ] && pass "watched in Jellyfin 5 days ago (alice's days: 1): deleted" || fail "jellyfin clean-up: $(ls "$DL/alice") $(tail -n 3 $D/watch.log)"
 R=$(post media_test -d type=plex -d url=http://127.0.0.1:8997 -d token=)
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && echo "$R" | grep -q 'Plex answered: Watch later' && pass 'Plex (the saved token kept): its library found' || fail "plex test: $R"
 post media_server -d type=plex -d url=http://127.0.0.1:8997 -d token= > /dev/null
-printf '{"_root": "%s", "%s/alice/second [second].mp4": %s}\n' "$DL" "$DL" "$(date +%s)" > /tmp/played.json
+printf '{"_root": "%s", "%s/alice/second [Generic second].mp4": %s}\n' "$DL" "$DL" "$(date +%s)" > /tmp/played.json
 restart_app
-[ "$(videos alice | j '$d["videos"][0]["watched_elsewhere"]')" = true ] && [ -f "$DL/alice/second [second].mp4" ] \
+[ "$(videos alice | j '$d["videos"][0]["watched_elsewhere"]')" = true ] && [ -f "$DL/alice/second [Generic second].mp4" ] \
     && pass 'watched in Plex: shown, the kept video still kept' || fail "plex: $(videos alice)"
 post media_server -d type= > /dev/null
 
 echo '== deleting'
-[ "$(wpost bob /api/delete '{"file": "second [second].mp4"}' | head -c 20)" = 'No such video' ] && [ -f "$DL/alice/second [second].mp4" ] && pass "bob can't delete alice's video" || fail 'bob deleted it'
-[ "$(wpost alice /api/delete '{"file": "second [second].mp4"}')" = '{}' ] && [ ! -f "$DL/alice/second [second].mp4" ] && [ "$(videos alice | j 'count($d["videos"])')" = 0 ] \
+[ "$(wpost bob /api/delete '{"file": "second [Generic second].mp4"}' | head -c 20)" = 'No such video' ] && [ -f "$DL/alice/second [Generic second].mp4" ] && pass "bob can't delete alice's video" || fail 'bob deleted it'
+[ "$(wpost alice /api/delete '{"file": "second [Generic second].mp4"}')" = '{}' ] && [ ! -f "$DL/alice/second [Generic second].mp4" ] && [ "$(videos alice | j 'count($d["videos"])')" = 0 ] \
     && pass 'alice deletes her own' || fail 'delete'
 
 echo '== SponsorBlock and playback speed'
 wpost alice /api/add '{"url": "http://127.0.0.1:8999/abcdefghijk.mp4", "kind": "video"}' > /dev/null; wait_videos alice 1
 V=$(videos alice)
-[ "$(echo "$V" | j '$d["videos"][0]["file"]')" = '"abcdefghijk [abcdefghijk].mp4"' ] && [ "$(echo "$V" | j '$d["videos"][0]["title"]')" = '"abcdefghijk"' ] \
-    && [ "$(echo "$V" | j '$d["videos"][0]["video_id"]')" = '"abcdefghijk"' ] && [ "$(echo "$V" | j '$d["videos"][0]["cut"]')" = false ] \
-    && pass 'downloads named "Title [id]": the page shows the title, knows the ID' || fail "naming: $V"
-SEG="/api/segments?file=$(enc 'abcdefghijk [abcdefghijk].mp4')"
+[ "$(echo "$V" | j '$d["videos"][0]["file"]')" = '"abcdefghijk [Generic abcdefghijk].mp4"' ] && [ "$(echo "$V" | j '$d["videos"][0]["title"]')" = '"abcdefghijk"' ] \
+    && [ "$(echo "$V" | j '$d["videos"][0]["site"] . "|" . $d["videos"][0]["video_id"]')" = '"|"' ] && [ "$(echo "$V" | j '$d["videos"][0]["cut"]')" = false ] \
+    && pass 'downloads named "Title [Site id]": the page shows the title; a plain link has no site label and no SponsorBlock ID' || fail "naming: $V"
+# As if it came from YouTube
+mv "$DL/alice/abcdefghijk [Generic abcdefghijk].mp4" "$DL/alice/abcdefghijk [Youtube abcdefghijk].mp4"
+for f in "$DL/alice/abcdefghijk [Generic abcdefghijk]".*; do [ -e "$f" ] && mv "$f" "$DL/alice/abcdefghijk [Youtube abcdefghijk].${f##*.}"; done
+cp "/tmp/www/Test clip.mp4" "$DL/alice/Old name [mnopqrstuvw].mp4"; chown metube "$DL/alice/Old name [mnopqrstuvw].mp4"
+V=$(videos alice | j 'array_map(function ($v) { return $v["title"] . ":" . $v["site"] . ":" . $v["video_id"]; }, $d["videos"])')
+echo "$V" | grep -q '"abcdefghijk:YouTube:abcdefghijk"' && echo "$V" | grep -q '"Old name:YouTube:mnopqrstuvw"' \
+    && pass 'a YouTube download labelled YouTube, with its ID; an older "Title [id]" name still read as YouTube' || fail "sites: $V"
+rm -f "$DL/alice/Old name [mnopqrstuvw].mp4"
+SEG="/api/segments?file=$(enc 'abcdefghijk [Youtube abcdefghijk].mp4')"
 [ "$(wa alice "$SEG" | j 'array_map(function ($s) { return $s["category"]; }, $d["segments"])')" = '["selfpromo","sponsor"]' ] \
     && pass "SponsorBlock (its private lookup by hash prefix): the default categories' segments to skip, not intros, mutes or another video's" || fail "segments: $(wa alice "$SEG")"
 [ "$(wcode bob "$SEG")" = 404 ] && pass "not for bob (alice's video)" || fail "bob's segments: $(wcode bob "$SEG")"
@@ -171,9 +179,10 @@ wpost alice /api/settings '{"sb_skip": false}' > /dev/null
     && pass 'speeds beyond 3x or between steps refused' || fail 'bad speed accepted'
 wpost alice /api/settings '{"sb_skip": true, "sb_categories": ["sponsor"], "sb_cut": true}' > /dev/null
 wpost alice /api/add '{"url": "http://127.0.0.1:8999/lmnopqrstuv.mp4", "kind": "video"}' > /dev/null; wait_videos alice 2
-CUT="/api/segments?file=$(enc 'lmnopqrstuv [lmnopqrstuv].mp4')"
+CUT="/api/segments?file=$(enc 'lmnopqrstuv [Generic lmnopqrstuv].mp4')"
 curl -s http://127.0.0.1:8085/history | $PY -c 'import json, sys; d = json.load(sys.stdin); sys.exit(not any(i.get("sponsorblock") and "lmnopqrstuv" in (i.get("filename") or "") for i in d["done"]))' \
-    && [ "$(videos alice | j '$d["videos"][0]["cut"]')" = true ] && [ "$(wa alice "$CUT" | j '$d["segments"]')" = '[]' ] \
+    && [ "$(videos alice | j 'array_values(array_filter($d["videos"], function ($v) { return $v["video_id"] === null && strpos($v["file"], "lmnopqrstuv") !== false; }))[0]["cut"]')" = true ] \
+    && [ "$(wa alice "$CUT" | j '$d["segments"]')" = '[]' ] \
     && [ "$(wa alice "$SEG" | j 'count($d["segments"])')" = 1 ] \
     && pass "cutting on: MeTube downloads with its sponsors cut, and the player doesn't skip in it (its times moved) - but does in the other" || fail "cut: $(videos alice | head -c 400)"
 wpost alice /api/settings '{"sb_cut": false}' > /dev/null
@@ -191,20 +200,20 @@ for n in 1 2 3; do cp "/tmp/www/Test clip.mp4" /tmp/www/pl$n.mp4; done
 N=$(videos alice | j 'count($d["videos"])')
 PL="$DL/alice/Test playlist"
 wpost alice /api/add '{"url": "http://127.0.0.1:8999/feed.xml", "kind": "video", "limit": 2}' > /dev/null
-wait_videos alice $((N + 2)) && sleep 5 && [ "$(videos alice | j 'count($d["videos"])')" = $((N + 2)) ] && [ -f "$PL/001 - pl1 [playlist001].mp4" ] && [ -f "$PL/002 - pl2 [playlist002].mp4" ] && [ ! -e "$PL/003 - pl3 [playlist003].mp4" ] \
+wait_videos alice $((N + 2)) && sleep 5 && [ "$(videos alice | j 'count($d["videos"])')" = $((N + 2)) ] && [ -f "$PL/001 - pl1 [Generic playlist001].mp4" ] && [ -f "$PL/002 - pl2 [Generic playlist002].mp4" ] && [ ! -e "$PL/003 - pl3 [Generic playlist003].mp4" ] \
     && pass "limited to its first 2, in a folder of its own, numbered in its order" || fail "limit: $(ls "$PL")"
 V=$(videos alice | j 'array_values(array_filter($d["videos"], function ($v) { return $v["playlist"] === "Test playlist"; }))')
 [ "$(echo "$V" | j '(function ($l) { sort($l); return $l; })(array_map(function ($v) { return $v["index"] . ":" . $v["title"]; }, $d))' | tr -d '"[]')" = '1:pl1,2:pl2' ] \
     && pass 'the page knows each one'"'"'s playlist and position (titles without the number or ID - here, the files'"'"' own names)' || fail "playlist fields: $V"
-wpost alice /api/keep '{"file": "Test playlist/002 - pl2 [playlist002].mp4", "keep": true}' > /dev/null
+wpost alice /api/keep '{"file": "Test playlist/002 - pl2 [Generic playlist002].mp4", "keep": true}' > /dev/null
 # (what yt-dlp leaves beside a playlist's videos: its own thumbnail)
-cp "$PL/001 - pl1 [playlist001].mp4" "$PL/Test playlist.jpg"; chown metube "$PL/Test playlist.jpg"
+cp "$PL/001 - pl1 [Generic playlist001].mp4" "$PL/Test playlist.jpg"; chown metube "$PL/Test playlist.jpg"
 [ "$(wpost bob /api/delete-playlist '{"playlist": "Test playlist"}')" = 'No such playlist' ] && [ "$(wpost alice /api/delete-playlist '{"playlist": ".."}')" = 'No such playlist' ] \
     && pass "not bob's, nor a way out of her folder" || fail 'delete-playlist not refused'
 R=$(wpost alice /api/delete-playlist '{"playlist": "Test playlist"}')
-[ "$(echo "$R" | j '$d["deleted"] . "/" . $d["kept"]')" = '"1/1"' ] && [ ! -e "$PL/001 - pl1 [playlist001].mp4" ] && [ -f "$PL/002 - pl2 [playlist002].mp4" ] \
+[ "$(echo "$R" | j '$d["deleted"] . "/" . $d["kept"]')" = '"1/1"' ] && [ ! -e "$PL/001 - pl1 [Generic playlist001].mp4" ] && [ -f "$PL/002 - pl2 [Generic playlist002].mp4" ] \
     && pass 'Delete playlist: its videos deleted, the kept one not' || fail "delete playlist: $R $(ls "$PL")"
-wpost alice /api/delete '{"file": "Test playlist/002 - pl2 [playlist002].mp4"}' > /dev/null
+wpost alice /api/delete '{"file": "Test playlist/002 - pl2 [Generic playlist002].mp4"}' > /dev/null
 [ ! -d "$PL" ] && [ "$(videos alice | j 'in_array("Test playlist", $d["playlists"])')" = false ] \
     && pass "its last video deleted: the downloaded playlist's folder too (with the thumbnail yt-dlp left in it)" || fail "folder left: $(ls -la "$PL")"
 
@@ -215,14 +224,14 @@ echo "== a person's own playlists"
 [ "$(wpost alice /api/new-playlist '{"name": "Holiday clips"}' | head -c 13)" = "There's alrea" ] && [ "$(wpost alice /api/new-playlist '{"name": "a/b"}' | head -c 14)" = 'Playlist names' ] \
     && [ "$(wpost alice /api/new-playlist '{"name": ".x"}' | head -c 14)" = 'Playlist names' ] && pass 'the same name twice, a slash or a leading dot refused' || fail 'bad playlist names'
 wpost alice /api/add '{"url": "http://127.0.0.1:8999/pl3.mp4", "kind": "video", "playlist": "Holiday clips"}' > /dev/null
-i=0; while [ $i -lt 60 ] && [ ! -f "$DL/alice/Holiday clips/pl3 [pl3].mp4" ]; do sleep 2; i=$((i + 2)); done
+i=0; while [ $i -lt 60 ] && [ ! -f "$DL/alice/Holiday clips/pl3 [Generic pl3].mp4" ]; do sleep 2; i=$((i + 2)); done
 [ "$(videos alice | j 'array_values(array_filter($d["videos"], function ($v) { return $v["playlist"] === "Holiday clips"; }))[0]["title"]')" = '"pl3"' ] \
     && pass 'a download made while it was open went into it' || fail "into playlist: $(ls "$DL/alice/Holiday clips") $(videos alice | head -c 1500)"
-wpost alice /api/delete '{"file": "Holiday clips/pl3 [pl3].mp4"}' > /dev/null
+wpost alice /api/delete '{"file": "Holiday clips/pl3 [Generic pl3].mp4"}' > /dev/null
 [ -d "$DL/alice/Holiday clips" ] && [ "$(videos alice | j 'in_array("Holiday clips", $d["playlists"])')" = true ] \
     && pass 'her own playlist stays when its last video goes' || fail 'own playlist removed'
 wpost alice /api/add '{"url": "http://127.0.0.1:8999/pl3.mp4", "kind": "video", "playlist": "Holiday clips"}' > /dev/null
-i=0; while [ $i -lt 60 ] && [ ! -f "$DL/alice/Holiday clips/pl3 [pl3].mp4" ]; do sleep 2; i=$((i + 2)); done
+i=0; while [ $i -lt 60 ] && [ ! -f "$DL/alice/Holiday clips/pl3 [Generic pl3].mp4" ]; do sleep 2; i=$((i + 2)); done
 [ "$(wpost bob /api/add '{"url": "http://127.0.0.1:8999/pl3.mp4", "kind": "video", "playlist": "Holiday clips"}')" = 'No such playlist' ] \
     && [ "$(wpost alice /api/add '{"url": "http://127.0.0.1:8999/pl3.mp4", "kind": "video", "playlist": "../bob"}')" = 'No such playlist' ] \
     && pass "not into another's (or out of her folder)" || fail 'add into another playlist'
@@ -236,15 +245,15 @@ R=$(cd $P/metube/watch && $PY -c 'import watch; print(watch.plain_error("ERROR: 
 [ "$R" = 'Not available in this country|Removed or unavailable on YouTube' ] && pass "YouTube's refusals in plain words: $R" || fail "plain errors: $R"
 
 echo '== renaming'
-A="abcdefghijk [abcdefghijk]"
+A="abcdefghijk [Youtube abcdefghijk]"
 cp "/tmp/www/Test clip.mp4" "$DL/alice/$A.jpg"; chown metube "$DL/alice/$A.jpg"
 wpost alice /api/keep "{\"file\": \"$A.mp4\", \"keep\": true}" > /dev/null
 [ "$(wpost alice /api/rename "{\"file\": \"$A.mp4\", \"title\": \"Bad: name\"}" | head -c 6)" = 'Titles' ] && [ "$(wpost bob /api/rename "{\"file\": \"$A.mp4\", \"title\": \"Mine\"}")" = 'No such video' ] \
     && pass "a title with : refused; not bob's to rename" || fail 'bad rename accepted'
 R=$(wpost alice /api/rename "{\"file\": \"$A.mp4\", \"title\": \"  A  better   title \"}")
 V=$(videos alice | j 'array_values(array_filter($d["videos"], function ($v) { return $v["video_id"] === "abcdefghijk"; }))[0]')
-[ "$(echo "$R" | j '$d["file"]')" = '"A better title [abcdefghijk].mp4"' ] && [ -f "$DL/alice/A better title [abcdefghijk].jpg" ] && [ ! -e "$DL/alice/$A.mp4" ] \
-    && [ "$(echo "$V" | j '$d["title"] . "|" . json_encode($d["kept"]) . "|" . $d["thumbnail"]')" = '"A better title|true|A better title [abcdefghijk].jpg"' ] \
+[ "$(echo "$R" | j '$d["file"]')" = '"A better title [Youtube abcdefghijk].mp4"' ] && [ -f "$DL/alice/A better title [Youtube abcdefghijk].jpg" ] && [ ! -e "$DL/alice/$A.mp4" ] \
+    && [ "$(echo "$V" | j '$d["title"] . "|" . json_encode($d["kept"]) . "|" . $d["thumbnail"]')" = '"A better title|true|A better title [Youtube abcdefghijk].jpg"' ] \
     && pass 'renamed: the title only (its ID kept), its thumbnail with it, still kept' || fail "rename: $R $V"
 mkdir -p "$DL/alice/Feed"; cp "/tmp/www/Test clip.mp4" "$DL/alice/Feed/002 - Old name [playlist002].mp4"; chown -R metube "$DL/alice/Feed"
 R=$(wpost alice /api/rename '{"file": "Feed/002 - Old name [playlist002].mp4", "title": "New name"}')

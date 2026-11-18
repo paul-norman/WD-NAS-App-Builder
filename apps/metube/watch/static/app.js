@@ -349,6 +349,12 @@
         }
 
         meta.textContent = notes.join(' · ');
+
+        // Where it came from (e.g. YouTube), when the download's name says so
+        if (video.site) {
+            meta.prepend(make('span', 'site', video.site), ' ');
+        }
+
         info.appendChild(make('span', 'title', (video.index ? `${video.index}. ` : '') + video.title));
 
         if (video.watched) {

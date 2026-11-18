@@ -203,6 +203,14 @@ ul {
     color: var(--good);
 }
 
+.site {
+    display:       inline-block;
+    padding:       0 6px;
+    border:        1px solid var(--line);
+    border-radius: 999px;
+    font-size:     0.75rem;
+}
+
 .actions {
     display: flex;
     gap:     6px;
