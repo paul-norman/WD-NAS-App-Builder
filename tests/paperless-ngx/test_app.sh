@@ -123,12 +123,16 @@ echo "$C" | grep -q '^302 ' && [ "$(site /api/ui_settings/ -b /tmp/jar -o /dev/n
 [ "$(get status | j '$d["site"]["url"]')" = "\"https://paperless.$DOMAIN/\"" ] && pass 'the page shows its site' || fail "site: $(get status | j '$d["site"]')"
 
 echo "== Valkey's password changed on its page (spaces, quotes and symbols)"
-WRONG=$(grep -c 'WRONGPASS\|NOAUTH\|invalid username-password' $D/paperless.log 2>/dev/null)
+# Valkey takes the new password at once, then the page restarts Paperless: the old processes may log a refusal in
+# between (harmless), so only what's logged after the restart counts
 page_up valkey; R=$(post set_password --data-urlencode "password=$XPW"); page_up paperless-ngx
+FROM=$(($(wc -l < $D/paperless.log) + 1))
 up && sleep 15 && TOKEN=$(token "$NEW")
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && api '/api/documents/?content__icontains=4711' | grep -q '"count":1' \
-    && [ "$(grep -c 'WRONGPASS\|NOAUTH\|invalid username-password' $D/paperless.log 2>/dev/null)" = "$WRONG" ] \
-    && pass "Paperless restarted with it (percent-encoded in its Valkey URL): its documents there, no login errors" || fail "valkey password: $R $(cat $D/state) $(tail -n 5 $D/paperless.log)"
+DOCS=$(api '/api/documents/?content__icontains=4711' | grep -c '"count":1')
+WRONG=$(tail -n +$FROM $D/paperless.log | grep -c 'WRONGPASS\|NOAUTH\|invalid username-password')
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$DOCS" = 1 ] && [ "$WRONG" = 0 ] \
+    && pass "Paperless restarted with it (percent-encoded in its Valkey URL): its documents there, no login errors" \
+    || fail "valkey password: $R documents $DOCS, login errors since the restart $WRONG, $(cat $D/state) $(tail -n +$FROM $D/paperless.log | grep 'WRONGPASS\|NOAUTH\|invalid username-password\|Error' | tail -n 3)"
 
 echo '== started before Valkey (as at boot)'
 sh $P/paperless-ngx/stop.sh $P/paperless-ngx > /dev/null 2>&1; sh $P/valkey/stop.sh $P/valkey > /dev/null 2>&1
