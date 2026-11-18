@@ -9,7 +9,7 @@ set -o pipefail
 set -x
 
 # The app's version (Node Exporter's), which this is built for
-VERSION=1.12.1
+VERSION=1.13.0
 SMARTMONTOOLS_VERSION=7.5
 # Smartmontools publishes MD5s: 38c38b0b82db7fc4906cdd50d15a7931 - checked to match
 SMARTMONTOOLS_SHA256=690b83ca331378da9ea0d9d61008c4b22dde391387b9bbad7f29387f2595f76e
