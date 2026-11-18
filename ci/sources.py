@@ -627,15 +627,29 @@ def dsc_files(base, source, bare):
     :return: (name, URL, algorithm, digest) for each file, or None if the
              .dsc isn't there
     """
-    try:
-        request = urllib.request.Request(
-            f"{base}/{source}_{bare}.dsc",
-            headers={"User-Agent": USER_AGENT},
-        )
+    request = urllib.request.Request(
+        f"{base}/{source}_{bare}.dsc", headers={"User-Agent": USER_AGENT}
+    )
+    dsc = None
 
-        with urllib.request.urlopen(request, timeout=60) as response:
-            dsc = response.read().decode("utf-8", "replace")
-    except OSError:
+    # Three tries, for a server's passing failures (e.g. Launchpad's); a
+    # missing .dsc (4xx) is simply not there
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                dsc = response.read().decode("utf-8", "replace")
+
+            break
+        except urllib.error.HTTPError as error:
+            if error.code < 500:
+                return None
+        except OSError:
+            pass
+
+        if attempt < 2:
+            time.sleep(10 * (attempt + 1))
+
+    if dsc is None:
         return None
 
     sums = re.search(r"^Checksums-Sha256:\n((?: .+\n)+)", dsc, re.MULTILINE)
@@ -659,7 +673,8 @@ def ubuntu_files(source, version):
     :param str version: Its version (with any epoch: Launchpad's addresses
                         keep it)
 
-    :return: (name, URL, algorithm, digest) for each file
+    :return: The places to fetch it from, in order: for each, a list of
+             (name, URL, algorithm, digest) for each file
 
     :raises OSError: When it can't be found
     """
@@ -673,47 +688,59 @@ def ubuntu_files(source, version):
     if not files:
         raise OSError(f"Ubuntu's source of {source} {version} wasn't found")
 
-    return files
+    return [files]
 
 
 def debian_files(source, version):
     """
     Where a Debian source package's files are: its .dsc in Debian's pools
-    (current and archived), else Debian's permanent snapshot archive.
+    (current and archived), then Debian's permanent snapshot archive - all
+    of them, in that order, as a pool can list a file it no longer has
+    (e.g. a security update's .dsc copied into the main pool without its
+    debian.tar.xz).
 
     :param str source:  The source package
     :param str version: Its version (with any epoch)
 
-    :return: (name, URL, algorithm, digest) for each file
+    :return: The places to fetch it from, in order: for each, a list of
+             (name, URL, algorithm, digest) for each file
 
-    :raises OSError: When it can't be found
+    :raises OSError: When it can't be found anywhere
     """
     bare = version.split(":", 1)[-1]
     prefix = source[:4] if source.startswith("lib") else source[0]
+    places = []
 
     for pool in DEBIAN_POOLS:
         files = dsc_files(f"{pool}/{prefix}/{source}", source, bare)
 
         if files:
-            return files
+            places.append(files)
 
     snapshot = "https://snapshot.debian.org"
-    info = json_url(
-        f"{snapshot}/mr/package/{source}/"
-        f"{urllib.parse.quote(version, safe='')}/srcfiles?fileinfo=1"
-    )
-    files = []
 
-    for item in info["result"]:
-        name = info["fileinfo"][item["hash"]][0]["name"]
-        files.append(
-            (name, f"{snapshot}/file/{item['hash']}", "sha1", item["hash"])
+    try:
+        info = json_url(
+            f"{snapshot}/mr/package/{source}/"
+            f"{urllib.parse.quote(version, safe='')}/srcfiles?fileinfo=1"
         )
+        places.append([
+            (info["fileinfo"][item["hash"]][0]["name"],
+             f"{snapshot}/file/{item['hash']}", "sha1", item["hash"])
+            for item in info["result"]
+        ])
+    except (OSError, KeyError, ValueError) as error:
+        if not places:
+            raise OSError(
+                f"Debian's source of {source} {version} wasn't found: {error}"
+            ) from error
 
-    if not files:
+    places = [files for files in places if files]
+
+    if not places:
         raise OSError(f"Debian's source of {source} {version} wasn't found")
 
-    return files
+    return places
 
 
 def aports_from_gitlab(origin, commit, target):
@@ -929,15 +956,33 @@ def fetch_distro(survey, folder):
         )
         target.mkdir(parents=True, exist_ok=True)
         where = ubuntu_files if ubuntu else debian_files
+        problem = None
 
-        for name, url, algorithm, digest in where(source, version):
-            path = target / name
-            download(url, path)
+        # Each place in turn, until one has every file
+        for files in where(source, version):
+            try:
+                for name, url, algorithm, digest in files:
+                    path = target / name
+                    download(url, path)
 
-            if algorithm and hashlib.new(
-                algorithm, path.read_bytes()
-            ).hexdigest() != digest:
-                raise OSError(f"{url} doesn't match its {algorithm}")
+                    if algorithm and hashlib.new(
+                        algorithm, path.read_bytes()
+                    ).hexdigest() != digest:
+                        raise OSError(f"{url} doesn't match its {algorithm}")
+            except OSError as error:
+                print(f"  {error} - trying elsewhere", file=sys.stderr)
+                problem = error
+
+                for leftover in target.iterdir():
+                    leftover.unlink()
+
+                continue
+
+            problem = None
+            break
+
+        if problem:
+            raise problem
 
         rows.append((
             f"{source} {version}", "see its debian/copyright",
