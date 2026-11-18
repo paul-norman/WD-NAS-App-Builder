@@ -39,8 +39,9 @@ $command  = isset($argv[1]) ? $argv[1] : '';
 $argument = isset($argv[2]) ? $argv[2] : '';
 $password = trim((string)fgets(STDIN));
 
-if (!preg_match('/^[A-Za-z0-9._~-]{12,128}$/', $password)) {
-    fwrite(STDERR, "Passwords are 12-128 characters: letters, digits and . _ ~ -\n");
+// (any visible characters - the management page checked its length)
+if ($password === '' || preg_match('/[\x00-\x1f\x7f]/', $password)) {
+    fwrite(STDERR, "Passwords are visible characters only (no control characters)\n");
 
     exit(1);
 }

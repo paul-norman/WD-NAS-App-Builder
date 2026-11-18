@@ -23,8 +23,11 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>User name <code data-ra="admin">admin</code>, password <code data-ra="password">••••••••••••</code>
         <button type="button" data-ra-action="show">Show</button>
-        <button type="button" data-ra-action="copy">Copy</button>
-        <button type="button" data-ra-action="new-password">Reset the password</button></p>
+        <button type="button" data-ra-action="copy">Copy</button></p>
+    <p><input type="password" data-ra="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-ra-action="new-password">Change password</button></p>
+    <p data-ra="password-message"></p>
     <p class="mg-note">The app made this account, so nobody else can claim RetroAssembly - and gave it a few free
         homebrew games to start with (delete them from each game's menu whenever you like). It's RetroAssembly's
         admin: add the rest of the household in RetroAssembly (Settings, Accounts), each with a library of their own or
@@ -166,8 +169,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

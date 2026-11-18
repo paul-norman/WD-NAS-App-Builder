@@ -5,6 +5,12 @@
 # signs the old sessions out), an account the admin adds, sign-ups on and off, backups (its database, saves - not the
 # games), on the network too and back, removal keeping its data
 . /t/common/nas.sh retroassembly
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -16,7 +22,7 @@ DB=$D/data/retroassembly.sqlite
 # A request to its site through Nginx: site <path> [curl options]
 site() { p=$1; shift; curl -sk -m 10 --resolve "games.$DOMAIN:443:127.0.0.1" "$@" "https://games.$DOMAIN$p"; }
 # Logs in: login <user> <password> [base] - prints its session's token (empty if refused)
-login() { curl -sk -m 30 --resolve "games.$DOMAIN:443:127.0.0.1" -d "username=$1" -d "password=$2" "${3:-$A}/auth/login" | j '$d["session"]["token"] ?? ""' | tr -d '"'; }
+login() { curl -sk -m 30 --resolve "games.$DOMAIN:443:127.0.0.1" --data-urlencode "username=$1" --data-urlencode "password=$2" "${3:-$A}/auth/login" | j '$d["session"]["token"] ?? ""' | tr -d '"'; }
 # The user a session's token is for: who <token> - prints the user name (empty if none)
 who() { curl -s -m 10 -H "Cookie: token=$1" $A/users/current | j '$d["username"] ?? ""' | tr -d '"'; }
 # Signs up (without a session): signup <user> - prints the HTTP status
@@ -80,7 +86,7 @@ ST=$(get status)
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://games.$DOMAIN/\"" ] \
     && [ "$(echo "$ST" | j '$d["admin"]')" = '"admin"' ] && [ "$(post password -d show=1 | j '$d["password"]')" = "\"$PW\"" ] \
     && pass 'status: running, RetroAssembly 7.261011.1345, its site, the admin account and its password' || fail "status: $(echo "$ST" | head -c 400)"
-R=$(post new_password -d confirm=1); NEW=$(echo "$R" | j '$d["password"]' | tr -d '"')
+R=$(post new_password -d confirm=1 --data-urlencode "password=$XPW"); NEW=$(echo "$R" | jpw)
 [ -n "$NEW" ] && [ "$NEW" != "$PW" ] && [ -n "$(login $ADMIN "$NEW")" ] && [ -z "$(login $ADMIN "$PW")" ] && [ "$(cat $D/admin_password)" = "$NEW" ] \
     && pass 'a new password from the page (the old one refused)' || fail "new password: $R"
 [ -z "$(who "$TOKEN")" ] && pass 'its sessions with the old password signed out' || fail "old session: $(who "$TOKEN")"

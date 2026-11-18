@@ -23,6 +23,7 @@ PID_FILE=/var/run/kvweb.pid
 PORT=8082
 # The Valkey app's configuration (its port and password - root's only) and client
 VALKEY_CONF="${APPS_PATH}/_valkey/valkey.conf"
+VALKEY_PASSWORD_FILE="${APPS_PATH}/_valkey/password"
 VALKEY_CLI="${APPS_PATH}/valkey/binaries/valkey-cli"
 # The user name its site asks for (with the password set on the page)
 AUTH_USER=admin
@@ -68,6 +69,18 @@ valkey_conf() {
     awk -v key="$1" '$1 == key { print $2; exit }' "${VALKEY_CONF}" 2>/dev/null
 }
 
+# The Valkey app's password: its password file (as it is - spaces, quotes and symbols included), else - from an older
+# Valkey app - its config file's requirepass (then letters and digits, unquoted).
+#
+# Prints it
+valkey_password() {
+    if [ -f "${VALKEY_PASSWORD_FILE}" ]; then
+        sed -n 1p "${VALKEY_PASSWORD_FILE}"
+    else
+        awk '$1 == "requirepass" { print $2; exit }' "${VALKEY_CONF}" 2>/dev/null
+    fi
+}
+
 # The group Nginx's worker processes run as: nobody's own (nogroup on Debian - WD's NAS has none by that name: there
 # it's the share users' group), by its ID, as the Nginx app picks it
 nginx_gid() {
@@ -81,7 +94,7 @@ set_password() {
     password="$(head -n 1 | tr -d '\r\n')"
 
     case "${password}" in
-        ''|*[!A-Za-z0-9._~-]*) log 'Passwords are letters, digits and . _ ~ - only'; return 1 ;;
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
     esac
     # The PHP app's PHP, or the NAS's own - both have SHA-512 crypt
     php="${APPS_PATH}/php/binaries/php"
@@ -139,7 +152,7 @@ setup() {
 
 # Whether Valkey answers (kvweb gives up at once if it doesn't - e.g. at boot, before the Valkey app has started)
 valkey_up() {
-    [ "$(REDISCLI_AUTH="$(valkey_conf requirepass)" VALKEYCLI_AUTH="$(valkey_conf requirepass)" \
+    [ "$(REDISCLI_AUTH="$(valkey_password)" VALKEYCLI_AUTH="$(valkey_password)" \
         "${VALKEY_CLI}" -h 127.0.0.1 -p "$(valkey_conf port)" ping 2>/dev/null)" = PONG ]
 }
 
@@ -207,7 +220,7 @@ launch() {
     # Valkey's password goes in its environment (only kvweb's user and root can read that), not on its command line.
     # Once running, it reconnects by itself if Valkey restarts
     cd "${DATA_PATH}" || return 1
-    ( VALKEY_PASSWORD="$(valkey_conf requirepass)" exec "${BIN}/kvweb_runas" "$1" "$2" "${BIN}/kvweb" \
+    ( VALKEY_PASSWORD="$(valkey_password)" exec "${BIN}/kvweb_runas" "$1" "$2" "${BIN}/kvweb" \
         -host 127.0.0.1 -port ${PORT} -url "127.0.0.1:$(valkey_conf port)" ${readonly} ) >> "${KVWEB_LOG}" 2>&1 &
     echo $! > "${PID_FILE}"
 

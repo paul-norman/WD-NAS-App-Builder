@@ -5,6 +5,10 @@
 # read, a new password from the page, backups, the network setting, started before PostgreSQL answers (as at boot), a
 # restart keeping its feeds, removal
 . /t/common/nas.sh miniflux
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -77,8 +81,8 @@ ST=$(get status)
 [ "$(echo "$ST" | j '$d["running"] && $d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"2.3.5"' ] && [ "$(echo "$ST" | j '$d["db"]["state"]')" = '"ok"' ] \
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://miniflux.$DOMAIN/\"" ] && pass 'status: running, 2.3.5, its database, its site' || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password | j '$d["password"]')" = "\"$(cat $D/password)\"" ] && pass 'the page shows the password' || fail 'password not shown'
-OLD=$(cat $D/password); R=$(post set_password -d password=Brand.New-Password_1)
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(PW=Brand.New-Password_1 api /me | j '$d["username"]')" = '"admin"' ] \
+OLD=$(cat $D/password); R=$(post set_password --data-urlencode "password=$XPW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(PW="$XPW" api /me | j '$d["username"]')" = '"admin"' ] \
     && [ "$(PW=$OLD api /me -o /dev/null -w '%{http_code}')" = 401 ] && pass 'a new password from the page: in use at once, the old one refused' || fail "new password: $R"
 
 echo '== backups'
@@ -104,7 +108,7 @@ sleep 3
 listening 8099 && fail 'started without PostgreSQL' || pass 'not started while PostgreSQL is down (waiting in the background)'
 sh $P/postgresql/start.sh $P/postgresql > /dev/null 2>&1
 i=0; until [ "$(curl -s $M/healthcheck)" = OK ] || [ $i -ge 120 ]; do sleep 3; i=$((i + 3)); done
-[ "$(curl -s $M/healthcheck)" = OK ] && ! cmp -s $D/db_password $D/db_password.old && [ "$(PW=Brand.New-Password_1 api "/feeds/$FEED/entries" | j '$d["total"]')" = 2 ] \
+[ "$(curl -s $M/healthcheck)" = OK ] && ! cmp -s $D/db_password $D/db_password.old && [ "$(PW="$XPW" api "/feeds/$FEED/entries" | j '$d["total"]')" = 2 ] \
     && pass "started once PostgreSQL answered (after ${i}s, a new database password), its feeds and administrator kept" || fail "later: $(tail -n 5 /tmp/debug_apkg)"
 
 echo '== removal'

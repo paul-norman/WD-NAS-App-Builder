@@ -281,6 +281,44 @@ function manage_write_file(string $file, $contents): bool
 }
 
 /**
+ * A new password: the one given (trimmed) - any visible characters, spaces, quotes and symbols included, only control
+ * characters refused - or, when none is given, a random one (letters and digits). Fails the request if the one given
+ * isn't allowed.
+ *
+ * @param string $given The password given ('' for a generated one)
+ * @param int    $min   Its fewest characters
+ * @param int    $max   Its most characters (or bytes, with $bytes)
+ * @param bool   $bytes Whether $max counts bytes - for bcrypt, which reads only the first 72 (an accented letter is 2)
+ *
+ * @return string The password
+ */
+function manage_new_password(string $given, int $min = 12, int $max = 128, bool $bytes = false): string
+{
+    $password = trim($given);
+
+    if ($password === '') {
+        $letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+        $length  = max($min, 20);
+
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $letters[random_int(0, strlen($letters) - 1)];
+        }
+
+        return $password;
+    }
+
+    $characters = preg_match_all('/./us', $password);
+    $size       = $bytes ? strlen($password) : $characters;
+
+    if (!preg_match('/^[^\x00-\x1f\x7f]+$/u', $password) || $characters < $min || $size > $max) {
+        manage_fail(400, $bytes ? 'Passwords must be at least '.$min.' characters and at most '.$max.' bytes (an accented letter counts as 2): letters, digits, symbols or spaces'
+            : 'Passwords must be '.$min.'-'.$max.' characters: letters, digits, symbols or spaces');
+    }
+
+    return $password;
+}
+
+/**
  * Where the Nginx app serves an app: the enabled site whose target is the app's address (the Nginx app offers it
  * under a name, but it can be renamed).
  *
@@ -332,7 +370,7 @@ function manage_nginx_site(string $apps_path, string $target): array
 /**
  * Prints the start of a page's script, inside its closure: root (the page's element, id <app>-manage), api (its API's
  * address) and csrf (this page's token), and the helpers every page uses - part(name), button(name), say(text, good,
- * where) and call(action, data, query).
+ * where) and call(action, data, query) - and the Show / Hide buttons of password fields (data-show-for="<part>").
  *
  * @param string $app    The app's name, as its folder has it (e.g. phpMyAdmin)
  * @param string $prefix The page's data prefix (e.g. pma, for data-pma="..." and data-pma-action="..."): lower-case
@@ -385,6 +423,21 @@ function manage_core_script(string $app, string $prefix): void
             message.className   = good ? 'mg-ok' : 'mg-bad';
         }
 
+        // Show / Hide: a button with data-show-for="<part>" shows what's typed in that password field, or hides it again
+        root.addEventListener('click', function (event) {
+            let toggle = event.target.closest('[data-show-for]');
+            let input  = toggle && root.contains(toggle) ? part(toggle.getAttribute('data-show-for')) : null;
+
+            if (!input) {
+                return;
+            }
+
+            let hide = input.type === 'text';
+
+            input.type         = hide ? 'password' : 'text';
+            toggle.textContent = hide ? 'Show' : 'Hide';
+        });
+
         /**
          * API calls carry X-Requested-With (nasAdmin requires it) and this page's CSRF token.
          *
@@ -430,8 +483,9 @@ JS;
 }
 
 /**
- * Prints act(action, data, working, done), inside a page's script (after manage_core_script()): it runs one of the
- * API's actions, saying it's being done, then how it went, and calls the page's refresh() 2 seconds later.
+ * Prints act(action, data, working, done, where), inside a page's script (after manage_core_script()): it runs one of
+ * the API's actions, saying it's being done, then how it went (in the part named where, else the page's message), and
+ * calls the page's refresh() 2 seconds later.
  *
  * @return void
  */
@@ -445,20 +499,22 @@ function manage_act_script(): void
          * @param {Object} data    What to post (a GET when there's none)
          * @param {string} working What to say meanwhile
          * @param {string} done    What to say once it's done
+         * @param {string} where   The part to say it in: the section that asked, where the person is looking (the
+         *                         page's message, at its bottom, by default)
          *
          * @return {Promise.<(Object|null)>} Its answer (null if it failed)
          */
-        function act(action, data, working, done) {
-            say(working, true);
+        function act(action, data, working, done, where) {
+            say(working, true, where);
 
             return call(action, data).then(function (response) {
                 if (!response.ok) {
-                    say(response.error, false);
+                    say(response.error, false, where);
 
                     return null;
                 }
 
-                say(done, true);
+                say(done, true, where);
                 setTimeout(refresh, 2000);
 
                 return response;

@@ -151,8 +151,8 @@ admin_password() {
     local output
 
     case "${password}" in
-        '' | *[!A-Za-z0-9._~-]*)
-            log 'Passwords are letters, digits and . _ ~ - only'
+        '' | *[[:cntrl:]]*)
+            log 'Passwords are visible characters only (no control characters)'
 
             return 1
             ;;

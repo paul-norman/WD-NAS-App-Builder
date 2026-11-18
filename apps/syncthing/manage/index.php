@@ -25,10 +25,12 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>Log in to Syncthing as <code data-sy="user">admin</code> with: <code data-sy="password">••••••••••••</code>
         <button type="button" data-sy-action="show">Show</button> <button type="button" data-sy-action="copy">Copy</button></p>
-    <p><input type="text" data-sy="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-sy="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-sy-action="set">Change password</button></p>
-    <p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters: letters, digits and . _ ~ -
+    <p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters (letters, digits, symbols or spaces)
         (a password changed in Syncthing's own settings isn't shown here).</p>
+    <p data-sy="password-message"></p>
 
     <h3>Folders</h3>
     <table data-sy="folders"></table>
@@ -201,7 +203,7 @@ header('Cache-Control: no-store');
 
             call('set_password', { password: input.value }).then(function (response) {
                 if (!response.ok) {
-                    say(response.error, false);
+                    say(response.error, false, 'password-message');
 
                     return;
                 }
@@ -210,7 +212,7 @@ header('Cache-Control: no-store');
 
                 secret.set(response.password);
 
-                say('Password changed - use it to log in to Syncthing.', true);
+                say('Password changed - use it to log in to Syncthing.', true, 'password-message');
             });
         });
 

@@ -3,6 +3,10 @@
 # user, only on the NAS itself, a login from the start (its password hashed by Tautulli), no update checks, its own login
 # form, its site through Nginx, a new password from the page, the network setting, a restart keeping its data, removal
 . /t/common/nas.sh tautulli
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -59,8 +63,8 @@ ST=$(get status)
 OLD=$(cat $D/password)
 [ "$(post password | j '$d["password"]')" = "\"$OLD\"" ] && pass 'the page shows the password' || fail 'password not shown'
 [ "$(post set_password -d password=short | j '$d["ok"]')" = false ] && pass 'a short password refused' || fail 'short password accepted'
-R=$(post set_password -d password=Brand.New-Password_1)
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && wait_port 8181 60 && [ "$(signin admin Brand.New-Password_1)" = 200 ] && [ "$(signin admin "$OLD")" != 200 ] \
+R=$(post set_password --data-urlencode "password=$XPW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && wait_port 8181 60 && [ "$(signin admin "$XPW")" = 200 ] && [ "$(signin admin "$OLD")" != 200 ] \
     && pass 'a new password from the page: Tautulli restarted with it, the old one refused' || fail "new password: $R $(cat /tmp/signin.json)"
 
 echo '== on the network'
@@ -75,7 +79,7 @@ DB=$(stat -c %s $D/data/tautulli.db)
 sh $P/tautulli/stop.sh $P/tautulli > /dev/null 2>&1
 listening 8181 && fail 'still answering once stopped' || true
 sh $P/tautulli/start.sh $P/tautulli > /tmp/start.log 2>&1
-wait_port 8181 120 && [ "$(signin admin Brand.New-Password_1)" = 200 ] && [ -s $D/data/tautulli.db ] \
+wait_port 8181 120 && [ "$(signin admin "$XPW")" = 200 ] && [ -s $D/data/tautulli.db ] \
     && pass "restarted: its database kept ($DB bytes), the same login" || fail "restart: $(tail -n 5 /tmp/start.log)"
 grep -i -E ' - (ERROR|CRITICAL) ' $D/data/logs/tautulli.log | grep -v -i 'plex\|pms\|server' | head -3
 

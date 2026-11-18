@@ -326,7 +326,7 @@ admin_password() {
     password="$(head -n 1 | tr -d '\r\n')"
 
     case "${password}" in
-        ''|*[!A-Za-z0-9._~-]*) log 'Passwords are letters, digits and . _ ~ - only'; return 1 ;;
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
     esac
 
     id="$(cat "${ADMIN_ID_FILE}" 2>/dev/null)"

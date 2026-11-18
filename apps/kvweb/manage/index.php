@@ -23,9 +23,11 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>Its address asks for the user name <code>admin</code> and the password: <code data-kv="password">••••••••••••</code>
         <button type="button" data-kv-action="show">Show</button> <button type="button" data-kv-action="copy">Copy</button></p>
-    <p><input type="text" data-kv="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-kv="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-kv-action="set">Change password</button></p>
-    <p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
+    <p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters (letters, digits, symbols or spaces)</p>
+    <p data-kv="password-message"></p>
     <p class="mg-note">kvweb then shows the Valkey app's keys: it logs in to Valkey by itself, with the password on the Valkey
         app's page (changing it there restarts kvweb with the new one).</p>
 
@@ -122,7 +124,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

@@ -26,16 +26,20 @@ header('Cache-Control: no-store');
     <p><label>Port <input type="number" data-ne="port" min="1024" max="65535" style="width: 7em"></label>
         <label><input type="checkbox" data-ne="auth"> Require a password to read the metrics</label>
         <button type="button" data-ne-action="save">Save</button></p>
-    <p data-ne="first-password" hidden><input type="text" data-ne="auth-password" placeholder="Password (leave empty to generate one)"
-        autocomplete="off" spellcheck="false"> <span class="mg-note">for the user name <code>prometheus</code> - shown below once saved</span></p>
+    <p data-ne="first-password" hidden><input type="password" data-ne="auth-password" placeholder="Password (leave empty to generate one)"
+        autocomplete="new-password">
+        <button type="button" data-show-for="auth-password">Show</button> <span class="mg-note">for the user name <code>prometheus</code> - shown below once saved</span></p>
     <p class="mg-note">Node Exporter restarts. Without a password, anyone on the local network can read the metrics (they
         show the NAS's activity, not files or settings).</p>
     <div data-ne="auth-section" hidden>
         <p>User name: <code data-ne="user">prometheus</code>, password: <code data-ne="password">••••••••••••</code>
             <button type="button" data-ne-action="show">Show</button> <button type="button" data-ne-action="copy">Copy</button></p>
-        <p><input type="text" data-ne="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+        <p><input type="password" data-ne="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+            <button type="button" data-show-for="new">Show</button>
             <button type="button" data-ne-action="set">Change password</button></p>
-        <p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
+        <p class="mg-note">The new password takes effect immediately. Passwords are 12 or more characters, up to 72 bytes
+            (letters, digits, symbols or spaces; an accented letter counts as 2).</p>
+        <p data-ne="password-message"></p>
     </div>
 
     <h3>Storage (as WD sees it)</h3>
@@ -328,7 +332,7 @@ header('Cache-Control: no-store');
 
             call('set_password', { password: input.value }).then(function (response) {
                 if (!response.ok) {
-                    say(response.error, false);
+                    say(response.error, false, 'password-message');
 
                     return;
                 }
@@ -336,7 +340,7 @@ header('Cache-Control: no-store');
                 input.value = '';
 
                 secret.set(response.password);
-                say('Password changed. The Prometheus app follows by itself; update any other Prometheus to match.', true);
+                say('Password changed. The Prometheus app follows by itself; update any other Prometheus to match.', true, 'password-message');
             });
         });
 

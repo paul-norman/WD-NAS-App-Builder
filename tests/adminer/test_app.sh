@@ -5,6 +5,10 @@
 # server (4 workers), on the network or only on the NAS itself, Valkey and PostgreSQL logins on Adminer's own form (and
 # wrong ones refused), new passwords for its site, stopping with its workers, removal
 . /t/common/nas.sh adminer
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -77,9 +81,10 @@ ls $D/sessions | grep -q '^sess_' && pass 'its session in its own folder' || fai
 
 echo "== its site's password"
 R=$(post set_password -d password=short); echo "$R" | grep -q '12-128' && pass 'a short password refused' || fail "short: $R"
-NEW=$(post set_password -d password= | j '$d["password"]' | tr -d '"'); H=$(cut -d: -f2- $D/htpasswd)
-[ ${#NEW} = 20 ] && [ "$(php -r 'echo crypt($argv[1], $argv[2]) === $argv[2] ? "ok" : "no";' "$NEW" "$H")" = ok ] \
-    && pass 'a generated password, in the htpasswd file (SHA-512 crypt)' || fail "new password: $NEW"
+R=$(post set_password --data-urlencode "password=$(printf 'Control\001char-pass')"); [ "$(echo "$R" | j '$d["ok"]')" = false ] && pass 'a control character refused' || fail "control: $R"
+NEW=$(post set_password --data-urlencode "password=$XPW" | jpw); H=$(cut -d: -f2- $D/htpasswd)
+[ "$NEW" = "$XPW" ] && [ "$(php -r 'echo crypt($argv[1], $argv[2]) === $argv[2] ? "ok" : "no";' "$NEW" "$H")" = ok ] \
+    && pass 'a password with spaces, quotes and symbols, in the htpasswd file (SHA-512 crypt)' || fail "new password: $NEW"
 
 echo "== without the extra password (only the databases' own logins)"
 R=$(post auth -d auth=)

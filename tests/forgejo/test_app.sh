@@ -3,6 +3,12 @@
 # a private repository pushed to and cloned with the app's own Git over HTTP, SSH switched on, a backup made from its
 # page, a new password, where it listens, stopping and removal
 . /t/common/nas.sh forgejo
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 U=http://127.0.0.1:3002
 
 echo '== first start'
@@ -40,7 +46,7 @@ for i in $(seq 1 60); do [ "$(get status | j 'count($d["backups"])')" = 1 ] && [
 B=$(get status | j '$d["backups"][0]["name"]' | tr -d '"')
 echo "$B" | grep -q 'tar.gz' && tar -tzf "$(get status | j '$d["backup_dir"]' | tr -d '"')/$B" | grep -q "forgejo-db\|repos/" && pass "a backup from the page: $B (database and repositories)" || fail "backup: $(get status | j '$d["backups"]')"
 post settings -d listen=all -d ssh=1 -d backup=daily -d backup_keep=0 | grep -q 'Keep 1-30' && pass 'a bad number of backups to keep refused' || fail 'keep check'
-NEW=$(post new_password -d confirm=1 | j '$d["password"]' | tr -d '"')
+NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw)
 [ "$NEW" != "$PW" ] && [ "$(code -u "nas-admin:$NEW" $U/api/v1/user)" = 200 ] && [ "$(code -u "nas-admin:$PW" $U/api/v1/user)" = 401 ] && pass "a new password works, the old one doesn't" || fail 'new password'
 post settings -d listen=local -d ssh=0 -d backup=weekly -d backup_keep=4 > /dev/null; wait_port 3002 60; sleep 2
 grep -q '^HTTP_ADDR *= *127.0.0.1' $D/custom/conf/app.ini 2>/dev/null || grep -rq '^HTTP_ADDR *= *127.0.0.1' $D 2>/dev/null

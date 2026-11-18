@@ -4,6 +4,12 @@
 # scrapes it; the apps' logs (root's only, too) collected into Loki by Vector; Grafana's data sources and dashboards
 # provisioned for both. Then Grafana's page (password reset, backups), and removing them all
 . /t/common/nas.sh grafana
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 PROM=http://127.0.0.1:9090; LOKI=http://127.0.0.1:3100; G=http://127.0.0.1:3000
 # Prometheus's and Loki's query APIs: the number of results for a query
 promq() { curl -s --data-urlencode "query=$1" $PROM/api/v1/query | j 'count($d["data"]["result"] ?? [])'; }
@@ -61,8 +67,8 @@ Q=$(curl -s -u admin:$GPW -H 'Content-Type: application/json' $G/api/ds/query -d
 echo "$Q" | grep -q '"status":200' && echo "$Q" | grep -q 'node_memory_MemTotal_bytes' && pass "a panel's query through Grafana returns the NAS's metrics" || fail "query: $(echo "$Q" | head -c 300)"
 
 echo "== Grafana's page"
-NP=$(post reset_password | j '$d["password"]' | tr -d '"')
-[ ${#NP} -ge 16 ] && [ "$(code -u admin:$NP $G/api/user)" = 200 ] && [ "$(code -u admin:$GPW $G/api/user)" = 401 ] && pass "a new password: it works, the old one doesn't" || fail "reset: $NP"
+NP=$(post reset_password --data-urlencode "password=$XPW" | jpw)
+[ "$NP" = "$XPW" ] && [ "$(code -u "admin:$NP" $G/api/user)" = 200 ] && [ "$(code -u admin:$GPW $G/api/user)" = 401 ] && pass "a new password: it works, the old one doesn't" || fail "reset: $NP"
 post backup_now > /dev/null
 set -- $P/_grafana/backups/grafana-*.tar.gz
 [ -f "$1" ] && [ "$(stat -c '%a' "$1")" = 600 ] && tar -tzf "$1" | grep -q 'grafana.db' && pass "a backup of its database (root's only)" || fail "backup: $(ls -l $P/_grafana/backups 2>&1)"

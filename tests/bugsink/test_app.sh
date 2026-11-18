@@ -4,6 +4,10 @@
 # through its site, an error reported with Sentry's SDK becoming an issue (its worker), a new password from the page,
 # the network setting, a restart keeping its data, removal
 . /t/common/nas.sh bugsink
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -71,8 +75,8 @@ ST=$(get status)
     && [ "$(echo "$ST" | j '$d["base_url"]')" = "\"https://bugsink.$DOMAIN\"" ] && pass "the page: Bugsink 2.6.3 answering, its worker running, its address" || fail "status: $(echo "$ST" | head -c 400)"
 OLD=$(cat $D/password)
 [ "$(post password | j '$d["password"]')" = "\"$OLD\"" ] && pass 'the page shows the password' || fail 'password not shown'
-R=$(post set_password -d password=Brand.New-Password_1)
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && login admin Brand.New-Password_1 | grep -q '^302' && login admin "$OLD" | grep -q '^200' \
+R=$(post set_password --data-urlencode "password=$XPW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && login admin "$XPW" | grep -q '^302' && login admin "$OLD" | grep -q '^200' \
     && pass 'a new password from the page: in use at once, the old one refused' || fail "new password: $R"
 
 echo '== on the network'
@@ -87,7 +91,7 @@ echo '== restart'
 sh $P/bugsink/stop.sh $P/bugsink > /dev/null 2>&1
 listening 8000 && fail 'still answering once stopped' || true
 sh $P/bugsink/start.sh $P/bugsink > /tmp/start.log 2>&1
-wait_port 8000 120 && [ "$(issues)" = 1 ] && login admin Brand.New-Password_1 | grep -q '^302' && pass 'restarted: its issue kept, the same login' || fail "restart: issues $(issues), $(tail -n 3 /tmp/debug_apkg)"
+wait_port 8000 120 && [ "$(issues)" = 1 ] && login admin "$XPW" | grep -q '^302' && pass 'restarted: its issue kept, the same login' || fail "restart: issues $(issues), $(tail -n 3 /tmp/debug_apkg)"
 
 echo '== removal'
 finish_app

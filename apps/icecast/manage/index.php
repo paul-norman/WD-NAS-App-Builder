@@ -29,8 +29,15 @@ header('Cache-Control: no-store');
             <button type="button" data-ic-action="source-show">Show</button> <button type="button" data-ic-action="source-copy">Copy</button>
             <button type="button" data-ic-action="source-new">New password</button></td></tr>
     </table>
+    <p data-ic="renew-box" hidden>New <span data-ic="renew-name"></span> password:
+        <input type="password" data-ic="renew-password" placeholder="Leave empty to generate one" autocomplete="new-password">
+        <button type="button" data-show-for="renew-password">Show</button>
+        <button type="button" data-ic-action="renew-save">Save</button>
+        <button type="button" data-ic-action="renew-cancel">Cancel</button></p>
+    <p data-ic="password-message"></p>
     <p class="mg-note">Admin: Icecast's own admin pages (listeners, moving them between streams, kicking a stream off).
-        Broadcasting: what software sending a stream to Icecast logs in with (see below). A new password restarts Icecast.</p>
+        Broadcasting: what software sending a stream to Icecast logs in with (see below). A new password restarts Icecast.
+        Passwords are 12-128 characters (letters, digits, symbols or spaces).</p>
 
     <h3>On air</h3>
     <table data-ic="mounts"></table>
@@ -191,6 +198,9 @@ header('Cache-Control: no-store');
         // Keep the page current, until the dashboard removes it
         <?php manage_timer_script(); ?>
 
+        // The password the New password box sets: { name, secret }
+        let renewing = null;
+
         // The passwords: Show / Hide and Copy (fetched when first needed), and new ones
         ['admin', 'source'].forEach(function (name) {
             let secret = secretControls(part(name + '-password'), button(name + '-show'), button(name + '-copy'), function () {
@@ -206,18 +216,37 @@ header('Cache-Control: no-store');
             });
 
             button(name + '-new').addEventListener('click', function () {
-                let what = name === 'admin' ? 'Icecast\'s admin pages' : 'broadcasting (software sending live streams needs the new one)';
+                renewing = { name: name, secret: secret };
 
-                if (!window.confirm('A new password for ' + what + '? Icecast restarts.')) {
-                    return;
-                }
-
-                act('new_password', { name: name }, 'Setting a new password…', 'New password in use - Icecast restarted.').then(function (response) {
-                    if (response) {
-                        secret.set(response.password);
-                    }
-                });
+                part('renew-name').textContent = name === 'admin' ? 'admin' : 'broadcasting';
+                part('renew-password').value   = '';
+                part('renew-box').hidden       = false;
+                part('renew-password').focus();
             });
+        });
+
+        // A new admin or broadcasting password: the one typed in the box, or a generated one (Icecast restarts)
+        button('renew-save').addEventListener('click', function () {
+            let pass = renewing;
+
+            if (!pass) {
+                return;
+            }
+
+            act('new_password', { name: pass.name, password: part('renew-password').value.trim() }, 'Setting a new password…',
+                'New password in use - Icecast restarted.', 'password-message').then(function (response) {
+                if (response) {
+                    pass.secret.set(response.password);
+
+                    part('renew-box').hidden     = true;
+                    part('renew-password').value = '';
+                }
+            });
+        });
+
+        button('renew-cancel').addEventListener('click', function () {
+            part('renew-box').hidden     = true;
+            part('renew-password').value = '';
         });
 
         /**

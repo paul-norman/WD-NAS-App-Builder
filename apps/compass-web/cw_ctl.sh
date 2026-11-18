@@ -74,7 +74,7 @@ set_password() {
     password="$(head -n 1 | tr -d '\r\n')"
 
     case "${password}" in
-        ''|*[!A-Za-z0-9._~-]*) log 'Passwords are letters, digits and . _ ~ - only'; return 1 ;;
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
     esac
 
     ( umask 077; printf '%s\n' "${password}" > "${PASSWORD_FILE}.tmp" ) \
@@ -138,6 +138,13 @@ wait_up() {
     return 1
 }
 
+# Percent-encodes text for a URL (every byte, so any character is safe in it), without its final line break.
+#
+# Prints the encoded text (the text is read from the input)
+url_encode() {
+    printf '%s' "$(cat)" | od -An -tx1 -v | tr -d ' \n' | sed 's/\(..\)/%\1/g'
+}
+
 start() {
     if running; then
         log "Compass Web is already running with PID: $(cat ${PID_FILE})"
@@ -159,9 +166,10 @@ start() {
     log "starting Compass Web on ${host}:${PORT}"
     cd "${BIN}/compass-web" || return 1
     # Its settings in its environment (CW_...), not on its command line, which other programs can read: the MongoDB
-    # app's server as its administrator (a generated password: letters and digits, nothing to encode), its own login;
-    # no editing of connections, no shell (it runs JavaScript on the NAS), no AI features
-    ( export CW_MONGO_URI="mongodb://admin:$(cat "${MONGO_PASSWORD_FILE}")@127.0.0.1:${MONGO_PORT}/?authSource=admin" \
+    # app's server as its administrator (the password percent-encoded: it may have any visible characters), its own
+    # login; no editing of connections, no shell (it runs JavaScript on the NAS), no AI features
+    mongo_password="$(url_encode < "${MONGO_PASSWORD_FILE}")"
+    ( export CW_MONGO_URI="mongodb://admin:${mongo_password}@127.0.0.1:${MONGO_PORT}/?authSource=admin" \
         CW_BASIC_AUTH_USERNAME="${USERNAME}" CW_BASIC_AUTH_PASSWORD="$(cat "${PASSWORD_FILE}")" CW_PORT="${PORT}" \
         CW_HOST="${host}" CW_APP_NAME='Compass Web' HOME="${HOME_PATH}" NODE_ENV=production
         exec "${BIN}/cw_runas" "$1" "$2" "${BIN}/node" node_modules/compass-web/dist/server.js ) >> "${CW_LOG}" 2>&1 &

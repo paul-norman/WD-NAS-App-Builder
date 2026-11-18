@@ -24,13 +24,15 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>Its administrator logs in as <code>admin@nas.local</code>, with this password: <code data-bs="password">••••••••••••</code>
         <button type="button" data-bs-action="show">Show</button> <button type="button" data-bs-action="copy">Copy</button></p>
-    <p><input type="text" data-bs="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-bs="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-bs-action="set">Change password</button></p>
     <p class="mg-note">The new password is in use at once (also if the administrator's email address was changed in
-        BookStack), and its other sessions end. Passwords are 12-128 characters: letters, digits and . _ ~ - (A password
+        BookStack), and its other sessions end. Passwords are 12-128 characters (letters, digits, symbols or spaces) (A password
         changed in BookStack itself isn't shown here.) Other people's accounts are added in BookStack (Settings, Users):
         the NAS sends no email unless a mail server is set in <code>Nas_Prog/_bookstack/conf/extra.env</code> (see the
         app's README).</p>
+    <p data-bs="password-message"></p>
 
     <h3>Access</h3>
     <p><label><input type="checkbox" data-bs="local"> Only through the Nginx app (HTTPS)</label>
@@ -208,7 +210,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

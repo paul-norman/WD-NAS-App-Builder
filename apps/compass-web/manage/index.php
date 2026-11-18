@@ -24,10 +24,11 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>It asks for the user <code>admin</code>, with this password: <code data-cw="password">••••••••••••</code>
         <button type="button" data-cw-action="show">Show</button> <button type="button" data-cw-action="copy">Copy</button></p>
-    <p><input type="text" data-cw="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-cw="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-cw-action="set">Change password</button></p>
-    <p class="mg-note">Compass Web restarts with the new password. Passwords are 12-128 characters: letters, digits and
-        . _ ~ - Once in, it works on MongoDB as the MongoDB app's administrator (all rights on every database).</p>
+    <p class="mg-note">Compass Web restarts with the new password. Passwords are 12-128 characters (letters, digits, symbols or spaces) Once in, it works on MongoDB as the MongoDB app's administrator (all rights on every database).</p>
+    <p data-cw="password-message"></p>
 
     <h3>Access</h3>
     <p><label><input type="checkbox" data-cw="local"> Only through the Nginx app (HTTPS)</label>
@@ -134,7 +135,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use (Compass Web restarted).').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use (Compass Web restarted).', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

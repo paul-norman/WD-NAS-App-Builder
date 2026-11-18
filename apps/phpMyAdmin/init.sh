@@ -39,7 +39,8 @@ if [ ! -s "${ADMIN_PASSWORD_FILE}" ]; then
 fi
 
 chmod 600 "${ADMIN_PASSWORD_FILE}"
-ADMIN_PASSWORD="$(cat "${ADMIN_PASSWORD_FILE}")"
+# (as an SQL string: its backslashes and quotes escaped - a password set on the page may have any visible characters)
+ADMIN_PASSWORD_SQL="$(sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g" "${ADMIN_PASSWORD_FILE}")"
 
 # Start MySQL (symlink to MariaDB 10.5.19 - 6 Feb 2023) if it isn't already running
 log 'starting MySQL'
@@ -49,7 +50,9 @@ sleep 1
 
 # Create MySQL system users
 log 'creating MySQL system users'
-mysql --user=root --password= -N -e "CREATE USER IF NOT EXISTS 'admin'@'localhost' IDENTIFIED BY '${ADMIN_PASSWORD}';"
+# (the SQL on its input, so that the password isn't on its command line)
+printf "CREATE USER IF NOT EXISTS 'admin'@'localhost' IDENTIFIED BY '%s';\n" "${ADMIN_PASSWORD_SQL}" \
+    | mysql --user=root --password= -N
 mysql --user=root --password= -N -e "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, DELETE HISTORY ON *.* TO 'admin'@'localhost' WITH GRANT OPTION;"
 mysql --user=root --password= -N -e 'FLUSH PRIVILEGES;'
 

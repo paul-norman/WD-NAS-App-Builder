@@ -24,8 +24,11 @@ header('Cache-Control: no-store');
     <h3>Phones and browsers</h3>
     <p>In the ntfy app (Android, iPhone) or ntfy's own web app: server <code data-nt="server">-</code>, user name
         <code>admin</code>, password <code data-nt="password">••••••••••••</code>
-        <button type="button" data-nt-action="show">Show</button> <button type="button" data-nt-action="copy">Copy</button>
-        <button type="button" data-nt-action="new-password">New password</button></p>
+        <button type="button" data-nt-action="show">Show</button> <button type="button" data-nt-action="copy">Copy</button></p>
+    <p><input type="password" data-nt="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-nt-action="new-password">Change password</button></p>
+    <p data-nt="password-message"></p>
     <p class="mg-note">Then subscribe to the topics the apps send to (e.g. <code>nas</code>). Nobody can read or send
         notifications without logging in.</p>
 
@@ -141,8 +144,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Making a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Making a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

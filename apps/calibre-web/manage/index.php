@@ -26,8 +26,13 @@ header('Cache-Control: no-store');
 
     <h3>Admin user</h3>
     <p>User name <code>admin</code>, password <code data-cw="password">••••••••••••</code>
-        <button type="button" data-cw-action="show">Show</button> <button type="button" data-cw-action="copy">Copy</button>
-        <button type="button" data-cw-action="new-password">New password</button></p>
+        <button type="button" data-cw-action="show">Show</button> <button type="button" data-cw-action="copy">Copy</button></p>
+    <p><input type="password" data-cw="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-cw-action="new-password">Change password</button></p>
+    <p data-cw="password-message"></p>
+    <p class="mg-note">Calibre-Web's own password rules apply too (its Admin page, Edit Basic Configuration, Security): by
+        default at least 8 characters, with a digit, a lower and an upper case letter and a special character.</p>
     <p class="mg-note">Create a user for each person in Calibre-Web (Admin → Add new user), with what each may do (download,
         upload, edit, convert...). To send books to e-readers by email (e.g. a Kindle's address), set an email server in
         Calibre-Web (Admin → Edit email server settings).</p>
@@ -212,8 +217,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

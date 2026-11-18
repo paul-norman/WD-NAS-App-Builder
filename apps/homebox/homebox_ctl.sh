@@ -7,6 +7,7 @@
 #   homebox_ctl.sh stop               - stop Homebox
 #   homebox_ctl.sh restart            - stop, then start
 #   homebox_ctl.sh new-password       - give the admin account a new password (Homebox must be running)
+#   homebox_ctl.sh set-password       - the same, with the password typed on the page (on its input, one line)
 #   homebox_ctl.sh reset-link <email> - print a one-time password reset link for an account (valid for an hour)
 #   homebox_ctl.sh backup             - back up its database (safely, while it runs) and attachments
 #   homebox_ctl.sh daily              - the daily job: a backup, and keeping its log small
@@ -350,6 +351,16 @@ reset_link() {
 # its sign-ins elsewhere are kept. Homebox must be running.
 #
 # Prints what it did; returns 0 once set
+# Text for a JSON string: its backslashes and quotes escaped (a password may have any visible characters - no control
+# characters, which the page refuses).
+#
+# $1 text The text
+#
+# Prints the escaped text
+json_text() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 new_password() {
     local link token password code
 
@@ -364,8 +375,8 @@ new_password() {
         return 1
     }
     token="${link##*token=}"
-    password="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20)"
-    code="$(printf '{"token":"%s","password":"%s"}' "${token}" "${password}" \
+    password="${1:-$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20)}"
+    code="$(printf '{"token":"%s","password":"%s"}' "${token}" "$(json_text "${password}")" \
         | curl -s -m 30 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' --data-binary @- \
         "http://127.0.0.1:${PORT}/api/v1/users/reset-password")"
 
@@ -377,6 +388,22 @@ new_password() {
 
     ( umask 077; printf '%s' "${password}" > "${PASSWORD_FILE}" )
     log 'set a new admin password'
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 # Backs up its database (SQLite's online backup: a consistent copy while Homebox writes to it, checked) and the rest of
@@ -472,6 +499,7 @@ case "$1" in
         start
         ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     reset-link) reset_link "$2" ;;
     backup) backup ;;
     daily)
@@ -480,7 +508,7 @@ case "$1" in
         ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|reset-link <email>|backup|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|reset-link <email>|backup|daily|nginx" >&2
 
         exit 1
         ;;

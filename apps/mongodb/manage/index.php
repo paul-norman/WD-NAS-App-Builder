@@ -22,11 +22,13 @@ header('Cache-Control: no-store');
     <h3>Its administrator</h3>
     <p>User <code>admin</code> (all rights, on every database), with this password: <code data-mg="password">••••••••••••</code>
         <button type="button" data-mg-action="show">Show</button> <button type="button" data-mg-action="copy">Copy</button></p>
-    <p><input type="text" data-mg="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-mg="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-mg-action="set">Change password</button></p>
-    <p class="mg-note">The new password is in use at once (the Compass Web app follows it). Passwords are 12-128
-        characters: letters, digits and . _ ~ - Connection string:
+    <p class="mg-note">The new password is in use at once (the Compass Web app follows it). Passwords are 12-128 characters (letters, digits, symbols or spaces) - in a connection
+        string, percent-encode any that aren't letters or digits (e.g. a space as %20). Connection string:
         <code data-mg="uri">mongodb://admin:&lt;password&gt;@&lt;address&gt;:27017/?authSource=admin</code></p>
+    <p data-mg="password-message"></p>
 
     <h3>Databases</h3>
     <table data-mg="databases"></table>
@@ -202,7 +204,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

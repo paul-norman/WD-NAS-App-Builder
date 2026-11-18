@@ -3,6 +3,10 @@
 # site password (generated, shown and changed on the page), Nginx asking for it first on /phpMyAdmin/, switched off and
 # on from the page. Not its MariaDB account (the stand-in has no MariaDB - see tests/mariadb)
 . /t/common/nas.sh phpMyAdmin
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -30,8 +34,8 @@ grep -q "auth_basic_user_file $D/htpasswd" $P/_nginx/sites/60-app-phpmyadmin.con
     && [ "$(site -u "admin:$PW")" != 401 ] && [ "$(get status | j '$d["site"]["url"]')" = "\"https://phpmyadmin.$DOMAIN/phpMyAdmin/\"" ] \
     && pass "Nginx asks for it on /phpMyAdmin/: none or a wrong one refused (401), the right one passed on ($(site -u "admin:$PW"): nothing on port 80 here)" \
     || fail "site: $(site) $(site -u "admin:$PW") $(grep -c auth $P/_nginx/sites/60-app-phpmyadmin.conf 2>&1)"
-NEW=$(post set_site_password -d password=Suite-pass-1234 | j '$d["password"]' | tr -d '"')
-[ "$NEW" = Suite-pass-1234 ] && [ "$(site -u "admin:$PW")" = 401 ] && [ "$(site -u admin:Suite-pass-1234)" != 401 ] \
+NEW=$(post set_site_password --data-urlencode "password=$XPW" | jpw)
+[ "$NEW" = "$XPW" ] && [ "$(site -u "admin:$PW")" = 401 ] && [ "$(site -u "admin:$XPW")" != 401 ] \
     && pass 'a new password: the old one refused at once' || fail "new password: $NEW"
 
 echo '== switched off and on'
@@ -39,7 +43,7 @@ R=$(post auth -d auth=); reloaded no
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && ! grep -q auth_file $P/phpMyAdmin/nginx.json && [ "$(site)" != 401 ] && [ "$(get status | j '$d["auth"]')" = false ] \
     && pass "off: no password asked for (only phpMyAdmin's login)" || fail "off: json $(grep -c auth_file $P/phpMyAdmin/nginx.json) site $(site) status $(get status | head -c 400)"
 R=$(post auth -d auth=1); reloaded yes
-[ "$(site)" = 401 ] && [ "$(site -u admin:Suite-pass-1234)" != 401 ] && pass 'on again: asked for first' || fail "on: $R $(site)"
+[ "$(site)" = 401 ] && [ "$(site -u "admin:$XPW")" != 401 ] && pass 'on again: asked for first' || fail "on: $R $(site)"
 
 echo '== removal'
 finish_app

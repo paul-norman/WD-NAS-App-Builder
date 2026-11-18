@@ -24,13 +24,23 @@ header('Cache-Control: no-store');
 
     <h3>Logging in</h3>
     <p>User name <code>admin</code>, password <code data-vk="password">••••••••••••</code>
-        <button type="button" data-vk-action="show">Show</button> <button type="button" data-vk-action="copy">Copy</button>
-        <button type="button" data-vk-action="new-password">Reset the password</button></p>
+        <button type="button" data-vk-action="show">Show</button> <button type="button" data-vk-action="copy">Copy</button></p>
+    <p><input type="password" data-vk="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-vk-action="new-password">Change password</button></p>
+    <p data-vk="password-message"></p>
     <p class="mg-note">The app made this account, so nobody else can claim Vikunja. You can change its password in Vikunja's
-        own settings: this page then no longer knows it - Reset the password sets a new one it shows.</p>
+        own settings: this page then no longer knows it - Change password sets one it shows. Passwords are 12 or more
+        characters, up to 72 bytes (letters, digits, symbols or spaces; an accented letter counts as 2).</p>
 
     <h3>Users</h3>
     <table data-vk="users"></table>
+    <p data-vk="renew-box" hidden>New password for <strong data-vk="renew-name"></strong>:
+        <input type="password" data-vk="renew-password" placeholder="Leave empty to generate one" autocomplete="new-password">
+        <button type="button" data-show-for="renew-password">Show</button>
+        <button type="button" data-vk-action="renew-save">Save</button>
+        <button type="button" data-vk-action="renew-cancel">Cancel</button></p>
+    <p data-vk="users-message"></p>
     <p><label>User name <input type="text" data-vk="new-name" size="16" spellcheck="false" placeholder="e.g. sam"></label>
         <label>Email <input type="text" data-vk="new-email" size="24" spellcheck="false" placeholder="sam@example.com"></label>
         <button type="button" data-vk-action="add-user">Add a user</button></p>
@@ -92,6 +102,9 @@ header('Cache-Control: no-store');
             box.hidden = false;
         }
 
+        // The user whose password the New password box sets
+        let renewing = '';
+
         /**
          * Shows the users, each but admin with a button for a new password.
          *
@@ -121,15 +134,12 @@ header('Cache-Control: no-store');
                 reset.type        = 'button';
                 reset.textContent = 'New password';
                 reset.addEventListener('click', function () {
-                    if (!window.confirm(`Give ${user.name} a new password? Their current one stops working.`)) {
-                        return;
-                    }
+                    renewing = user.name;
 
-                    act('new_password', { user: user.name }, 'Setting a new password…', `${user.name} has a new password.`).then(function (response) {
-                        if (response) {
-                            showSecret(user.name, response.password);
-                        }
-                    });
+                    part('renew-name').textContent = user.name;
+                    part('renew-password').value   = '';
+                    part('renew-box').hidden       = false;
+                    part('renew-password').focus();
                 });
                 row.insertCell().appendChild(reset);
             });
@@ -235,11 +245,37 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { user: 'admin' }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { user: 'admin', password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });
+        });
+
+        // A user's new password: the one typed in the box New password opens, or a generated one (shown once)
+        button('renew-save').addEventListener('click', function () {
+            let name  = renewing;
+            let typed = part('renew-password').value.trim();
+
+            act('new_password', { user: name, password: typed }, 'Setting a new password…', `${name} has a new password.`,
+                'users-message').then(function (response) {
+                if (response) {
+                    part('renew-box').hidden     = true;
+                    part('renew-password').value = '';
+
+                    // (a typed one isn't shown again)
+                    if (!typed) {
+                        showSecret(name, response.password);
+                    }
+                }
+            });
+        });
+
+        button('renew-cancel').addEventListener('click', function () {
+            part('renew-box').hidden     = true;
+            part('renew-password').value = '';
         });
 
         button('add-user').addEventListener('click', function () {

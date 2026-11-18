@@ -23,8 +23,11 @@ header('Cache-Control: no-store');
 
     <h3>Logging in</h3>
     <p>Email <code data-hb="admin">admin@homebox.local</code>, password <code data-hb="password">••••••••••••</code>
-        <button type="button" data-hb-action="show">Show</button> <button type="button" data-hb-action="copy">Copy</button>
-        <button type="button" data-hb-action="new-password">Reset the password</button></p>
+        <button type="button" data-hb-action="show">Show</button> <button type="button" data-hb-action="copy">Copy</button></p>
+    <p><input type="password" data-hb="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-hb-action="new-password">Change password</button></p>
+    <p data-hb="password-message"></p>
     <p class="mg-note">The app made this account, so nobody else can claim Homebox. You can change its email and password
         in Homebox (Profile): this page then no longer knows the password - Reset the password sets a new one it shows
         (while the email is still this one). Add the rest of the household with Homebox's invitation links (Collection
@@ -172,8 +175,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

@@ -56,12 +56,12 @@ ST=$(get status)
     && pass 'a bad name and a short password refused' || fail 'bad user accepted'
 AP=$(post add_user -d name=alice -d password=Alice.Pass-1 | j '$d["password"]')
 BP=$(post add_user -d name=bob | j '$d["password"]' | tr -d '"')
-[ "$AP" = '"Alice.Pass-1"' ] && [ ${#BP} = 16 ] && grep -q '"hash": "pbkdf2_sha256\$100000\$' $D/users.json && ! grep -q Alice.Pass $D/users.json \
+[ "$AP" = '"Alice.Pass-1"' ] && [ ${#BP} = 20 ] && grep -q '"hash": "pbkdf2_sha256\$100000\$' $D/users.json && ! grep -q Alice.Pass $D/users.json \
     && [ "$(stat -c '%U %a' $D/users.json)" = 'metube 640' ] && pass 'alice and bob added (only PBKDF2 hashes kept)' || fail "add: $AP $(cat $D/users.json)"
 
 P1=$(curl -s -H "$CK" $PAGE/index.php)
 echo "$P1" | grep -q '<input type="password" data-mt="password"' && echo "$P1" | grep -q '<input type="password" data-mt="renew-password"' \
-    && echo "$P1" | grep -q 'data-mt-action="show-renew">Show' && pass 'the page: password fields (hidden as typed) with Show, New password takes a typed one' || fail 'password fields'
+    && echo "$P1" | grep -q 'data-show-for="renew-password">Show' && pass 'the page: password fields (hidden as typed) with Show, New password takes a typed one' || fail 'password fields'
 R=$(post new_password -d name=bob --data-urlencode 'password=Bob chose^this1')
 [ "$(echo "$R" | j '$d["password"]')" = '"Bob chose^this1"' ] && pass 'a new password typed on the page (not generated)' || fail "new password: $R"
 BP='Bob chose^this1'

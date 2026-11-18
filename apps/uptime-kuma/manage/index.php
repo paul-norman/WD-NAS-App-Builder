@@ -29,10 +29,15 @@ header('Cache-Control: no-store');
 
     <h3>Admin account</h3>
     <p data-uk="account">-</p>
-    <p><button type="button" data-uk-action="reset">Reset the password</button>
+    <p><input type="password" data-uk="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-uk-action="reset">Change password</button>
         <span data-uk="new-password" hidden>New password: <code data-uk="password"></code>
         <button type="button" data-uk-action="copy">Copy</button></span></p>
-    <p class="mg-note">Sets a new random password (shown here once) and logs every session out.</p>
+    <p data-uk="password-message"></p>
+    <p class="mg-note">Sets the password typed - or a generated one, shown here once - and logs every session out.
+        Passwords are 12-128 characters (letters, digits, symbols or spaces), and Uptime Kuma refuses ones it thinks are
+        too weak.</p>
 
     <h3>Backups</h3>
     <p><label>Folder <input type="text" data-uk="backup-dir" size="40" spellcheck="false"></label>
@@ -204,17 +209,22 @@ header('Cache-Control: no-store');
         });
 
         button('reset').addEventListener('click', function () {
-            if (!window.confirm('Reset the admin account\'s password? Every session is logged out.')) {
+            if (!window.confirm('Change the admin account\'s password? Every session is logged out.')) {
                 return;
             }
 
-            act('reset_password', { confirm: 1 }, 'Resetting the password…', 'Password reset - log in with the new one.').then(function (response) {
+            let typed = part('new').value.trim();
+
+            act('reset_password', { confirm: 1, password: typed }, 'Changing the password…', 'Password changed - log in with the new one.', 'password-message').then(function (response) {
                 if (!response) {
                     return;
                 }
 
+                part('new').value = '';
+
+                // (a typed password isn't shown again)
                 part('password').textContent = response.password;
-                part('new-password').hidden  = false;
+                part('new-password').hidden  = typed !== '';
             });
         });
 

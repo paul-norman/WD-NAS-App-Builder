@@ -7,6 +7,7 @@
 #   cw_ctl.sh stop                  - stop Calibre-Web
 #   cw_ctl.sh restart               - stop, then start
 #   cw_ctl.sh new-password          - give the admin user a new (generated) password
+#   cw_ctl.sh set-password          - the same, with the password typed on the page (on its input, one line)
 #   cw_ctl.sh library <path>        - use (or create) the library in a folder, then restart
 #   cw_ctl.sh ingest                - add the books in the ingest folder to the library (every minute, from cron)
 #   cw_ctl.sh daily                 - the daily job: backups of Calibre-Web's settings and the library's database
@@ -260,16 +261,41 @@ stop() {
 # time). Calibre-Web's password rules want a lower and an upper case letter, a digit and another character: two random
 # parts joined by a hyphen, with one of each kind of letter and a digit added
 new_password() {
-    password="$(random_text 10)-$(random_text 7)$(tr -dc 'a-z' < /dev/urandom | head -c 1)$(tr -dc 'A-Z' < /dev/urandom | head -c 1)$(tr -dc '0-9' < /dev/urandom | head -c 1)"
+    password="$1"
 
-    if as_cw "${BIN}/python/bin/python3" -m calibreweb -p "${CW_DATA}/app.db" -s "${ADMIN}:${password}" > /dev/null 2>&1; then
+    # (generated: letters, digits and a dash - a lower and an upper case letter and a digit certainly in it, for
+    # Calibre-Web's password rules)
+    if [ -z "${password}" ]; then
+        password="$(random_text 10)-$(random_text 7)$(tr -dc 'a-z' < /dev/urandom | head -c 1)"
+        password="${password}$(tr -dc 'A-Z' < /dev/urandom | head -c 1)$(tr -dc '0-9' < /dev/urandom | head -c 1)"
+    fi
+
+    # (Calibre-Web checks it against its own password rules, set in its settings: it says why it refuses one)
+    if output="$(as_cw "${BIN}/python/bin/python3" -m calibreweb -p "${CW_DATA}/app.db" -s "${ADMIN}:${password}" \
+        2>&1)"; then
         ( umask 077; printf '%s\n' "${password}" > "${PASSWORD_FILE}.tmp" ) && mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}"
         log "gave the admin user (${ADMIN}) a new password"
     else
-        log "Could not change the admin user's password (is there still a user called ${ADMIN}?)"
+        log "Calibre-Web refused the new password: $(printf '%s' "${output}" | tail -n 1)"
 
         return 1
     fi
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 # Uses (or creates) the library in a folder: the page checks the folder first
@@ -407,13 +433,28 @@ case "$1" in
     restart) stop; start ;;
     # Calibre-Web keeps its users in memory: it's restarted for the new password to count
     new-password) setup > /dev/null || exit 1; if running; then stop; new_password && start; else new_password; fi ;;
+    set-password)
+        setup > /dev/null || exit 1
+
+        # (stopped while it's changed, then started again - whether or not Calibre-Web took it)
+        if running; then
+            stop
+            set_password
+            ok=$?
+            start
+            exit ${ok}
+        fi
+
+        set_password
+        ;;
     library) set_library "$2" ;;
     ingest) ingest ;;
     daily) daily ;;
     nginx) nginx_site ;;
     run) shift; setup > /dev/null && as_cw "$@" ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|library <path>|ingest|daily|nginx|run <program> [args]" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|library <path>|ingest|daily|nginx" \
+            "|run <program> [args]" >&2
 
         exit 1
         ;;

@@ -4,6 +4,12 @@
 # complete and seeding, files it writes changeable by the share group, the page (status, the password, settings: the
 # folder - only in the shares - peer port, limits, the network), kept across a restart, its site through Nginx, removal
 . /t/common/nas.sh transmission
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 DOMAIN=nas.example.test
 # The NAS has ip in /sbin (BusyBox's): the stand-in only has it in the suite's own PATH, which the page doesn't get
 command -v /sbin/ip > /dev/null || ln -sf /t/bb/busybox /sbin/ip
@@ -67,8 +73,8 @@ REJECTED=$(tail -n +$((LINES + 1)) $D/transmission.log | grep -c 'failed authent
     && echo "$ST" | j '$d["address"]' | grep -q ':9091/transmission/web/"$' && pass "status: running, 4.1.4, 1 torrent, $(echo "$ST" | j '$d["address"]')" \
     || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password -d show=1 | j '$d["password"]')" = "\"$(cat $D/password)\"" ] && pass 'the password shown' || fail 'password'
-OLD=$(cat $D/password); NEW=$(post new_password -d confirm=1 | j '$d["password"]' | tr -d '"'); wait_port 9091 30
-[ ${#NEW} = 20 ] && [ "$NEW" != "$OLD" ] && [ "$(curl -s -m 5 -o /dev/null -w '%{http_code}' -u "admin:$OLD" http://127.0.0.1:9091/transmission/web/)" = 401 ] \
+OLD=$(cat $D/password); NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw); wait_port 9091 30
+[ "$NEW" = "$XPW" ] && [ "$NEW" != "$OLD" ] && [ "$(curl -s -m 5 -o /dev/null -w '%{http_code}' -u "admin:$OLD" http://127.0.0.1:9091/transmission/web/)" = 401 ] \
     && curl -s -m 5 -u "admin:$NEW" http://127.0.0.1:9091/transmission/web/ | grep -qi '<title>Transmission' \
     && pass 'a new password: it works, the old one no longer does' || fail "new password: ${#NEW}"
 R1=$(post settings -d download_dir=$P/_transmission -d peer_port=51413 -d down_limit=0 -d up_limit=0)

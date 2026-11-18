@@ -7,6 +7,7 @@
 #   abs_ctl.sh stop                 - stop Audiobookshelf
 #   abs_ctl.sh restart              - stop, then start
 #   abs_ctl.sh new-password         - give the root user a new (generated) password, while Audiobookshelf runs
+#   abs_ctl.sh set-password         - the same, with the password typed on the page (on its input, one line)
 #   abs_ctl.sh check-folder <path>  - whether Audiobookshelf's user can read and write a folder (exit status 0: both, 1:
 #                                     read only, 2: neither)
 #   abs_ctl.sh daily                - the daily job: keeping its log small
@@ -174,7 +175,8 @@ start() {
             password="$(random_text 20)"
 
             if curl -sf -o /dev/null -X POST -H 'Content-Type: application/json' \
-                -d "{\"newRoot\":{\"username\":\"${ROOT_USER}\",\"password\":\"${password}\"}}" "http://127.0.0.1:${PORT}/init"; then
+                -d "{\"newRoot\":{\"username\":\"${ROOT_USER}\",\"password\":\"$(json_text "${password}")\"}}" \
+                "http://127.0.0.1:${PORT}/init"; then
                 ( umask 077; printf '%s\n' "${password}" > "${PASSWORD_FILE}" )
                 log "created the root user (${ROOT_USER}) with a generated password"
             else
@@ -226,10 +228,21 @@ stop() {
 }
 
 # A new generated password for the root user, through Audiobookshelf's own API (logged in with the current one)
+# Text for a JSON string: its backslashes and quotes escaped (a password may have any visible characters - no control
+# characters, which the page refuses).
+#
+# $1 text The text
+#
+# Prints the escaped text
+json_text() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 new_password() {
     old="$(cat "${PASSWORD_FILE}" 2>/dev/null)"
-    password="$(random_text 20)"
-    token="$(curl -sf -X POST -H 'Content-Type: application/json' -d "{\"username\":\"${ROOT_USER}\",\"password\":\"${old}\"}" \
+    password="${1:-$(random_text 20)}"
+    token="$(curl -sf -X POST -H 'Content-Type: application/json' \
+        -d "{\"username\":\"${ROOT_USER}\",\"password\":\"$(json_text "${old}")\"}" \
         "http://127.0.0.1:${PORT}/login" | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')"
 
     if [ -z "${token}" ]; then
@@ -239,7 +252,8 @@ new_password() {
     fi
 
     if curl -sf -o /dev/null -X PATCH -H "Authorization: Bearer ${token}" -H 'Content-Type: application/json' \
-        -d "{\"password\":\"${old}\",\"newPassword\":\"${password}\"}" "http://127.0.0.1:${PORT}/api/me/password"; then
+        -d "{\"password\":\"$(json_text "${old}")\",\"newPassword\":\"$(json_text "${password}")\"}" \
+        "http://127.0.0.1:${PORT}/api/me/password"; then
         ( umask 077; printf '%s\n' "${password}" > "${PASSWORD_FILE}.tmp" ) && mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}"
         log "gave the root user (${ROOT_USER}) a new password"
     else
@@ -247,6 +261,22 @@ new_password() {
 
         return 1
     fi
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 check_folder() {
@@ -281,11 +311,12 @@ case "$1" in
     stop) stop ;;
     restart) stop; start ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     check-folder) setup > /dev/null && check_folder "$2" ;;
     daily) rotate_log ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|check-folder <path>|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|check-folder <path>|daily|nginx" >&2
 
         exit 1
         ;;

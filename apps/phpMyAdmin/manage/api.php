@@ -70,6 +70,19 @@ function pma_sql(string $sql): array
     return manage_run(['mysql', '--user=root', '--password=', '--batch', '--skip-column-names'], [], $sql);
 }
 
+/**
+ * A string as an SQL literal for MariaDB: quoted, with its backslashes and quotes escaped (passwords may have any visible
+ * characters).
+ *
+ * @param string $text The string
+ *
+ * @return string The literal
+ */
+function pma_quote(string $text): string
+{
+    return "'".str_replace(['\\', "'"], ['\\\\', "\\'"], $text)."'";
+}
+
 $action = $_GET['action'] ?? 'status';
 
 if ($action === 'status') {
@@ -97,18 +110,11 @@ if ($action === 'password') {
 }
 
 if ($action === 'set_password') {
-    // A new password: the one given (letters, digits and . _ ~ - only, so it can't break out of the SQL), or a random
-    // one
-    $new = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
-
-    if ($new === '') {
-        $new = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 24);
-    } elseif (!preg_match('/^[A-Za-z0-9._~-]{12,128}$/', $new)) {
-        manage_fail(400, 'Passwords must be 12-128 characters: letters, digits and . _ ~ -');
-    }
+    // A new password: the one given (any visible characters - quoted for the SQL), or a random one
+    $new = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
 
     // Change it in MariaDB first, then save it (reinstalling the app recreates the account with the saved password)
-    list($code, $output) = pma_sql("ALTER USER 'admin'@'localhost' IDENTIFIED BY '{$new}';\n");
+    list($code, $output) = pma_sql("ALTER USER 'admin'@'localhost' IDENTIFIED BY ".pma_quote($new).";\n");
 
     if ($code !== 0) {
         manage_fail(500, $output !== '' ? 'MariaDB refused the new password: '.$output : 'MariaDB could not be reached - is it running?');
@@ -126,15 +132,9 @@ if ($action === 'site_password') {
 }
 
 if ($action === 'set_site_password') {
-    // A new password for its HTTPS address: the one given (letters, digits and . _ ~ -), or a random one. Nginx reads
+    // A new password for its HTTPS address: the one given (any visible characters), or a random one. Nginx reads
     // the new htpasswd file on the next request
-    $new = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
-
-    if ($new === '') {
-        $new = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 20);
-    } elseif (!preg_match('/^[A-Za-z0-9._~-]{12,128}$/', $new)) {
-        manage_fail(400, 'Passwords must be 12-128 characters: letters, digits and . _ ~ -');
-    }
+    $new = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
 
     list($code, $output) = manage_run(['/bin/sh', $site_ctl, 'set-password'], [], $new."\n");
 

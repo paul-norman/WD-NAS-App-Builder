@@ -6,6 +6,7 @@
 #   vikunja_ctl.sh stop                   - stop Vikunja
 #   vikunja_ctl.sh restart                - stop, then start
 #   vikunja_ctl.sh new-password [<user>]  - give a user (default: admin) a new generated password; the admin's is
+#   vikunja_ctl.sh set-password [<user>]  - the same, with the password typed on the page (on its input, one line)
 #                                           kept in admin_password, anyone else's printed
 #   vikunja_ctl.sh add-user <name> <email> - add a user with a generated password, and print it
 #   vikunja_ctl.sh users                  - list the users: ID, name, email, one per line (tab separated)
@@ -244,7 +245,7 @@ user_id() {
 new_password() {
     local name="${1:-admin}"
     local id="$(user_id "${name}")"
-    local password="$(random_text 20)"
+    local password="${2:-$(random_text 20)}"
 
     if [ -z "${id}" ]; then
         log "No such user: ${name}"
@@ -252,7 +253,7 @@ new_password() {
         return 1
     fi
 
-    if ! echo "${password}" | vk_cli pty user reset-password "${id}" --direct 2>&1 \
+    if ! printf '%s\n' "${password}" | vk_cli pty user reset-password "${id}" --direct 2>&1 \
         | grep -q 'updated successfully'; then
         log "Could not set a new password for ${name}"
 
@@ -263,10 +264,27 @@ new_password() {
         ( umask 077; printf '%s\n' "${password}" > "${PASSWORD_FILE}.tmp" ) \
             && mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}"
     else
-        echo "${password}"
+        printf '%s\n' "${password}"
     fi
 
     log "gave ${name} a new password" > /dev/null
+}
+
+# A new password from the page for a user (default: admin): the one on the input (one line - any visible characters).
+#
+# $1 name The user
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)' > /dev/null; return 1 ;;
+    esac
+
+    new_password "${1:-admin}" "${password}"
 }
 
 # Adds a user with a generated password.
@@ -455,6 +473,7 @@ case "$1" in
         start
         ;;
     new-password) new_password "$2" ;;
+    set-password) set_password "$2" ;;
     add-user) add_user "$2" "$3" ;;
     users)
         "${BIN}/sqlite3" -readonly -separator "$(printf '\t')" "${DB}" \
@@ -467,8 +486,8 @@ case "$1" in
         ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password [<user>]|add-user <name> <email>|users|backup|daily" \
-            "|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password [<user>]|set-password [<user>]|add-user <name> <email>" \
+            "|users|backup|daily|nginx" >&2
 
         exit 1
         ;;

@@ -7,6 +7,7 @@
 #   navidrome_ctl.sh stop                 - stop Navidrome
 #   navidrome_ctl.sh restart              - stop, then start
 #   navidrome_ctl.sh new-password         - give the admin user a new (generated) password, while Navidrome runs
+#   navidrome_ctl.sh set-password         - the same, with the password typed on the page (on its input, one line)
 #   navidrome_ctl.sh check-folder <path>  - whether Navidrome's user can read a folder (exit status 0 if so)
 #   navidrome_ctl.sh daily                - the daily job: keeping its log small
 #   navidrome_ctl.sh nginx                - add / update Navidrome's site in the Nginx app (and reload it)
@@ -229,11 +230,12 @@ stop() {
     rm -f "${PID_FILE}"
 }
 
-# A new generated password for the admin user. Navidrome only reads it from a terminal: navidrome_runas --pty types it
-# in (twice, as asked), so it's never on a command line
+# A new password for the admin user (the one given, else a generated one). Navidrome only reads it from a terminal:
+# navidrome_runas --pty types it in (twice, as asked), so it's never on a command line
 new_password() {
+    # (the password given, before $1 becomes the user's ID)
+    password="${1:-$(random_text 20)}"
     set -- $(nd_ids)
-    password="$(random_text 20)"
 
     if printf '%s\n%s\n' "${password}" "${password}" | ( cd "${ND_DATA}" && "${BIN}/navidrome_runas" --pty "$1" "$2" \
         "${BIN}/navidrome" user edit --user "${ADMIN}" --set-password --configfile "${CONFIG}" --nobanner ) > /dev/null 2>&1; then
@@ -244,6 +246,22 @@ new_password() {
 
         return 1
     fi
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 # Whether Navidrome's user can read a folder (and list what's in it)
@@ -277,11 +295,12 @@ case "$1" in
     stop) stop ;;
     restart) stop; start ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     check-folder) setup > /dev/null && check_folder "$2" ;;
     daily) rotate_log ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|check-folder <path>|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|check-folder <path>|daily|nginx" >&2
 
         exit 1
         ;;

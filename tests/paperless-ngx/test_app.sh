@@ -5,6 +5,10 @@
 # the folder - only in the shares - the OCR language, the network), logging in through Nginx (Django's CSRF checks over
 # HTTPS), started before Valkey (as at boot), its documents kept across a restart, removal
 . /t/common/nas.sh paperless-ngx
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 DOMAIN=nas.example.test
 B=$P/paperless-ngx/binaries
 CONSUME=$V/Public/Paperless
@@ -88,8 +92,8 @@ ST=$(get status)
     && echo "$ST" | j '$d["address"]' | grep -q ':8040/"$' && pass "status: running (its four processes), 3.4.2, $(echo "$ST" | j '$d["address"]')" \
     || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password -d show=1 | j '$d["password"]')" = "\"$(cat $D/admin_password)\"" ] && pass 'the password shown' || fail 'password'
-OLD=$(cat $D/admin_password); NEW=$(post new_password -d confirm=1 | j '$d["password"]' | tr -d '"')
-[ ${#NEW} = 20 ] && [ "$NEW" != "$OLD" ] && [ -z "$(token "$OLD")" ] && [ -n "$(token "$NEW")" ] \
+OLD=$(cat $D/admin_password); NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw)
+[ "$NEW" = "$XPW" ] && [ "$NEW" != "$OLD" ] && [ -z "$(token "$OLD")" ] && [ -n "$(token "$NEW")" ] \
     && pass 'a new password, at once (nothing restarted): it works, the old one no longer does' || fail "new password: ${#NEW}"
 R1=$(post settings -d consume_dir=$P/_paperless-ngx -d ocr_language=eng); R2=$(post settings -d consume_dir=$CONSUME --data-urlencode ocr_language=fra)
 [ "$(echo "$R1" | j '$d["ok"]')" = false ] && [ "$(echo "$R2" | j '$d["ok"]')" = false ] && pass "refused: a folder in Nas_Prog, an OCR language it doesn't have" || fail "refusals: $R1 $R2"
@@ -117,6 +121,14 @@ C=$(site /accounts/login/ -b /tmp/jar -c /tmp/jar -o /dev/null -w '%{http_code} 
 echo "$C" | grep -q '^302 ' && [ "$(site /api/ui_settings/ -b /tmp/jar -o /dev/null -w '%{http_code}')" = 200 ] \
     && pass "logged in through https://paperless.$DOMAIN/ (its login form, Django's CSRF checks over HTTPS)" || fail "login through Nginx: $C $(grep -o 'errorlist[^<]*<[^<]*' /tmp/login.html | head -n 2)"
 [ "$(get status | j '$d["site"]["url"]')" = "\"https://paperless.$DOMAIN/\"" ] && pass 'the page shows its site' || fail "site: $(get status | j '$d["site"]')"
+
+echo "== Valkey's password changed on its page (spaces, quotes and symbols)"
+WRONG=$(grep -c 'WRONGPASS\|NOAUTH\|invalid username-password' $D/paperless.log 2>/dev/null)
+page_up valkey; R=$(post set_password --data-urlencode "password=$XPW"); page_up paperless-ngx
+up && sleep 15 && TOKEN=$(token "$NEW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && api '/api/documents/?content__icontains=4711' | grep -q '"count":1' \
+    && [ "$(grep -c 'WRONGPASS\|NOAUTH\|invalid username-password' $D/paperless.log 2>/dev/null)" = "$WRONG" ] \
+    && pass "Paperless restarted with it (percent-encoded in its Valkey URL): its documents there, no login errors" || fail "valkey password: $R $(cat $D/state) $(tail -n 5 $D/paperless.log)"
 
 echo '== started before Valkey (as at boot)'
 sh $P/paperless-ngx/stop.sh $P/paperless-ngx > /dev/null 2>&1; sh $P/valkey/stop.sh $P/valkey > /dev/null 2>&1

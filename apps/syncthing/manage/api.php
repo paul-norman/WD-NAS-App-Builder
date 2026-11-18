@@ -101,14 +101,8 @@ if ($action === 'password') {
 }
 
 if ($action === 'set_password') {
-    // A new password: the one given (letters, digits and . _ ~ - only, like the other apps), or a random one
-    $new = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
-
-    if ($new === '') {
-        $new = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 20);
-    } elseif (!preg_match('/^[A-Za-z0-9._~-]{12,128}$/', $new)) {
-        manage_fail(400, 'Passwords must be 12-128 characters: letters, digits and . _ ~ -');
-    }
+    // A new password: the one given (any visible characters, spaces and symbols included), or a random one
+    $new = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
 
     // Syncthing stores it hashed, so the file is the only place it can be read back from
     if (st_api('PATCH', '/rest/config/gui', ['password' => $new]) === null) {

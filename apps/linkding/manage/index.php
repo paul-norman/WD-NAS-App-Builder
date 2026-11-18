@@ -25,12 +25,13 @@ header('Cache-Control: no-store');
     <p>Its admin user is <code>admin</code>, with this password: <code data-ld="password">••••••••••••</code>
         <button type="button" data-ld-action="show">Show</button>
         <button type="button" data-ld-action="copy">Copy</button></p>
-    <p><input type="text" data-ld="new" placeholder="New password (leave empty to generate one)" autocomplete="off"
-            spellcheck="false">
+    <p><input type="password" data-ld="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-ld-action="set">Change password</button></p>
     <p class="mg-note">The app made this account on linkding's first start (linkding has no sign-ups, so nobody else can
         claim it). Add the rest of the household in linkding's admin pages (Settings, Admin, Users), each with bookmarks
         of their own. If you change the password in linkding, this page no longer knows it: set a new one here.</p>
+    <p data-ld="password-message"></p>
 
     <h3>Backups</h3>
     <p data-ld="backups">-</p>
@@ -162,7 +163,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

@@ -5,6 +5,10 @@
 # through its site (HTTPS, as Nextcloud's own clients do), its background jobs from cron, files found that were added
 # outside it, a new password, backups, the network setting, a restart keeping its files, removal
 . /t/common/nas.sh nextcloud
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -85,8 +89,8 @@ ST=$(get status)
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://nextcloud.$DOMAIN/\"" ] && pass "status: running, $(echo "$ST" | j '$d["version"]'), its database, its site" \
     || fail "status: $(echo "$ST" | head -c 500)"
 [ "$(post password | j '$d["password"]')" = "\"$(cat $D/password)\"" ] && pass 'the page shows the password' || fail 'password not shown'
-OLD=$(cat $D/password); R=$(post set_password -d password=Brand.New-Password_1)
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(PW=Brand.New-Password_1 dav / -X PROPFIND -H 'Depth: 0' -o /dev/null -w '%{http_code}')" = 207 ] \
+OLD=$(cat $D/password); R=$(post set_password --data-urlencode "password=$XPW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(PW="$XPW" dav / -X PROPFIND -H 'Depth: 0' -o /dev/null -w '%{http_code}')" = 207 ] \
     && [ "$(PW=$OLD dav / -X PROPFIND -H 'Depth: 0' -o /dev/null -w '%{http_code}')" = 401 ] && pass 'a new password from the page: in use at once, the old one refused' || fail "new password: $R"
 
 echo '== backups'
@@ -100,7 +104,7 @@ R=$(post listen -d listen=all); wait_port 8097 60
     && curl -s -m 30 "http://$IP:8097/status.php" | grep -q '"installed":true' && curl -s -m 30 "http://$IP:8097/login" | grep -q 'body-login\|login-form' \
     && pass "on the network too: http://$IP:8097 (its address trusted)" || fail "listen all: $R $(curl -s -m 10 "http://$IP:8097/login" | grep -io 'untrusted[^<]*' | head -n 1)"
 post listen -d listen=local > /dev/null; wait_port 8097 60
-! listens_beyond && [ "$(dav /test-upload.bin -o /dev/null -w '%{http_code}' -u admin:Brand.New-Password_1)" = 200 ] \
+! listens_beyond && [ "$(dav /test-upload.bin -o /dev/null -w '%{http_code}' -u "admin:$XPW")" = 200 ] \
     && pass 'back to the NAS only - its files kept across the restarts' || fail 'listen local'
 
 echo '== removal'

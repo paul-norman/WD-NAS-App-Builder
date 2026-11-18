@@ -7,6 +7,7 @@
 #   ice_ctl.sh stop                - stop both
 #   ice_ctl.sh restart             - stop, then start
 #   ice_ctl.sh new-password <name> - a new (generated) password: admin (Icecast's admin pages) or source (broadcasting)
+#   ice_ctl.sh set-password <admin|source> - the same, with the password typed on the page (on its input, one line)
 #   ice_ctl.sh skip                - the station's next track, now
 #   ice_ctl.sh playlist            - find the music folder's tracks again (the station carries on with them)
 #   ice_ctl.sh check-folder <path> - whether Icecast's user can read a folder (exit status 0 if so)
@@ -112,6 +113,16 @@ password() {
     cat "${DATA_PATH}/$1_password"
 }
 
+# A password as it goes in the XML settings (Icecast's and the station's): & < > " and ' escaped (a password may have
+# any visible characters).
+#
+# $1 name admin or source
+#
+# Prints it
+xml_password() {
+    password "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"'"'/\&apos;/g'
+}
+
 write_icecast_config() {
     set -- $(ice_ids)
     host=0.0.0.0
@@ -133,10 +144,10 @@ write_icecast_config() {
         <burst-size>65535</burst-size>
     </limits>
     <authentication>
-        <source-password>$(password source)</source-password>
+        <source-password>$(xml_password source)</source-password>
         <relay-password>$(random_text 24)</relay-password>
         <admin-user>admin</admin-user>
-        <admin-password>$(password admin)</admin-password>
+        <admin-password>$(xml_password admin)</admin-password>
     </authentication>
     <listen-socket>
         <port>${PORT}</port>
@@ -220,7 +231,7 @@ write_ezstream_config() {
             <hostname>127.0.0.1</hostname>
             <port>${PORT}</port>
             <user>source</user>
-            <password>$(password source)</password>
+            <password>$(xml_password source)</password>
             <tls>None</tls>
             <reconnect_attempts>0</reconnect_attempts>
         </server>
@@ -356,8 +367,26 @@ new_password() {
         admin|source) ;;
         *) echo "Usage: $0 new-password admin|source" >&2; return 1 ;;
     esac
-    ( umask 077; random_text 20 > "${DATA_PATH}/$1_password.tmp" ) && mv -f "${DATA_PATH}/$1_password.tmp" "${DATA_PATH}/$1_password"
+    ( umask 077; if [ -n "$2" ]; then printf '%s' "$2"; else random_text 20; fi > "${DATA_PATH}/$1_password.tmp" ) \
+        && mv -f "${DATA_PATH}/$1_password.tmp" "${DATA_PATH}/$1_password"
     log "a new $1 password"
+}
+
+# A new password from the page, for admin or source: the one on the input (one line - any visible characters).
+#
+# $1 name admin or source
+#
+# Returns 0 once it's saved
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "$1" "${password}"
 }
 
 check_folder() {
@@ -394,12 +423,14 @@ case "$1" in
     stop) stop ;;
     restart) stop; start ;;
     new-password) new_password "$2" ;;
+    set-password) set_password "$2" ;;
     skip) running "${EZSTREAM_PID}" && kill -USR1 "$(cat "${EZSTREAM_PID}")" ;;
     playlist|daily) playlist ;;
     check-folder) setup > /dev/null && check_folder "$2" ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password <admin|source>|skip|playlist|check-folder <path>|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password <admin|source>|set-password <admin|source>" \
+            "|skip|playlist|check-folder <path>|daily|nginx" >&2
 
         exit 1
         ;;

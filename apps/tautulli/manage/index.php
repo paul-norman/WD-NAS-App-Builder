@@ -24,10 +24,12 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>Tautulli asks for the user name <code>admin</code> and this password: <code data-tt="password">••••••••••••</code>
         <button type="button" data-tt-action="show">Show</button> <button type="button" data-tt-action="copy">Copy</button></p>
-    <p><input type="text" data-tt="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-tt="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-tt-action="set">Change password</button></p>
-    <p class="mg-note">Tautulli restarts with the new password. Passwords are 12-128 characters: letters, digits and . _ ~ -
+    <p class="mg-note">Tautulli restarts with the new password. Passwords are 12-128 characters (letters, digits, symbols or spaces)
         (A password changed in Tautulli's own settings isn't shown here.)</p>
+    <p data-tt="password-message"></p>
 
     <h3>The first time</h3>
     <p>Tautulli's setup asks for the Plex server to follow: <span data-tt="plex">-</span> Signing in with your Plex account
@@ -140,7 +142,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password (Tautulli restarts)…', 'New password in use.').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password (Tautulli restarts)…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

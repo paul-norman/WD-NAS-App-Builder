@@ -26,24 +26,16 @@ function pg_sql(string $sql): array
 }
 
 /**
- * A password for a database user: the one given, if it's 12-128 letters, digits and . _ ~ - (else the request fails),
- * or a generated one.
+ * A string as an SQL literal for PostgreSQL: quoted, with its quotes doubled (its backslashes are ordinary characters
+ * in standard strings) - passwords may have any visible characters.
  *
- * @param string $given The password given ('' for a generated one)
+ * @param string $text The string
  *
- * @return string The password
+ * @return string The literal
  */
-function pg_new_password(string $given): string
+function pg_quote(string $text): string
 {
-    if ($given === '') {
-        return substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 24);
-    }
-
-    if (!preg_match('/^[A-Za-z0-9._~-]{12,128}$/', $given)) {
-        manage_fail(400, 'Passwords must be 12-128 characters: letters, digits and . _ ~ -');
-    }
-
-    return $given;
+    return "'".str_replace("'", "''", $text)."'";
 }
 
 $action = $_GET['action'] ?? 'status';
@@ -82,9 +74,9 @@ if ($action === 'password') {
 }
 
 if ($action === 'set_password') {
-    $new = pg_new_password(isset($_POST['password']) ? trim((string)$_POST['password']) : '');
+    $new = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
 
-    list($code, $output) = pg_sql("ALTER ROLE postgres PASSWORD '{$new}';\n");
+    list($code, $output) = pg_sql('ALTER ROLE postgres PASSWORD '.pg_quote($new).";\n");
 
     if ($code !== 0) {
         manage_fail(500, 'PostgreSQL refused the new password: '.$output);
@@ -112,9 +104,9 @@ if ($action === 'create_database') {
         }
     }
 
-    $password = pg_new_password(isset($_POST['password']) ? trim((string)$_POST['password']) : '');
+    $password = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
 
-    list($code, $output) = pg_sql("CREATE ROLE \"{$user}\" LOGIN PASSWORD '{$password}';\nCREATE DATABASE \"{$name}\" OWNER \"{$user}\";\n");
+    list($code, $output) = pg_sql("CREATE ROLE \"{$user}\" LOGIN PASSWORD ".pg_quote($password).";\nCREATE DATABASE \"{$name}\" OWNER \"{$user}\";\n");
 
     if ($code !== 0) {
         manage_fail(500, 'PostgreSQL refused: '.$output);

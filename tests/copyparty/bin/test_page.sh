@@ -3,6 +3,12 @@
 # CSRF token - against a running copyparty
 A=/mnt/HD/HD_a2/Nas_Prog/copyparty; D=/mnt/HD/HD_a2/Nas_Prog/_copyparty; P=/mnt/HD/HD_a2/Public
 . /t/bin/setup.sh
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 mkdir -p /var/www/apps && ln -s $A/manage /var/www/apps/copyparty
 echo "PHP $(php -r 'echo PHP_VERSION;')"
 sh $A/cpp_ctl.sh start > /dev/null 2>&1
@@ -32,17 +38,17 @@ echo '== users'
 R=$(post add_user -d name=bob); BOB=$(echo "$R" | j '$d["password"]' | tr -d '"')
 [ ${#BOB} = 20 ] && [ "$(who bob:$BOB)" = bob ] && [ "$(code -u bob:$BOB $U/public/?ls)" = 403 ] && pass 'a user added: logs in, but no folder yet' || fail "add user: $R"
 post add_user -d name=bob | grep -q 'already' && post add_user --data-urlencode 'name=a b' | grep -q 'User names' && pass 'a duplicate or invalid user name refused' || fail 'user name checks'
-R=$(post new_password -d name=bob); BOB2=$(echo "$R" | j '$d["password"]' | tr -d '"')
-[ "$(who bob:$BOB2)" = bob ] && [ "$(who bob:$BOB)" = '*' ] && pass "a new password works, the old one doesn't" || fail "new password: $R"
+R=$(post new_password -d name=bob --data-urlencode "password=$XPW"); BOB2=$(echo "$R" | jpw)
+[ "$BOB2" = "$XPW" ] && [ "$(who "bob:$BOB2")" = bob ] && [ "$(who "bob:$BOB")" = '*' ] && pass "a new password works, the old one doesn't" || fail "new password: $R"
 
 echo '== folders'
 mkdir -p "$P/Photos" && chmod 777 "$P/Photos" && echo pic > "$P/Photos/p.txt"
 R=$(folder photos "$P/Photos" '{"bob":"read","admin":"admin","*":"none"}')
-[ "$(curl -s -u bob:$BOB2 $U/photos/p.txt)" = pic ] && [ "$(code $U/photos/p.txt)" != 200 ] && pass 'a folder shared with bob (view), not with everyone' || fail "share: $R"
+[ "$(curl -s -u "bob:$BOB2" $U/photos/p.txt)" = pic ] && [ "$(code $U/photos/p.txt)" != 200 ] && pass 'a folder shared with bob (view), not with everyone' || fail "share: $R"
 folder photos "$P/Photos" '{"bob":"write"}' photos > /dev/null
-[ "$(code -u bob:$BOB2 -T /etc/hostname $U/photos/up.txt)" = 201 ] && pass 'changed to view and upload: bob can upload' || fail 'change'
+[ "$(code -u "bob:$BOB2" -T /etc/hostname $U/photos/up.txt)" = 201 ] && pass 'changed to view and upload: bob can upload' || fail 'change'
 folder pics "$P/Photos" '{"bob":"read"}' photos > /dev/null
-[ "$(code -u bob:$BOB2 $U/pics/p.txt)" = 200 ] && [ "$(code -u bob:$BOB2 $U/photos/p.txt)" != 200 ] && pass "renamed: its new address works, the old one doesn't" || fail 'rename'
+[ "$(code -u "bob:$BOB2" $U/pics/p.txt)" = 200 ] && [ "$(code -u "bob:$BOB2" $U/photos/p.txt)" != 200 ] && pass "renamed: its new address works, the old one doesn't" || fail 'rename'
 
 for bad in '/mnt/HD/HD_a2/Nas_Prog/_copyparty' /etc '/mnt/HD/HD_a2/../../etc' "$P/missing"; do
     R=$(folder x "$bad" '{"admin":"read"}')
@@ -59,7 +65,7 @@ folder locked "$P/Locked" '{"admin":"full"}' > /dev/null
 
 echo '== removing'
 post remove_user -d name=bob > /dev/null
-[ "$(who bob:$BOB2)" = '*' ] && ! grep -q '"bob"' $D/settings.json && pass 'a user removed (and from every folder)' || fail 'remove user'
+[ "$(who "bob:$BOB2")" = '*' ] && ! grep -q '"bob"' $D/settings.json && pass 'a user removed (and from every folder)' || fail 'remove user'
 post remove_user -d name=admin | grep -q 'at least one' && pass "the last user can't be removed" || fail 'last user removed'
 post remove_folder -d name=locked > /dev/null
 [ "$(code -u admin:$PW $U/locked/)" != 200 ] && pass 'a folder no longer shared' || fail 'remove folder'

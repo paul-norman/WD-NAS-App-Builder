@@ -60,7 +60,7 @@ post remove_user -d name=carol > /dev/null
 
 P1=$(curl -s -H "$CK" $PAGE/index.php)
 echo "$P1" | grep -q '<input type="password" data-rd="password"' && echo "$P1" | grep -q '<input type="password" data-rd="renew-password"' \
-    && echo "$P1" | grep -q 'data-rd-action="show-renew">Show' && pass 'the page: password fields (hidden as typed) with Show, New password takes a typed one' || fail 'password fields'
+    && echo "$P1" | grep -q 'data-show-for="renew-password">Show' && pass 'the page: password fields (hidden as typed) with Show, New password takes a typed one' || fail 'password fields'
 
 echo '== phones'
 W=$(code -o /dev/null -w '%{http_code} %{redirect_url}' $U/.well-known/caldav)

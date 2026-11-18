@@ -206,14 +206,8 @@ if ($action === 'password') {
 }
 
 if ($action === 'set_password') {
-    // A new password: the one given (letters, digits and . _ ~ - only, like the other apps), or a random one
-    $new = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
-
-    if ($new === '') {
-        $new = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 20);
-    } elseif (!preg_match('/^[A-Za-z0-9._~-]{12,128}$/', $new)) {
-        manage_fail(400, 'Passwords must be 12-128 characters: letters, digits and . _ ~ -');
-    }
+    // A new password: the one given (any visible characters, spaces and symbols included), or a random one
+    $new = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '', 12, 72, true);
 
     if (!ne_write_auth($new)) {
         manage_fail(500, 'The password could not be saved in: '.$data_path);
@@ -232,16 +226,12 @@ if ($action === 'settings') {
         manage_fail(400, 'The port must be between 1024 and 65535');
     }
 
-    // A password given when turning it on (letters, digits and . _ ~ - only, like the other apps) - or, the first time
-    // one is needed, a generated one
-    $password = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
+    // A password given when turning it on (any visible characters; bcrypt reads 72 bytes) - or, the first time one is
+    // needed, a generated one
+    $given = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
 
-    if ($auth && $password !== '' && !preg_match('/^[A-Za-z0-9._~-]{12,128}$/', $password)) {
-        manage_fail(400, 'Passwords must be 12-128 characters: letters, digits and . _ ~ -');
-    }
-
-    if ($auth && ($password !== '' || !is_file($web_config))) {
-        if (!ne_write_auth($password !== '' ? $password : substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 20))) {
+    if ($auth && ($given !== '' || !is_file($web_config))) {
+        if (!ne_write_auth(manage_new_password($given, 12, 72, true))) {
             manage_fail(500, 'The password could not be saved in: '.$data_path);
         }
     }

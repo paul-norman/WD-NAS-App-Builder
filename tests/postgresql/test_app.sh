@@ -3,6 +3,10 @@
 # passwords only (scram-sha-256), databases with users of their own from the page, the bundled extensions (PostGIS with
 # PROJ's data, pgvector, pg_cron once preloaded), the postgres password, the network switch, removal
 . /t/common/nas.sh postgresql
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 PSQL=$P/postgresql/binaries/postgresql/bin/psql
 # A query over TCP (as an app connects): sql <user> <password> <database> <sql> [host]
 sql() { PGPASSWORD="$2" PGCONNECT_TIMEOUT=5 $PSQL -h "${5:-127.0.0.1}" -U "$1" -d "$3" -tAq -v ON_ERROR_STOP=1 -c "$4" 2>&1; }
@@ -31,6 +35,9 @@ R=$(post create_database -d name=photos)
 UPW=$(echo "$R" | j '$d["password"]' | tr -d '"')
 [ "$(echo "$R" | j '$d["user"]')" = '"photos"' ] && [ "$(sql photos "$UPW" photos 'CREATE TABLE t (id int); INSERT INTO t VALUES (7); SELECT id FROM t')" = 7 ] \
     && pass 'created from the page: its user owns it (creates tables)' || fail "create: $R"
+R=$(post create_database -d name=notes --data-urlencode "password=$XPW")
+[ "$(echo "$R" | jpw)" = "$XPW" ] && [ "$(sql notes "$XPW" notes 'SELECT 1')" = 1 ] \
+    && pass 'one with a typed password (spaces, quotes, a backslash: quoted for the SQL) logs in with it' || fail "typed password: $R"
 post create_database -d 'name=bad name' | grep -q 'Names are' && post create_database -d name=pg_x | grep -q 'Names are' \
     && post create_database -d name=photos | grep -q 'refused' && pass 'bad and existing names refused' || fail 'name checks'
 
@@ -45,8 +52,8 @@ R=$(sql postgres "$PW" postgres "CREATE EXTENSION pg_cron; SELECT cron.schedule(
 [ "$R" -ge 1 ] 2>/dev/null && [ "$(get status | j '$d["preload"]')" = '["pg_cron"]' ] && pass 'preloaded from the page: a pg_cron job scheduled' || fail "pg_cron: $R"
 
 echo '== a new postgres password'
-NP=$(post set_password | j '$d["password"]' | tr -d '"')
-[ "$NP" != "$PW" ] && [ "$(sql postgres "$NP" postgres 'SELECT 1')" = 1 ] && sql postgres "$PW" postgres 'SELECT 1' | grep -q 'failed' \
+NP=$(post set_password --data-urlencode "password=$XPW" | jpw)
+[ "$NP" = "$XPW" ] && [ "$(sql postgres "$NP" postgres 'SELECT 1')" = 1 ] && sql postgres "$PW" postgres 'SELECT 1' | grep -q 'failed' \
     && [ "$(cat $D/postgres_password)" = "$NP" ] && pass "it works, the old one doesn't" || fail "set_password: $NP"
 
 echo '== the network switch'

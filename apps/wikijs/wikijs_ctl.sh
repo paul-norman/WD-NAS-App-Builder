@@ -271,7 +271,7 @@ admin_password() {
     password="$(head -n 1 | tr -d '\r\n')"
 
     case "${password}" in
-        ''|*[!A-Za-z0-9._~-]*) log 'Passwords are letters, digits and . _ ~ - only'; return 1 ;;
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
     esac
 
     # The NAS's php, wherever it's called from - e.g. the page, with a short PATH (both PHP 7.4 and 8.5 have bcrypt)

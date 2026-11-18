@@ -56,6 +56,7 @@ exp_ids() {
 
 # The Valkey app's server, and its configuration (root's), which holds its password (requirepass)
 VALKEY_CONF="${APPS_PATH}/_valkey/valkey.conf"
+VALKEY_PASSWORD_FILE="${APPS_PATH}/_valkey/password"
 
 # Whether the Valkey app's password can be read.
 #
@@ -64,11 +65,16 @@ db_answering() {
     [ -n "$(valkey_password)" ]
 }
 
-# The Valkey app's password (from its configuration).
+# The Valkey app's password: its password file (as it is - spaces, quotes and symbols included), else - from an older
+# Valkey app - its config file's requirepass (then letters and digits, unquoted).
 #
 # Prints it
 valkey_password() {
-    sed -n 's/^requirepass[[:space:]]*//p' "${VALKEY_CONF}" 2>/dev/null | head -n 1 | tr -d '"\r'
+    if [ -f "${VALKEY_PASSWORD_FILE}" ]; then
+        sed -n 1p "${VALKEY_PASSWORD_FILE}"
+    else
+        awk '$1 == "requirepass" { print $2; exit }' "${VALKEY_CONF}" 2>/dev/null
+    fi
 }
 
 # Takes the Valkey app's password (Valkey has a single password: no login of its own is made).

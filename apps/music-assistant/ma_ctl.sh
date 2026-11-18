@@ -6,6 +6,7 @@
 #   ma_ctl.sh stop           - stop Music Assistant
 #   ma_ctl.sh restart        - stop, then start
 #   ma_ctl.sh new-password   - give the admin user a new (generated) password, while it runs
+#   ma_ctl.sh set-password   - the same, with the password typed on the page (on its input, one line)
 #   ma_ctl.sh backup         - back up its settings, library and users (stopping it for a moment, if it runs)
 #   ma_ctl.sh daily          - the daily job: a backup, and keeping the log small
 #   ma_ctl.sh nginx          - add / update Music Assistant's site in the Nginx app (and reload it)
@@ -183,11 +184,12 @@ case "$1" in
     stop) stop ;;
     restart) stop; start ;;
     new-password) new_password ;;
+    set-password) "${PYTHON}" -I "${APP_PATH}/lib/ma_api.py" set-password "${DATA_PATH}" ;;
     backup) backup ;;
     daily) backup; rotate_log ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|backup|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|backup|daily|nginx" >&2
 
         exit 1
         ;;

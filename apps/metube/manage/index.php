@@ -27,12 +27,12 @@ header('Cache-Control: no-store');
     <table data-mt="users"></table>
     <p data-mt="renew-box" hidden>New password for <strong data-mt="renew-name"></strong>:
         <input type="password" data-mt="renew-password" placeholder="Leave empty to generate one" autocomplete="new-password">
-        <button type="button" data-mt-action="show-renew">Show</button>
+        <button type="button" data-show-for="renew-password">Show</button>
         <button type="button" data-mt-action="renew-save">Save</button>
         <button type="button" data-mt-action="renew-cancel">Cancel</button></p>
     <p><input type="text" data-mt="name" placeholder="Name (e.g. alex)" autocomplete="off" spellcheck="false">
         <input type="password" data-mt="password" placeholder="Password (leave empty to generate one)" autocomplete="new-password">
-        <button type="button" data-mt-action="show-password">Show</button>
+        <button type="button" data-show-for="password">Show</button>
         <button type="button" data-mt-action="add">Add</button></p>
     <p data-mt="users-message"></p>
     <p class="mg-note">Names are lower-case letters, digits and . _ - ; passwords are 8-128 characters (letters, digits,
@@ -115,22 +115,6 @@ header('Cache-Control: no-store');
         };
 
         /**
-         * Makes a password field show what's typed in it, or hide it again, with its Show / Hide button.
-         *
-         * @param {string} field  The field's part name
-         * @param {string} toggle The button's action name
-         *
-         * @return {void}
-         */
-        function showHide(field, toggle) {
-            let input = part(field);
-            let hide  = input.type === 'text';
-
-            input.type                 = hide ? 'password' : 'text';
-            button(toggle).textContent = hide ? 'Show' : 'Hide';
-        }
-
-        /**
          * Shows a password just set, once (it isn't kept).
          *
          * @param {Object} response The API's answer: the user's name and password
@@ -201,7 +185,7 @@ header('Cache-Control: no-store');
 
                     let videos = user.videos > 0 && window.confirm(`Delete ${user.name}'s ${user.videos} videos too? (Cancel keeps them in their folder.)`);
 
-                    actAt('users-message', 'remove_user', { name: user.name, delete_videos: videos ? 1 : '' }, 'Removing…', `${user.name} removed.`);
+                    act('remove_user', { name: user.name, delete_videos: videos ? 1 : '' }, 'Removing…', `${user.name} removed.`, 'users-message');
                 });
 
                 controls.appendChild(renew);
@@ -293,46 +277,18 @@ header('Cache-Control: no-store');
 
         // Keep the page current, until the dashboard removes it
         <?php manage_timer_script(); ?>
-
-        /**
-         * Runs one of the API's actions as act() does, but says how it went in the page's section that asked for it
-         * (where the person is looking), not at the bottom of the page.
-         *
-         * @param {string} where   The section's message part (e.g. users-message)
-         * @param {string} action  The API's action
-         * @param {Object} data    What to post
-         * @param {string} working What to say meanwhile
-         * @param {string} done    What to say once it's done
-         *
-         * @return {Promise.<(Object|null)>} Its answer (null if it failed)
-         */
-        function actAt(where, action, data, working, done) {
-            say(working, true, where);
-
-            return call(action, data).then(function (response) {
-                if (!response.ok) {
-                    say(response.error, false, where);
-
-                    return null;
-                }
-
-                say(done, true, where);
-                setTimeout(refresh, 2000);
-
-                return response;
-            });
-        }
+        <?php manage_act_script(); ?>
 
         button('restart').addEventListener('click', function () {
-            actAt('top-message', 'restart', { confirm: 1 }, 'Restarting…', 'Restarted.');
+            act('restart', { confirm: 1 }, 'Restarting…', 'Restarted.', 'top-message');
         });
 
         button('add').addEventListener('click', function () {
             let name  = part('name').value.trim();
             let typed = part('password').value.trim();
 
-            actAt('users-message', 'add_user', { name: name, password: typed }, `Adding ${name}…`,
-                typed ? `${name} added, with the password you typed.` : `${name} added (their password is shown below).`).then(function (response) {
+            act('add_user', { name: name, password: typed }, `Adding ${name}…`,
+                typed ? `${name} added, with the password you typed.` : `${name} added (their password is shown below).`, 'users-message').then(function (response) {
                 if (response) {
                     showPassword(response, typed);
 
@@ -340,14 +296,6 @@ header('Cache-Control: no-store');
                     part('password').value = '';
                 }
             });
-        });
-
-        button('show-password').addEventListener('click', function () {
-            showHide('password', 'show-password');
-        });
-
-        button('show-renew').addEventListener('click', function () {
-            showHide('renew-password', 'show-renew');
         });
 
         button('renew-cancel').addEventListener('click', function () {
@@ -359,8 +307,8 @@ header('Cache-Control: no-store');
             let name  = renewing;
             let typed = part('renew-password').value.trim();
 
-            actAt('users-message', 'new_password', { name: name, password: typed }, 'Saving…',
-                typed ? `New password for ${name} saved.` : `New password for ${name} (shown below).`).then(function (response) {
+            act('new_password', { name: name, password: typed }, 'Saving…',
+                typed ? `New password for ${name} saved.` : `New password for ${name} (shown below).`, 'users-message').then(function (response) {
                 if (response) {
                     showPassword(response, typed);
 
@@ -383,15 +331,15 @@ header('Cache-Control: no-store');
         });
 
         button('folder').addEventListener('click', function () {
-            actAt('folder-message', 'folder', { folder: part('folder').value.trim() }, 'Saving (MeTube restarts)…', 'Download folder saved.');
+            act('folder', { folder: part('folder').value.trim() }, 'Saving (MeTube restarts)…', 'Download folder saved.', 'folder-message');
         });
 
         button('cleanup').addEventListener('click', function () {
-            actAt('cleanup-message', 'cleanup', { watched_days: part('watched-days').value, unwatched_days: part('unwatched-days').value }, 'Saving…', 'Clean-up saved.');
+            act('cleanup', { watched_days: part('watched-days').value, unwatched_days: part('unwatched-days').value }, 'Saving…', 'Clean-up saved.', 'cleanup-message');
         });
 
         button('server-test').addEventListener('click', function () {
-            actAt('server-message', 'media_test', server(), 'Asking the media server…', 'It answered.').then(function (response) {
+            act('media_test', server(), 'Asking the media server…', 'It answered.', 'server-message').then(function (response) {
                 if (response) {
                     say(response.message, true, 'server-message');
                 }
@@ -399,7 +347,7 @@ header('Cache-Control: no-store');
         });
 
         button('server-save').addEventListener('click', function () {
-            actAt('server-message', 'media_server', server(), 'Saving…', part('server-type').value ? 'Media server saved.' : 'No media server.').then(function (response) {
+            act('media_server', server(), 'Saving…', part('server-type').value ? 'Media server saved.' : 'No media server.', 'server-message').then(function (response) {
                 if (response) {
                     part('server-token').value = '';
                 }
@@ -407,18 +355,18 @@ header('Cache-Control: no-store');
         });
 
         button('ytdlp-save').addEventListener('click', function () {
-            actAt('ytdlp-message', 'ytdlp_setting', { update: part('ytdlp-auto').checked ? 1 : '' }, 'Saving…', 'Saved.');
+            act('ytdlp_setting', { update: part('ytdlp-auto').checked ? 1 : '' }, 'Saving…', 'Saved.', 'ytdlp-message');
         });
 
         button('ytdlp-now').addEventListener('click', function () {
-            actAt('ytdlp-message', 'ytdlp_update', { confirm: 1 }, 'Updating yt-dlp (this can take a minute)…', 'yt-dlp is up to date.');
+            act('ytdlp_update', { confirm: 1 }, 'Updating yt-dlp (this can take a minute)…', 'yt-dlp is up to date.', 'ytdlp-message');
         });
 
         button('listen').addEventListener('click', function () {
             let local = part('local').checked;
 
-            actAt('access-message', 'listen', { listen: local ? 'local' : 'all' }, 'Saving…', local ? 'The Watch page is now only reachable through the Nginx app.' :
-                'The Watch page is reachable on port 8086 too.');
+            act('listen', { listen: local ? 'local' : 'all' }, 'Saving…', local ? 'The Watch page is now only reachable through the Nginx app.' :
+                'The Watch page is reachable on port 8086 too.', 'access-message');
         });
 
         refresh();

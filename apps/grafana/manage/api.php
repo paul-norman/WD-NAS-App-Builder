@@ -135,8 +135,8 @@ if ($action === 'password') {
 }
 
 if ($action === 'reset_password') {
-    // A new random password (letters and digits), given to Grafana's own command on input
-    $password = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 20);
+    // The password typed (any visible characters), or a generated one, given to Grafana's own command on input
+    $password = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
 
     list($code, $output) = graf_ctl($ctl, 'reset-password', $password."\n");
 

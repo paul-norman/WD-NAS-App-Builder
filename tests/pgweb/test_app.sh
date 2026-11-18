@@ -3,6 +3,10 @@
 # as its own user, only on the NAS itself, its site through Nginx asking for the page's password first, a PostgreSQL
 # login on pgweb's own form and a query, read only, new passwords, removal
 . /t/common/nas.sh pgweb
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -62,9 +66,9 @@ site '/api/query' -u "admin:$PW" -H "x-session-id: $S" --data-urlencode 'query=C
 
 echo '== new passwords'
 R=$(post set_password -d password=short); echo "$R" | grep -q '12-128' && pass 'a short password refused' || fail "short: $R"
-NEW=$(post set_password -d password= | j '$d["password"]' | tr -d '"')
-[ ${#NEW} = 20 ] && [ "$(site /api/info -u "admin:$PW" -o /dev/null -w '%{http_code}')" = 401 ] && [ "$(site /api/info -u "admin:$NEW" -o /dev/null -w '%{http_code}')" = 200 ] \
-    && [ "$(post password | j '$d["password"]' | tr -d '"')" = "$NEW" ] && pass 'a generated password: the old one refused at once, the new one in (nothing restarted)' || fail "new password: $NEW"
+NEW=$(post set_password --data-urlencode "password=$XPW" | jpw)
+[ "$NEW" = "$XPW" ] && [ "$(site /api/info -u "admin:$PW" -o /dev/null -w '%{http_code}')" = 401 ] && [ "$(site /api/info -u "admin:$NEW" -o /dev/null -w '%{http_code}')" = 200 ] \
+    && [ "$(post password | jpw)" = "$NEW" ] && pass 'a password with spaces, quotes and symbols: the old one refused at once, the new one in (nothing restarted)' || fail "new password: $NEW"
 
 echo '== on the network too (its own login)'
 direct() { curl -s -m 10 -o /dev/null -w '%{http_code}' "$@" http://127.0.0.1:8081/api/info; }

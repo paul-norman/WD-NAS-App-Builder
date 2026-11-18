@@ -5,6 +5,12 @@
 # address in Vikunja, the page (status, the password and a new one, users added and given new passwords), a password
 # changed in Vikunja kept, sign-ups on and off, backups with the task in them, on the network too and back, removal
 . /t/common/nas.sh vikunja
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -13,7 +19,7 @@ V=http://127.0.0.1:3456
 # A request to its site through Nginx: site <path> [curl options]
 site() { p=$1; shift; curl -sk -m 10 --resolve "vikunja.$DOMAIN:443:127.0.0.1" "$@" "https://vikunja.$DOMAIN$p"; }
 # Logs in to Vikunja: login <user> <password> [base] - prints the token (empty if refused)
-login() { curl -sk -m 10 --resolve "vikunja.$DOMAIN:443:127.0.0.1" -X POST -H 'Content-Type: application/json' -d "{\"username\":\"$1\",\"password\":\"$2\"}" "${3:-$V}/api/v1/login" | j '$d["token"] ?? ""' | tr -d '"'; }
+login() { curl -sk -m 10 --resolve "vikunja.$DOMAIN:443:127.0.0.1" -X POST -H 'Content-Type: application/json' -d "{\"username\":\"$1\",\"password\":\"$(jstr "$2")\"}" "${3:-$V}/api/v1/login" | j '$d["token"] ?? ""' | tr -d '"'; }
 # Signs up (unauthenticated): register <user> - prints the HTTP status
 register() { code -X POST -H 'Content-Type: application/json' -d "{\"username\":\"$1\",\"email\":\"$1@example.test\",\"password\":\"Some-pass-1234\"}" "$V/api/v1/register"; }
 # Whether it listens beyond the NAS itself (port 3456 = 0D80)
@@ -68,8 +74,8 @@ ST=$(get status)
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://vikunja.$DOMAIN/\"" ] && [ "$(echo "$ST" | j '$d["users"][0]["name"]')" = '"admin"' ] \
     && [ "$(post password -d show=1 | j '$d["password"]')" = "\"$PW\"" ] && pass 'status: running, Vikunja 2.8.0, its site, its users, its password' \
     || fail "status: $(echo "$ST" | head -c 400)"
-R=$(post new_password -d user=admin); NEW=$(echo "$R" | j '$d["password"]' | tr -d '"')
-[ ${#NEW} = 20 ] && [ "$NEW" = "$(cat $D/admin_password)" ] && [ -n "$(login admin "$NEW")" ] && [ -z "$(login admin "$PW")" ] \
+R=$(post new_password -d user=admin --data-urlencode "password=$XPW"); NEW=$(echo "$R" | jpw)
+[ "$NEW" = "$XPW" ] && [ "$NEW" = "$(cat $D/admin_password)" ] && [ -n "$(login admin "$NEW")" ] && [ -z "$(login admin "$PW")" ] \
     && pass 'a new admin password from the page (the old one refused)' || fail "new password: $R"
 R=$(post add_user -d name=sam -d email=sam@example.test); SAM=$(echo "$R" | j '$d["password"]' | tr -d '"')
 [ ${#SAM} = 20 ] && [ -n "$(login sam "$SAM")" ] && [ "$(get status | j 'count($d["users"])')" = 2 ] \
@@ -80,7 +86,7 @@ R=$(post new_password -d user=sam); SAM2=$(echo "$R" | j '$d["password"]' | tr -
 [ ${#SAM2} = 20 ] && [ -n "$(login sam "$SAM2")" ] && [ -z "$(login sam "$SAM")" ] && [ "$(cat $D/admin_password)" = "$NEW" ] \
     && pass 'a new password for that user (the admin'"'"'s left alone)' || fail "user's new password: $R"
 TOKEN=$(login admin "$NEW")
-curl -s -o /dev/null -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d "{\"old_password\":\"$NEW\",\"new_password\":\"Mine-in-Vikunja-1\"}" $V/api/v1/user/password
+curl -s -o /dev/null -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d "{\"old_password\":\"$(jstr "$NEW")\",\"new_password\":\"Mine-in-Vikunja-1\"}" $V/api/v1/user/password
 sh $P/vikunja/vikunja_ctl.sh restart > /dev/null 2>&1
 [ -n "$(login admin Mine-in-Vikunja-1)" ] && pass 'a password changed in Vikunja kept across a restart' || fail "own password: $(tail -n 3 $D/vikunja.log)"
 

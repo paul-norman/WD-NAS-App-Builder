@@ -6,6 +6,7 @@
 #   memos_ctl.sh stop         - stop Memos
 #   memos_ctl.sh restart      - stop, then start
 #   memos_ctl.sh new-password - set a new admin password (applied when Memos next starts)
+#   memos_ctl.sh set-password - the same, with the password typed on the page (on its input, one line)
 #   memos_ctl.sh backup       - back up its database (safely, while it runs) and attachments
 #   memos_ctl.sh daily        - the daily job: a backup, and keeping its log small
 #   memos_ctl.sh nginx        - rewrite the Nginx app's sites (Memos' own comes from its nginx.json), and reload it
@@ -79,13 +80,30 @@ memos_ids() {
 new_password() {
     local version="$(cat "${VERSION_FILE}" 2>/dev/null)"
 
-    ( umask 077; tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20 > "${PASSWORD_FILE}.tmp" ) || return 1
+    ( umask 077; if [ -n "$1" ]; then printf '%s' "$1"; else tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20; fi \
+        > "${PASSWORD_FILE}.tmp" ) || return 1
     set -- $(memos_ids)
     [ -n "$2" ] && chown "root:$2" "${PASSWORD_FILE}.tmp" && chmod 640 "${PASSWORD_FILE}.tmp"
     mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}" || return 1
     echo $((${version:-0} + 1)) > "${VERSION_FILE}"
     chmod 600 "${VERSION_FILE}"
     log 'generated a new admin password'
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 # Creates its user (the NAS's user list is in RAM, so this is redone at every boot), its folders, its settings and the
@@ -351,6 +369,7 @@ case "$1" in
         start
         ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     backup) backup ;;
     daily)
         backup
@@ -358,7 +377,7 @@ case "$1" in
         ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|backup|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|backup|daily|nginx" >&2
 
         exit 1
         ;;

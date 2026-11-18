@@ -324,7 +324,7 @@ admin_password() {
     password="$(head -n 1 | tr -d '\r\n')"
 
     case "${password}" in
-        ''|*[!A-Za-z0-9._~-]*) log 'Passwords are letters, digits and . _ ~ - only'; return 1 ;;
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
     esac
 
     if ! output="$(OC_PASS="${password}" occ user:resetpassword --password-from-env admin 2>&1)"; then

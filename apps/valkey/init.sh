@@ -53,6 +53,10 @@ if [ ! -f "${CONF_PATH}" ]; then
     echo "dir ${APP_PERSISTENT_DATA_PATH}" >> "${CONF_PATH}"
 fi
 
+# The password as it is (root's only), which the other apps read: the config file has it quoted once set on the page
+# (it may have spaces, quotes or backslashes)
+PASSWORD_PATH="${APP_PERSISTENT_DATA_PATH}/password"
+
 # Require a password as the server listens on all interfaces (also upgrades older password-less configs)
 if ! grep -q '^requirepass ' "${CONF_PATH}"; then
     log "generating a password in config file: ${CONF_PATH}"
@@ -60,9 +64,15 @@ if ! grep -q '^requirepass ' "${CONF_PATH}"; then
     sed -i '/^protected-mode /d' "${CONF_PATH}"
     echo 'protected-mode yes' >> "${CONF_PATH}"
     echo "requirepass ${VALKEY_PASSWORD}" >> "${CONF_PATH}"
+    ( umask 077; printf '%s\n' "${VALKEY_PASSWORD}" > "${PASSWORD_PATH}" )
 fi
 
-chmod 600 "${CONF_PATH}"
+# (an install from before the password file: its password is letters and digits, unquoted in the config file)
+if [ ! -s "${PASSWORD_PATH}" ]; then
+    ( umask 077; sed -n 's/^requirepass[[:space:]]*//p' "${CONF_PATH}" | head -n 1 > "${PASSWORD_PATH}" )
+fi
+
+chmod 600 "${CONF_PATH}" "${PASSWORD_PATH}"
 
 # Link the config file
 log "linking config file: /etc/${APP_NAME}/${APP_NAME}.conf"

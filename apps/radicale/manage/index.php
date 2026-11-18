@@ -29,12 +29,12 @@ header('Cache-Control: no-store');
     <table data-rd="users"></table>
     <p data-rd="renew-box" hidden>New password for <strong data-rd="renew-name"></strong>:
         <input type="password" data-rd="renew-password" placeholder="Leave empty to generate one" autocomplete="new-password">
-        <button type="button" data-rd-action="show-renew">Show</button>
+        <button type="button" data-show-for="renew-password">Show</button>
         <button type="button" data-rd-action="renew-save">Save</button>
         <button type="button" data-rd-action="renew-cancel">Cancel</button></p>
     <p><input type="text" data-rd="name" placeholder="New user's name (e.g. alex)" autocomplete="off" spellcheck="false">
         <input type="password" data-rd="password" placeholder="Password (leave empty to generate one)" autocomplete="new-password">
-        <button type="button" data-rd-action="show-password">Show</button>
+        <button type="button" data-show-for="password">Show</button>
         <button type="button" data-rd-action="add">Add user</button></p>
     <p data-rd="users-message"></p>
     <p class="mg-note">Names are lower-case letters, digits and . _ - ; passwords are 12-128 characters (letters, digits,
@@ -79,22 +79,6 @@ header('Cache-Control: no-store');
             no_domain: 'set a domain in the Nginx app',
             off:       'switched off in the Nginx app'
         };
-
-        /**
-         * Makes a password field show what's typed in it, or hide it again, with its Show / Hide button.
-         *
-         * @param {string} field  The field's part name
-         * @param {string} toggle The button's action name
-         *
-         * @return {void}
-         */
-        function showHide(field, toggle) {
-            let input = part(field);
-            let hide  = input.type === 'text';
-
-            input.type                 = hide ? 'password' : 'text';
-            button(toggle).textContent = hide ? 'Show' : 'Hide';
-        }
 
         /**
          * Shows a password just set, once (it isn't kept).
@@ -165,7 +149,7 @@ header('Cache-Control: no-store');
                         return;
                     }
 
-                    actAt('users-message', 'remove_user', { name: name }, 'Removing…', name + ' removed.');
+                    act('remove_user', { name: name }, 'Removing…', name + ' removed.', 'users-message');
                 });
 
                 controls.appendChild(renew);
@@ -230,53 +214,25 @@ header('Cache-Control: no-store');
 
         // Keep the page current, until the dashboard removes it
         <?php manage_timer_script(); ?>
-
-        /**
-         * Runs one of the API's actions as act() does, but says how it went in the page's section that asked for it
-         * (where the person is looking), not at the bottom of the page.
-         *
-         * @param {string} where   The section's message part (e.g. users-message)
-         * @param {string} action  The API's action
-         * @param {Object} data    What to post
-         * @param {string} working What to say meanwhile
-         * @param {string} done    What to say once it's done
-         *
-         * @return {Promise.<(Object|null)>} Its answer (null if it failed)
-         */
-        function actAt(where, action, data, working, done) {
-            say(working, true, where);
-
-            return call(action, data).then(function (response) {
-                if (!response.ok) {
-                    say(response.error, false, where);
-
-                    return null;
-                }
-
-                say(done, true, where);
-                setTimeout(refresh, 2000);
-
-                return response;
-            });
-        }
+        <?php manage_act_script(); ?>
 
         button('restart').addEventListener('click', function () {
-            actAt('top-message', 'restart', { confirm: 1 }, 'Restarting Radicale…', 'Radicale restarted.');
+            act('restart', { confirm: 1 }, 'Restarting Radicale…', 'Radicale restarted.', 'top-message');
         });
 
         button('listen').addEventListener('click', function () {
             let local = part('local').checked;
 
-            actAt('access-message', 'listen', { listen: local ? 'local' : 'all' }, 'Saving…', local ? 'Radicale is now only reachable through the Nginx app.' :
-                'Radicale is reachable on port 5232 too.');
+            act('listen', { listen: local ? 'local' : 'all' }, 'Saving…', local ? 'Radicale is now only reachable through the Nginx app.' :
+                'Radicale is reachable on port 5232 too.', 'access-message');
         });
 
         button('add').addEventListener('click', function () {
             let name  = part('name').value.trim();
             let typed = part('password').value.trim();
 
-            actAt('users-message', 'add_user', { name: name, password: typed }, `Adding ${name}…`,
-                typed ? `${name} added, with the password you typed.` : `${name} added (their password is shown below).`).then(function (response) {
+            act('add_user', { name: name, password: typed }, `Adding ${name}…`,
+                typed ? `${name} added, with the password you typed.` : `${name} added (their password is shown below).`, 'users-message').then(function (response) {
                 if (response) {
                     showPassword(response, typed);
 
@@ -284,14 +240,6 @@ header('Cache-Control: no-store');
                     part('password').value = '';
                 }
             });
-        });
-
-        button('show-password').addEventListener('click', function () {
-            showHide('password', 'show-password');
-        });
-
-        button('show-renew').addEventListener('click', function () {
-            showHide('renew-password', 'show-renew');
         });
 
         button('renew-cancel').addEventListener('click', function () {
@@ -303,8 +251,8 @@ header('Cache-Control: no-store');
             let name  = renewing;
             let typed = part('renew-password').value.trim();
 
-            actAt('users-message', 'new_password', { name: name, password: typed }, 'Saving…',
-                typed ? `New password for ${name} saved.` : `New password for ${name} (shown below).`).then(function (response) {
+            act('new_password', { name: name, password: typed }, 'Saving…',
+                typed ? `New password for ${name} saved.` : `New password for ${name} (shown below).`, 'users-message').then(function (response) {
                 if (response) {
                     showPassword(response, typed);
 

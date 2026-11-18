@@ -6,6 +6,7 @@
 #   kopia_ctl.sh stop           - stop the server (a snapshot in progress is resumed next time)
 #   kopia_ctl.sh restart        - stop, then start
 #   kopia_ctl.sh new-password   - generate a new password for the web interface (applied when the server next starts)
+#   kopia_ctl.sh set-password   - the same, with the password typed on the page (on its input, one line)
 #   kopia_ctl.sh daily          - the daily job: keeping its output log small
 #   kopia_ctl.sh nginx          - add / update Kopia's site in the Nginx app (and reload it)
 
@@ -49,8 +50,25 @@ running() {
 }
 
 new_password() {
-    ( umask 077; tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20 > "${PASSWORD_FILE}.tmp" ) && mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}"
+    ( umask 077; if [ -n "$1" ]; then printf '%s' "$1"; else tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20; fi \
+        > "${PASSWORD_FILE}.tmp" ) && mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}"
     log 'generated a new password for the web interface'
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 setup() {
@@ -144,10 +162,11 @@ case "$1" in
     stop) stop ;;
     restart) stop; start ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     daily) rotate_log ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|daily|nginx" >&2
 
         exit 1
         ;;

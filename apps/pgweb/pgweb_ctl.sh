@@ -80,7 +80,7 @@ set_password() {
     password="$(head -n 1 | tr -d '\r\n')"
 
     case "${password}" in
-        ''|*[!A-Za-z0-9._~-]*) log 'Passwords are letters, digits and . _ ~ - only'; return 1 ;;
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
     esac
 
     # The PHP app's PHP, or the NAS's own - both have SHA-512 crypt
@@ -151,8 +151,9 @@ wait_up() {
 
     while [ ${waited} -lt 20 ]; do
         running || return 1
-        # With its own login when on the network: given to curl on its input, not its command line
-        printf 'user = "%s:%s"\n' "${AUTH_USER}" "$(cat "${PASSWORD_FILE}")" \
+        # With its own login when on the network: given to curl on its input, not its command line (in curl's quoted
+        # form: \ and " escaped)
+        printf 'user = "%s:%s"\n' "${AUTH_USER}" "$(sed 's/\\/\\\\/g; s/"/\\"/g' "${PASSWORD_FILE}")" \
             | curl -s -m 2 -K - "http://127.0.0.1:${PORT}/api/info" 2>/dev/null | grep -q '"version"' && return 0
         sleep 1
         waited=$((waited + 1))

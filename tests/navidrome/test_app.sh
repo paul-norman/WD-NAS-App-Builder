@@ -3,6 +3,12 @@
 # throwaway one it starts with), a music folder scanned (tagged MP3s, made with the app's own ffmpeg), streaming
 # transcoded to Opus, its page (status, password, settings and their checks, scans), stopping and removal
 . /t/common/nas.sh navidrome
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 U=http://127.0.0.1:4533; M="$V/Public/Shared Music"
 mkdir -p "$M/Test Artist/Test Album"
 python3 -c "
@@ -20,7 +26,7 @@ for n in 1 2; do $B/ffmpeg -v error -y -i /tmp/$n.wav -c:a libmp3lame -b:a 96k -
 chmod -R a+rX "$V/Public"
 wait_port 4533 60 && pass 'answering on 4533' || { fail "not answering: $(tail -n 10 /tmp/start.log $D/navidrome.log)"; exit 1; }
 PW=$(cat $D/admin_password)
-login() { curl -s -X POST -H 'Content-Type: application/json' -d "{\"username\":\"admin\",\"password\":\"$1\"}" $U/auth/login; }
+login() { curl -s -X POST -H 'Content-Type: application/json' -d "{\"username\":\"admin\",\"password\":\"$(jstr "$1")\"}" $U/auth/login; }
 [ ${#PW} = 20 ] && [ "$(stat -c '%U %a' $D/admin_password)" = 'root 600' ] && login "$PW" | grep -q '"token"' \
     && pass "admin logs in with the app's generated password (root's only)" || fail "login: $(login "$PW" | head -c 200)"
 ! grep -q "DEVAUTOCREATEADMINPASSWORD\|$PW" $D/navidrome.log && pass 'its log holds neither the throwaway first password nor the real one' || fail 'password in the log'
@@ -40,7 +46,7 @@ ID=$(curl -s "$U/rest/search3.view?$S&query=Song" | j '$d["subsonic-response"]["
 curl -s -o /tmp/s.opus "$U/rest/stream.view?$S&id=$ID&format=opus&maxBitRate=64"
 [ "$(head -c 4 /tmp/s.opus)" = OggS ] && pass "streamed to a Subsonic app as Opus (the app's ffmpeg transcoding): $(stat -c %s /tmp/s.opus) bytes" || fail "stream: $(head -c 200 /tmp/s.opus)"
 [ "$(post password -d show=1 | j '$d["password"]' | tr -d '"')" = "$PW" ] && pass 'the page shows the password' || fail 'password'
-NEW=$(post new_password -d confirm=1 | j '$d["password"]' | tr -d '"')
+NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw)
 [ "$NEW" != "$PW" ] && login "$NEW" | grep -q '"token"' && ! login "$PW" | grep -q '"token"' && pass "a new password works, the old one doesn't" || fail 'new password'
 
 echo '== settings'

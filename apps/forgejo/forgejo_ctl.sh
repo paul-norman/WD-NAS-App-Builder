@@ -7,6 +7,7 @@
 #   forgejo_ctl.sh stop           - stop Forgejo
 #   forgejo_ctl.sh restart        - stop, then start
 #   forgejo_ctl.sh new-password   - give the admin user a new (generated) password
+#   forgejo_ctl.sh set-password   - the same, with the password typed on the page (on its input, one line)
 #   forgejo_ctl.sh backup         - a full backup with Forgejo's own dump (repositories, database, settings), while it runs
 #   forgejo_ctl.sh daily          - the daily job: a backup when one is due, and keeping the log small
 #   forgejo_ctl.sh nginx          - add / update Forgejo's site in the Nginx app (and reload it)
@@ -250,7 +251,7 @@ create_admin() {
 
 # A new generated password for the admin user. (Forgejo only takes it on the command line: it's there for a moment)
 new_password() {
-    password="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20)"
+    password="${1:-$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20)}"
 
     if output="$(forgejo_cmd admin user change-password --username "${ADMIN}" --password "${password}" \
         --must-change-password=false 2>&1)"; then
@@ -261,6 +262,22 @@ new_password() {
 
         return 1
     fi
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 start() {
@@ -389,11 +406,12 @@ case "$1" in
     stop) stop ;;
     restart) stop; start ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     backup) backup ;;
     daily) backup_due; rotate_log ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|backup|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|backup|daily|nginx" >&2
 
         exit 1
         ;;

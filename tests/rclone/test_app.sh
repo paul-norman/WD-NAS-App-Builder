@@ -5,6 +5,12 @@
 # gone from its source - run from the page and on the hour, their logs), the rclone command for SSH with the app's
 # config, a new password, its site through Nginx, the network setting, removal
 . /t/common/nas.sh rclone
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 DOMAIN=nas.example.test
 # The NAS has ip in /sbin (BusyBox's): the stand-in only has it in the suite's own PATH, which the page doesn't get
 command -v /sbin/ip > /dev/null || ln -sf /t/bb/busybox /sbin/ip
@@ -94,8 +100,8 @@ echo '== the rclone command'
     || fail "command: $(ls -l /usr/bin/rclone) $(rclone listremotes 2>&1 | head -n 3)"
 
 echo '== a new password'
-OLD=$(cat $D/password); NEW=$(post new_password -d confirm=1 | j '$d["password"]' | tr -d '"'); wait_port 5572 30
-[ ${#NEW} = 20 ] && [ "$NEW" != "$OLD" ] && [ "$(rc core/version '{}' "$OLD" | grep -c version)" = 0 ] && rc core/version '{}' "$NEW" | grep -q v1.76.0 \
+OLD=$(cat $D/password); NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw); wait_port 5572 30
+[ "$NEW" = "$XPW" ] && [ "$NEW" != "$OLD" ] && [ "$(rc core/version '{}' "$OLD" | grep -c version)" = 0 ] && rc core/version '{}' "$NEW" | grep -q v1.76.0 \
     && [ "$(get status | j '$d["answering"]')" = true ] && pass 'it works (the page too), the old one no longer does' || fail "new password: ${#NEW}"
 
 echo '== its site through Nginx'

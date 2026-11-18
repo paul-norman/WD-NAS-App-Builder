@@ -27,11 +27,13 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>Its administrator logs in as <code>admin</code>, with this password: <code data-nc="password">••••••••••••</code>
         <button type="button" data-nc-action="show">Show</button> <button type="button" data-nc-action="copy">Copy</button></p>
-    <p><input type="text" data-nc="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-nc="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-nc-action="set">Change password</button></p>
-    <p class="mg-note">The new password is in use at once. Passwords are 12-72 characters: letters, digits and . _ ~ - (A
+    <p class="mg-note">The new password is in use at once. Passwords are 12 or more characters, up to 72 bytes (letters, digits, symbols or spaces; an accented letter counts as 2) (A
         password changed in Nextcloud itself isn't shown here.) Other people's accounts are added in Nextcloud (Accounts),
         each with a password of their own.</p>
+    <p data-nc="password-message"></p>
 
     <h3>Access</h3>
     <p><label><input type="checkbox" data-nc="local"> Only through the Nginx app (HTTPS)</label>
@@ -213,7 +215,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

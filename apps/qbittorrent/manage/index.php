@@ -22,8 +22,11 @@ header('Cache-Control: no-store');
 
     <h3>Logging in</h3>
     <p>User name <code>admin</code>, password <code data-qbt="password">••••••••••••</code>
-        <button type="button" data-qbt-action="show">Show</button> <button type="button" data-qbt-action="copy">Copy</button>
-        <button type="button" data-qbt-action="new-password">New password</button></p>
+        <button type="button" data-qbt-action="show">Show</button> <button type="button" data-qbt-action="copy">Copy</button></p>
+    <p><input type="password" data-qbt="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-qbt-action="new-password">Change password</button></p>
+    <p data-qbt="password-message"></p>
     <p class="mg-note">For the web interface, and for remote apps (e.g. phone apps, or the Arr apps) on port
         8092.</p>
 
@@ -119,8 +122,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Making a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Making a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

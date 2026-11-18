@@ -22,9 +22,11 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>Its addresses ask first for the user name <code>admin</code> and the password (unless switched off below): <code data-pw="password">••••••••••••</code>
         <button type="button" data-pw-action="show">Show</button> <button type="button" data-pw-action="copy">Copy</button></p>
-    <p><input type="text" data-pw="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-pw="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-pw-action="set">Change password</button></p>
-    <p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
+    <p class="mg-note">The new password takes effect immediately. Passwords are 12-128 characters (letters, digits, symbols or spaces)</p>
+    <p data-pw="password-message"></p>
     <p><label><input type="checkbox" data-pw="auth"> Ask for this password first (before pgweb's own form)</label>
         <button type="button" data-pw-action="auth">Save</button></p>
     <p class="mg-note">Without it, anyone who reaches pgweb's address gets its form - which can connect to any server, not
@@ -159,7 +161,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

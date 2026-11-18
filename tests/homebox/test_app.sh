@@ -6,6 +6,12 @@
 # sign-ups on and off, backups with the item and attachment in them, on the network too and back, removal keeping its
 # data
 . /t/common/nas.sh homebox
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -16,7 +22,7 @@ ADMIN=admin@homebox.local
 # A request to its site through Nginx: site <path> [curl options]
 site() { p=$1; shift; curl -sk -m 10 --resolve "homebox.$DOMAIN:443:127.0.0.1" "$@" "https://homebox.$DOMAIN$p"; }
 # Logs in: login <email> <password> [base] - prints the token (empty if refused)
-login() { curl -sk -m 10 --resolve "homebox.$DOMAIN:443:127.0.0.1" -H 'Content-Type: application/json' -d "{\"username\":\"$1\",\"password\":\"$2\"}" "${3:-$A}/users/login" | j '$d["token"] ?? ""' | tr -d '"'; }
+login() { curl -sk -m 10 --resolve "homebox.$DOMAIN:443:127.0.0.1" -H 'Content-Type: application/json' -d "{\"username\":\"$1\",\"password\":\"$(jstr "$2")\"}" "${3:-$A}/users/login" | j '$d["token"] ?? ""' | tr -d '"'; }
 # Signs up (unauthenticated): signup <email> [invitation token] - prints the HTTP status
 signup() { code -H 'Content-Type: application/json' -d "{\"name\":\"Someone\",\"email\":\"$1\",\"password\":\"Some-pass-123\",\"token\":\"${2:-}\"}" "$A/users/register"; }
 # Whether it listens beyond the NAS itself (port 7745 = 1E41)
@@ -73,7 +79,7 @@ ST=$(get status)
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://homebox.$DOMAIN/\"" ] && [ "$(echo "$ST" | j '$d["restart_needed"]')" = false ] \
     && [ "$(echo "$ST" | j '$d["admin"]')" = "\"$ADMIN\"" ] && [ "$(post password -d show=1 | j '$d["password"]')" = "\"$PW\"" ] \
     && pass 'status: running, Homebox 0.27.1, its site, the admin account and its password' || fail "status: $(echo "$ST" | head -c 400)"
-R=$(post new_password -d confirm=1); NEW=$(echo "$R" | j '$d["password"]' | tr -d '"')
+R=$(post new_password -d confirm=1 --data-urlencode "password=$XPW"); NEW=$(echo "$R" | jpw)
 [ -n "$NEW" ] && [ "$NEW" != "$PW" ] && [ -n "$(login $ADMIN "$NEW")" ] && [ -z "$(login $ADMIN "$PW")" ] && [ "$(cat $D/admin_password)" = "$NEW" ] \
     && pass 'a new password from the page (the old one refused)' || fail "new password: $R"
 R=$(post reset_link -d email=$ADMIN); LINK=$(echo "$R" | j '$d["link"] ?? ""' | tr -d '"' | sed 's#\\/#/#g')

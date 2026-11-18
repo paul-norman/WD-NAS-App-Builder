@@ -109,7 +109,14 @@ if ($action === 'token') {
 if ($action === 'new_password' || $action === 'new_token') {
     $what = $action === 'new_password' ? 'password' : 'token';
 
-    list($code, $output) = manage_run(['/bin/sh', $ctl, 'new-'.$what]);
+    // A password: the one typed (any visible characters; bcrypt reads 72 bytes), or a generated one. A token: generated
+    if ($what === 'password') {
+        $password = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '', 12, 72, true);
+
+        list($code, $output) = manage_run(['/bin/sh', $ctl, 'set-password'], [], $password."\n");
+    } else {
+        list($code, $output) = manage_run(['/bin/sh', $ctl, 'new-token']);
+    }
 
     if ($code !== 0) {
         manage_fail(500, 'A new '.$what.' could not be made: '.$output);

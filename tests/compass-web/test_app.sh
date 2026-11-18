@@ -4,6 +4,10 @@
 # aside), its web interface, its connection to MongoDB as the MongoDB app's administrator (documents read through it),
 # its site through Nginx, a new password from the page, following MongoDB's new password, the network setting, removal
 . /t/common/nas.sh compass-web
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -62,12 +66,12 @@ ST=$(get status)
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://compass.$DOMAIN/\"" ] \
     && pass "the page: Compass Web 0.5.2 answering, MongoDB set up, its address https://compass.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password | j '$d["password"]')" = "\"$PW\"" ] && pass 'the page shows the password' || fail 'password not shown'
-R=$(post set_password -d password=Brand.New-Password_1)
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(cw / -u admin:Brand.New-Password_1 -o /dev/null -w '%{http_code}')" = 200 ] \
+R=$(post set_password --data-urlencode "password=$XPW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(cw / -u "admin:$XPW" -o /dev/null -w '%{http_code}')" = 200 ] \
     && [ "$(cw / -u "admin:$PW" -o /dev/null -w '%{http_code}')" = 401 ] && pass 'a new password from the page: in use (restarted), the old one refused' || fail "new password: $R"
-PW=Brand.New-Password_1
+PW="$XPW"
 page_up mongodb
-R=$(post set_password -d password=Mongo.New-Password_2)
+R=$(post set_password --data-urlencode "password=Mongo $XPW 2")
 wait_port 8087 60; sleep 2
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(fields "$PW")" = 3 ] && pass "MongoDB's administrator given a new password on its page: Compass Web follows it (restarted)" \
     || fail "follows MongoDB: $R $(fields "$PW") $(tail -n 3 $D/compass-web.log)"

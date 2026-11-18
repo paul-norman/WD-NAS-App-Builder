@@ -6,6 +6,7 @@
 #   ntfy_ctl.sh stop           - stop ntfy
 #   ntfy_ctl.sh restart        - stop, then start
 #   ntfy_ctl.sh new-password   - generate a new admin password (applied when ntfy next starts)
+#   ntfy_ctl.sh set-password   - the same, with the password typed on the page (on its input, one line)
 #   ntfy_ctl.sh new-token      - generate a new token for the apps (applied when ntfy next starts)
 #   ntfy_ctl.sh daily          - the daily job: keeping its log small
 #   ntfy_ctl.sh nginx          - add / update ntfy's site in the Nginx app (and reload it)
@@ -70,8 +71,25 @@ new_secret() {
 }
 
 new_password() {
-    ( umask 077; tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20 > "${PASSWORD_FILE}.tmp" ) && mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}"
+    ( umask 077; if [ -n "$1" ]; then printf '%s' "$1"; else tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20; fi \
+        > "${PASSWORD_FILE}.tmp" ) && mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}"
     log 'generated a new admin password'
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 new_token() {
@@ -239,11 +257,12 @@ case "$1" in
     stop) stop ;;
     restart) stop; start ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     new-token) new_token ;;
     daily) rotate_log ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|new-token|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|new-token|daily|nginx" >&2
 
         exit 1
         ;;

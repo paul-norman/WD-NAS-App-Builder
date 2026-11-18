@@ -4,6 +4,10 @@
 # without AVX2), a database with a login of its own (no rights elsewhere), a new password, backups and a restore, the
 # network and memory settings, a restart keeping its data, removal
 . /t/common/nas.sh mongodb
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 BIN=$P/mongodb/binaries/bin
 # mongosh against it: as nobody (no login), or as a user in its database (then the script's db) - the password in its
 # environment: sh_as <user> <password> <db> <script>, sh_anon <script>
@@ -50,10 +54,10 @@ ST=$(get status)
 [ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"8.0.38"' ] && echo "$ST" | j '$d["databases"]' | grep -q '"family"' \
     && pass "the page: MongoDB 8.0.38 answering, its databases (family among them)" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password | j '$d["password"]')" = "\"$PW\"" ] && pass 'the page shows the password' || fail 'password not shown'
-R=$(post set_password -d password=Brand.New-Password_1)
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(sh_as admin Brand.New-Password_1 admin 'print(db.runCommand({ connectionStatus: 1 }).authInfo.authenticatedUsers.length)')" = 1 ] \
+R=$(post set_password --data-urlencode "password=$XPW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(sh_as admin "$XPW" admin 'print(db.runCommand({ connectionStatus: 1 }).authInfo.authenticatedUsers.length)')" = 1 ] \
     && sh_as admin "$PW" admin 'print(1)' | grep -qi 'Authentication failed' && pass 'a new password from the page: in use at once, the old one refused' || fail "new password: $R"
-PW=Brand.New-Password_1
+PW="$XPW"
 R=$(post create_db -d name=myapp); U=$(echo "$R" | j '$d["user"]' | tr -d '"'); UP=$(echo "$R" | j '$d["password"]' | tr -d '"')
 W=$(sh_as myapp "$UP" myapp "db.notes.insertOne({ text: 'hello' }); print(db.notes.countDocuments())")
 O=$(sh_as myapp "$UP" myapp "print(db.getSiblingDB('family').recipes.countDocuments())")
@@ -68,7 +72,7 @@ F=$(ls $D/backups/mongodb-*.archive.gz 2>/dev/null | head -n 1)
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && [ -s "$F" ] && [ "$(stat -c '%u %a' "$F")" = '0 600' ] \
     && pass "a backup from the page (mongodump, root's only): $(basename "$F")" || fail "backup: $R $(ls -l $D/backups 2>&1) $(tail -n 3 /tmp/debug_apkg)"
 sh_as admin "$PW" admin "db.getSiblingDB('family').dropDatabase()" > /dev/null
-printf 'password: "%s"\n' "$PW" > /tmp/restore.yml
+printf "password: '%s'\n" "$(printf '%s' "$PW" | sed "s/'/''/g")" > /tmp/restore.yml
 $BIN/mongorestore --config /tmp/restore.yml --host 127.0.0.1 --username admin --authenticationDatabase admin --gzip --archive="$F" > /tmp/restore.log 2>&1
 [ "$(sh_as admin "$PW" admin "print(db.getSiblingDB('family').recipes.countDocuments())")" = 3 ] \
     && pass 'a dropped database restored from it (mongorestore, as the README says)' || fail "restore: $(tail -n 3 /tmp/restore.log)"

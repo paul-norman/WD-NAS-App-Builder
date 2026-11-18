@@ -7,6 +7,7 @@
 #   rclone_ctl.sh stop         - stop it
 #   rclone_ctl.sh restart      - stop, then start
 #   rclone_ctl.sh new-password - generate a new web interface password (applied when it next starts)
+#   rclone_ctl.sh set-password - the same, with the password typed on the page (on its input, one line)
 #   rclone_ctl.sh run <id>     - run a job now (waits for it; a job already running isn't started again)
 #   rclone_ctl.sh due          - hourly (from root's crontab): run the jobs set for this hour, one after another
 #   rclone_ctl.sh daily        - the daily job: keeping its log small
@@ -92,10 +93,27 @@ write_htpasswd() {
 #
 # Prints nothing
 new_password() {
-    ( umask 077; tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20 > "${PASSWORD_FILE}.tmp" ) \
+    ( umask 077; if [ -n "$1" ]; then printf '%s' "$1"; else tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20; fi \
+        > "${PASSWORD_FILE}.tmp" ) \
         && mv -f "${PASSWORD_FILE}.tmp" "${PASSWORD_FILE}"
     log 'generated a new web interface password'
     write_htpasswd
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 setup() {
@@ -301,12 +319,13 @@ case "$1" in
         start
         ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     run) run_job "$2" ;;
     due) run_due ;;
     daily) rotate_log ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|run <id>|due|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|run <id>|due|daily|nginx" >&2
 
         exit 1
         ;;

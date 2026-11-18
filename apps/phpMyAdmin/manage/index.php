@@ -22,22 +22,26 @@ header('Cache-Control: no-store');
     <h3>The <code>admin</code> account</h3>
     <p>Log in to phpMyAdmin as <code>admin</code> with: <code data-pma="password">••••••••••••</code>
         <button type="button" data-pma-action="show">Show</button> <button type="button" data-pma-action="copy">Copy</button></p>
-    <p><input type="text" data-pma="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-pma="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-pma-action="set">Change password</button></p>
-    <p class="mg-note">The new password takes effect immediately, and is kept if the app is reinstalled. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
+    <p class="mg-note">The new password takes effect immediately, and is kept if the app is reinstalled. Passwords are 12-128 characters (letters, digits, symbols or spaces)</p>
+    <p data-pma="password-message"></p>
     <p class="mg-note">MariaDB's <code>root</code> account can't log in to phpMyAdmin: it has no password, as the NAS's own services rely on that, and MariaDB only accepts connections from the NAS itself.</p>
     <h3>Its HTTPS address</h3>
     <p>Through the Nginx app: <span data-pma="site">…</span></p>
     <p>It asks first for the user name <code>admin</code> and its own password (not the account's above):
         <code data-pma="site-password">••••••••••••</code>
         <button type="button" data-pma-action="site-show">Show</button> <button type="button" data-pma-action="site-copy">Copy</button></p>
-    <p><input type="text" data-pma="site-new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-pma="site-new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="site-new">Show</button>
         <button type="button" data-pma-action="site-set">Change password</button></p>
     <p><label><input type="checkbox" data-pma="auth"> Ask for this password first (before phpMyAdmin's own login)</label>
         <button type="button" data-pma-action="auth">Save</button></p>
     <p class="mg-note">Without it, anyone who reaches its HTTPS address gets phpMyAdmin's login, and only the MariaDB
         accounts' passwords protect the data. Keep it on if the address can be reached from the internet. The NAS's own
         address (http://<span data-pma="host">nas</span>/phpMyAdmin/, on the local network) has only phpMyAdmin's login.</p>
+    <p data-pma="site-password-message"></p>
 
     <p data-pma="message"></p>
 
@@ -109,7 +113,7 @@ header('Cache-Control: no-store');
 
             call('set_password', { password: input.value }).then(function (response) {
                 if (!response.ok) {
-                    say(response.error, false);
+                    say(response.error, false, 'password-message');
 
                     return;
                 }
@@ -118,7 +122,7 @@ header('Cache-Control: no-store');
 
                 secret.set(response.password);
 
-                say('Password changed - use it to log in to phpMyAdmin.', true);
+                say('Password changed - use it to log in to phpMyAdmin.', true, 'password-message');
             });
         });
 
@@ -140,7 +144,7 @@ header('Cache-Control: no-store');
 
             call('set_site_password', { password: input.value }).then(function (response) {
                 if (!response.ok) {
-                    say(response.error, false);
+                    say(response.error, false, 'site-password-message');
 
                     return;
                 }
@@ -149,7 +153,7 @@ header('Cache-Control: no-store');
 
                 siteSecret.set(response.password);
 
-                say('New password for the HTTPS address in use.', true);
+                say('New password for the HTTPS address in use.', true, 'site-password-message');
             });
         });
 

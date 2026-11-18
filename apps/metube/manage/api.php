@@ -119,13 +119,7 @@ if ($action === 'add_user' || $action === 'new_password') {
         manage_fail(404, 'No such user: '.$name);
     }
 
-    $password = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
-
-    if ($password === '') {
-        $password = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 16);
-    } elseif (!preg_match('/^[^\x00-\x1f\x7f]{8,128}$/u', $password)) {
-        manage_fail(400, 'Passwords must be 8-128 characters (any letters, digits, symbols or spaces)');
-    }
+    $password = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '', 8);
 
     // Only its hash is kept: the page shows the password this once
     $users[$name] = ['hash' => metube_hash($password)];

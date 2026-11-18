@@ -3,6 +3,12 @@
 # CSRF token - against a running Calibre-Web
 A=/mnt/HD/HD_a2/Nas_Prog/calibre-web; D=/mnt/HD/HD_a2/Nas_Prog/_calibre-web; P=/mnt/HD/HD_a2/Public
 . /t/bin/setup.sh
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 mkdir -p /var/www/apps && ln -s $A/manage /var/www/apps/calibre-web
 echo "PHP $(php -r 'echo PHP_VERSION;')"
 sh $A/cw_ctl.sh start > /dev/null 2>&1
@@ -29,7 +35,7 @@ mkdir -p "$P/Other"; echo x > "$P/Other/file.txt"
 post library -d "library=$P/Other" | grep -q "isn't a Calibre library" && pass "a folder that isn't a library (and isn't empty) refused" || fail 'library check'
 R=$(post library -d "library=$P/Books/Second Library")
 [ -f "$P/Books/Second Library/metadata.db" ] && [ "$(get status | j '$d["library"]')" = "\"$P/Books/Second Library\"" ] && pass 'switched to a new library (created, Calibre-Web restarted)' || fail "library: $R"
-R=$(post new_password -d confirm=1); NEW=$(echo "$R" | j '$d["password"]' | tr -d '"')
-[ -n "$NEW" ] && [ "$NEW" != "$PW" ] && [ "$(curl -s -o /dev/null -w '%{http_code}' -u "admin:$NEW" http://127.0.0.1:8083/opds)" = 200 ] && pass 'a new password from the page' || fail "new password: $R"
+R=$(post new_password -d confirm=1 --data-urlencode "password=$XPW"); NEW=$(echo "$R" | jpw)
+[ "$NEW" = "$XPW" ] && [ "$NEW" != "$PW" ] && [ "$(curl -s -o /dev/null -w '%{http_code}' -u "admin:$NEW" http://127.0.0.1:8083/opds)" = 200 ] && pass 'a new password from the page' || fail "new password: $R"
 grep -i -E 'warning|fatal|deprecated|notice' /tmp/php.log | head -5
 sh $A/cw_ctl.sh stop > /dev/null

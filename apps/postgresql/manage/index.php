@@ -23,11 +23,13 @@ header('Cache-Control: no-store');
 
     <h3>The <code>postgres</code> superuser</h3>
     <p>Password: <code data-pg="password">••••••••••••</code> <button type="button" data-pg-action="show">Show</button> <button type="button" data-pg-action="copy">Copy</button></p>
-    <p><input type="text" data-pg="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-pg="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-pg-action="set">Change password</button></p>
     <p data-pg="password-message"></p>
     <p class="mg-note">Connect on port 5432 (the NAS's address, or localhost / the socket in /var/run/postgresql on the NAS).
-        Over SSH: <code>PGPASSWORD=… psql -h /var/run/postgresql -U postgres</code>.</p>
+        Over SSH: <code>PGPASSWORD=… psql -h /var/run/postgresql -U postgres</code>. Passwords are 12-128 characters
+        (letters, digits, symbols or spaces) - in a connection URL, percent-encode any that aren't letters or digits.</p>
 
     <h3>Extensions</h3>
     <p>Included (add one to a database with <code>CREATE EXTENSION name;</code>): <strong>postgis</strong> (geometry and
@@ -45,10 +47,13 @@ header('Cache-Control: no-store');
     <table data-pg="databases"></table>
     <p><input type="text" data-pg="db-name" placeholder="New database" autocomplete="off" spellcheck="false">
         <input type="text" data-pg="db-user" placeholder="Its user (default: the same name)" autocomplete="off" spellcheck="false">
+        <input type="password" data-pg="db-password" placeholder="Its password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="db-password">Show</button>
         <button type="button" data-pg-action="create">Create</button></p>
     <p data-pg="create-message"></p>
-    <p class="mg-note">Each database gets a user of its own, with a generated password - shown once, so note it down.
-        Names are lower case letters, digits and _.</p>
+    <p class="mg-note">Each database gets a user of its own, with the password typed or a generated one - a generated one
+        is shown once, so note it down. Names are lower case letters, digits and _; passwords 12-128 characters (letters,
+        digits, symbols or spaces).</p>
 
     <script>
     // Wrapped in a closure: nothing may leak into the dashboard's global scope (e.g. it relies on jQuery's $)
@@ -140,16 +145,19 @@ header('Cache-Control: no-store');
         });
 
         button('create').addEventListener('click', function () {
-            call('create_database', { name: part('db-name').value, user: part('db-user').value }).then(function (response) {
+            let typed = part('db-password').value.trim();
+
+            call('create_database', { name: part('db-name').value, user: part('db-user').value, password: typed }).then(function (response) {
                 if (!response.ok) {
                     say(response.error, false, 'create-message');
 
                     return;
                 }
 
-                part('db-name').value = part('db-user').value = '';
+                part('db-name').value = part('db-user').value = part('db-password').value = '';
 
-                say('Created database ' + response.name + ' - user ' + response.user + ', password ' + response.password + ' (note it down: it isn\'t shown again).', true, 'create-message');
+                say('Created database ' + response.name + ' - user ' + response.user + (typed ? ', with the password typed.' :
+                    ', password ' + response.password + ' (note it down: it isn\'t shown again).'), true, 'create-message');
                 refresh();
             });
         });

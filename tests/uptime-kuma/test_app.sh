@@ -4,6 +4,12 @@
 # group only, and off again when it stops - "1 0" on the NAS), the page's password reset, backups, where it listens,
 # removal
 . /t/common/nas.sh uptime-kuma
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 export NODE_PATH=$P/uptime-kuma/binaries/uptime-kuma/node_modules
 kuma() { $P/uptime-kuma/binaries/node /t/app/kuma.js "$@"; }
 RANGE=/proc/sys/net/ipv4/ping_group_range
@@ -32,8 +38,8 @@ R=$(kuma ping admin 'First-Passw0rd' 127.0.0.1)
 echo "$R" | grep -q '^1 ' && pass "a ping monitor is up: $R" || fail "ping monitor: $R $(tail -n 5 $D/uptime-kuma.log)"
 
 echo '== password reset'
-NP=$(post reset_password | j '$d["password"]' | tr -d '"')
-[ ${#NP} -ge 16 ] && [ "$(kuma login admin "$NP")" = ok ] && [ "$(kuma login admin 'First-Passw0rd')" != ok ] && ! ps -ef | grep -v grep | grep -q -- "$NP" \
+NP=$(post reset_password --data-urlencode "password=$XPW" | jpw)
+[ "$NP" = "$XPW" ] && [ "$(kuma login admin "$NP")" = ok ] && [ "$(kuma login admin 'First-Passw0rd')" != ok ] && ! ps -ef | grep -v grep | grep -q -- "$NP" \
     && pass "a new password from the page works, the old one doesn't (never on a command line)" || fail "reset: $NP $(kuma login admin "$NP")"
 
 echo '== backups'

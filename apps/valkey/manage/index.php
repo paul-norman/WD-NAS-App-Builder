@@ -21,9 +21,12 @@ header('Cache-Control: no-store');
     <p>Clients connect with: <code data-vk="password">••••••••••••</code>
         <button type="button" data-vk-action="show">Show</button> <button type="button" data-vk-action="copy">Copy</button></p>
     <p class="mg-note">e.g. <code>REDISCLI_AUTH=&lt;password&gt; valkey-cli</code> over SSH, or the password setting of your app's Redis / ValKey client.</p>
-    <p><input type="text" data-vk="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-vk="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-vk-action="set">Change password</button></p>
-    <p class="mg-note">The new password takes effect immediately, so update your clients too. Passwords are 12-128 characters: letters, digits and . _ ~ -</p>
+    <p class="mg-note">The new password takes effect immediately, so update your clients too (the Paperless-ngx, kvweb and
+        Redis exporter apps follow it by themselves). Passwords are 12-128 characters (letters, digits, symbols or
+        spaces) - in a <code>redis://</code> URL, percent-encode any that aren't letters or digits.</p>
     <p data-vk="message"></p>
 
     <script>

@@ -96,27 +96,6 @@ function radicale_hash(string $password): string
 }
 
 /**
- * The password asked for (12-128 characters, any but control characters), or a random one - failing the request if
- * the one given isn't allowed.
- *
- * @return string The password
- */
-function radicale_new_password(): string
-{
-    $password = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
-
-    if ($password === '') {
-        return substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 20);
-    }
-
-    if (!preg_match('/^[^\x00-\x1f\x7f]{12,128}$/u', $password)) {
-        manage_fail(400, 'Passwords must be 12-128 characters (any letters, digits, symbols or spaces)');
-    }
-
-    return $password;
-}
-
-/**
  * Restarts Radicale with its control script (stop, then start), failing the request if it doesn't start.
  *
  * @param string $ctl The app's control script
@@ -176,7 +155,7 @@ if ($action === 'add_user' || $action === 'new_password') {
     }
 
     // Only its hash is kept: the page shows the password this once
-    $password     = radicale_new_password();
+    $password     = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
     $users[$name] = radicale_hash($password);
 
     radicale_save_users($users_file, $users, $ctl);

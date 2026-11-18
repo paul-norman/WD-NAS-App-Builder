@@ -22,8 +22,11 @@ header('Cache-Control: no-store');
 
     <h3>Root user</h3>
     <p>User name <code>root</code>, password <code data-ab="password">••••••••••••</code>
-        <button type="button" data-ab-action="show">Show</button> <button type="button" data-ab-action="copy">Copy</button>
-        <button type="button" data-ab-action="new-password">New password</button></p>
+        <button type="button" data-ab-action="show">Show</button> <button type="button" data-ab-action="copy">Copy</button></p>
+    <p><input type="password" data-ab="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-ab-action="new-password">Change password</button></p>
+    <p data-ab="password-message"></p>
     <p class="mg-note">The app created this administrator when Audiobookshelf first started, so that no one else could.
         Create a user for each person in Audiobookshelf (Settings → Users), and log in to its phone apps with those. This
         page logs in as root with this password, so keep it as the app set it.</p>
@@ -185,8 +188,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

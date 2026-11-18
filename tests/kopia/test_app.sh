@@ -3,6 +3,12 @@
 # backup - a filesystem repository on a share, a snapshot of a folder, a restore compared with the original - seen by
 # its page, a new password, where it listens, stopping and removal
 . /t/common/nas.sh kopia
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 U=http://127.0.0.1:51515
 
 echo '== first start'
@@ -34,8 +40,8 @@ ST=$(get status)
     && [ "$(echo "$ST" | j '$d["sources"][0]["path"]')" = "\"$V/Public/Documents\"" ] && [ "$(echo "$ST" | j '$d["sources"][0]["size"] > 600000')" = true ] \
     && pass "it sees the repository and the folder's last snapshot ($(echo "$ST" | j '$d["sources"][0]["size"]') bytes, $(echo "$ST" | j '$d["sources"][0]["errors"]') errors)" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password -d show=1 | j '$d["password"]' | tr -d '"')" = "$PW" ] && pass 'the page shows the password' || fail 'password'
-NEW=$(post new_password -d confirm=1 | j '$d["password"]' | tr -d '"'); post restart -d confirm=1 > /dev/null; wait_port 51515 30; sleep 2
-[ "$NEW" != "$PW" ] && [ "$(code -u admin:$NEW $U/)" = 200 ] && [ "$(code -u admin:$PW $U/)" = 401 ] \
+NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw); post restart -d confirm=1 > /dev/null; wait_port 51515 30; sleep 2
+[ "$NEW" != "$PW" ] && [ "$(code -u "admin:$NEW" $U/)" = 200 ] && [ "$(code -u admin:$PW $U/)" = 401 ] \
     && pass "a new password (after its restart): the new one works, the old one doesn't" || fail 'new password'
 post listen -d listen=local > /dev/null; wait_port 51515 30; sleep 1
 [ "$(get status | j '$d["listen"]')" = '"local"' ] && grep -q 'address=http://127.0.0.1:51515' /proc/$(cat /var/run/kopia.pid 2>/dev/null)/cmdline 2>/dev/null \

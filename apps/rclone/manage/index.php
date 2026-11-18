@@ -25,8 +25,11 @@ header('Cache-Control: no-store');
 
     <h3>Logging in</h3>
     <p>User name <code>admin</code>, password <code data-rc="password">••••••••••••</code>
-        <button type="button" data-rc-action="show">Show</button> <button type="button" data-rc-action="copy">Copy</button>
-        <button type="button" data-rc-action="new-password">New password</button></p>
+        <button type="button" data-rc-action="show">Show</button> <button type="button" data-rc-action="copy">Copy</button></p>
+    <p><input type="password" data-rc="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-rc-action="new-password">Change password</button></p>
+    <p data-rc="password-message"></p>
     <p class="mg-note">Your browser asks for it first, then rclone's own login page (its address is filled in). In rclone,
         set up your cloud storage under Remotes - for Google Drive, OneDrive, Dropbox and the like, rclone shows how to let
         it in.</p>
@@ -281,8 +284,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Making a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Making a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

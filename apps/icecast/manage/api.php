@@ -157,7 +157,10 @@ if ($action === 'new_password') {
         manage_fail(400, 'Unknown password');
     }
 
-    list($code, $output) = manage_run(['/bin/sh', $ctl, 'new-password', $name]);
+    // The password typed (any visible characters), or a generated one
+    $password = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
+
+    list($code, $output) = manage_run(['/bin/sh', $ctl, 'set-password', $name], [], $password."\n");
 
     if ($code !== 0) {
         manage_fail(500, 'A new password could not be made: '.$output);

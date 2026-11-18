@@ -72,23 +72,6 @@ function cpp_restart(string $ctl): void
 }
 
 /**
- * A generated password: 20 letters and digits.
- *
- * @return string The password
- */
-function cpp_new_password(): string
-{
-    $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    $password = '';
-
-    for ($i = 0; $i < 20; $i++) {
-        $password .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-    }
-
-    return $password;
-}
-
-/**
  * Where a user is in the settings.
  *
  * @param array<string, mixed> $settings The settings
@@ -240,8 +223,8 @@ if ($action === 'new_password' || $action === 'add_user') {
         manage_fail(404, 'No such user: '.$name);
     }
 
-    // Hashed by cpp_conf.py when copyparty starts
-    $settings['users'][$i]['password'] = cpp_new_password();
+    // The password typed (any visible characters), or a generated one - hashed by cpp_conf.py when copyparty starts
+    $settings['users'][$i]['password'] = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
     $settings['users'][$i]['hash']     = '';
 
     cpp_save($settings_file, $settings);

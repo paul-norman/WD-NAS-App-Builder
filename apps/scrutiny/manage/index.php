@@ -29,8 +29,11 @@ header('Cache-Control: no-store');
 
     <h3>Logging in</h3>
     <p>User name <code>admin</code>, password <code data-sc="password">••••••••••••</code>
-        <button type="button" data-sc-action="show">Show</button> <button type="button" data-sc-action="copy">Copy</button>
-        <button type="button" data-sc-action="new-password">New password</button></p>
+        <button type="button" data-sc-action="show">Show</button> <button type="button" data-sc-action="copy">Copy</button></p>
+    <p><input type="password" data-sc="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-sc-action="new-password">Change password</button></p>
+    <p data-sc="password-message"></p>
     <p class="mg-note">Asked for by the Nginx app, before Scrutiny's pages.</p>
 
     <h3>Alerts</h3>
@@ -172,8 +175,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Making a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Making a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

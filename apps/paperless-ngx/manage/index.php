@@ -23,8 +23,11 @@ header('Cache-Control: no-store');
 
     <h3>Logging in</h3>
     <p>User name <code>admin</code>, password <code data-pl="password">••••••••••••</code>
-        <button type="button" data-pl-action="show">Show</button> <button type="button" data-pl-action="copy">Copy</button>
-        <button type="button" data-pl-action="new-password">New password</button></p>
+        <button type="button" data-pl-action="show">Show</button> <button type="button" data-pl-action="copy">Copy</button></p>
+    <p><input type="password" data-pl="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-pl-action="new-password">Change password</button></p>
+    <p data-pl="password-message"></p>
     <p class="mg-note">The first password is generated; if you change it in Paperless, this one no longer applies (a new
         one from here does). Add more users in Paperless itself.</p>
 
@@ -139,8 +142,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

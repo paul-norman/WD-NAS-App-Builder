@@ -3,6 +3,12 @@
 # CSRF token - against a running Audiobookshelf
 A=/mnt/HD/HD_a2/Nas_Prog/audiobookshelf; D=/mnt/HD/HD_a2/Nas_Prog/_audiobookshelf; P=/mnt/HD/HD_a2/Public
 . /t/bin/setup.sh
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 mkdir -p /var/www/apps && ln -s $A/manage /var/www/apps/audiobookshelf
 echo "PHP $(php -r 'echo PHP_VERSION;')"
 sh $A/abs_ctl.sh start > /dev/null 2>&1
@@ -39,8 +45,8 @@ S1=$(stat -c %Y $D/page_token); sleep 1; get status > /dev/null
     && pass "the page's login is kept (root only) and reused - not a login every refresh" || fail "token reuse: $(grep -c 'logged in' $D/audiobookshelf.log)"
 
 echo '== passwords, settings'
-NEW=$(post new_password -d confirm=1 | j '$d["password"]' | tr -d '"')
-[ "$NEW" != "$PW" ] && [ "$(code -X POST -H 'Content-Type: application/json' -d "{\"username\":\"root\",\"password\":\"$NEW\"}" $U/login)" = 200 ] \
+NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw)
+[ "$NEW" = "$XPW" ] && [ "$(code -X POST -H 'Content-Type: application/json' -d "{\"username\":\"root\",\"password\":\"$(jstr "$NEW")\"}" $U/login)" = 200 ] \
     && [ "$(get status | j 'count($d["libraries"])')" = 2 ] && pass 'a new password (and the page logs in with it)' || fail 'new password'
 post settings -d listen=local -d 'local_feeds=192.168.1.20, Podcasts.Home' > /dev/null
 grep -qx 'LOCAL_FEEDS=192.168.1.20,podcasts.home' $D/settings && grep -q 'Whitelisting: 192.168.1.20,podcasts.home' $D/audiobookshelf.log \

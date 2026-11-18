@@ -3,6 +3,12 @@
 # subscription receiving the page's test notification as it's sent, new passwords and tokens, settings (where it
 # listens, the iPhone relay), stopping and removal
 . /t/common/nas.sh ntfy
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 U=http://127.0.0.1:2586
 
 echo '== first start'
@@ -26,8 +32,8 @@ sleep 2
 post test -d 'topic=bad topic!' | grep -q 'Topics are' && pass 'a bad topic name refused' || fail 'topic check'
 
 echo '== new password and token'
-NP=$(post new_password -d confirm=1 | j '$d["password"]' | tr -d '"'); NT=$(post new_token -d confirm=1 | j '$d["token"]' | tr -d '"'); wait_port 2586 30; sleep 1
-[ "$(code -u admin:$NP -X POST -d hi $U/alerts)" = 200 ] && [ "$(code -u admin:$PW -X POST -d hi $U/alerts)" = 401 ] \
+NP=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw); NT=$(post new_token -d confirm=1 | j '$d["token"]' | tr -d '"'); wait_port 2586 30; sleep 1
+[ "$(code -u "admin:$NP" -X POST -d hi $U/alerts)" = 200 ] && [ "$(code -u admin:$PW -X POST -d hi $U/alerts)" = 401 ] \
     && [ "$(code -H "Authorization: Bearer $NT" -X POST -d hi $U/alerts)" = 200 ] && [ "$(code -H "Authorization: Bearer $TK" -X POST -d hi $U/alerts)" = 401 ] \
     && pass "new ones work, the old ones don't" || fail 'new secrets'
 

@@ -5,6 +5,12 @@
 # one, a password changed in Memos kept across restarts), sign-ups handed back to Memos' own settings, backups with
 # the note in them, on the network too and back, removal keeping its data
 . /t/common/nas.sh memos
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -13,7 +19,7 @@ M=http://127.0.0.1:5230
 # A request to its site through Nginx: site <path> [curl options]
 site() { p=$1; shift; curl -sk -m 10 --resolve "memos.$DOMAIN:443:127.0.0.1" "$@" "https://memos.$DOMAIN$p"; }
 # Signs in to Memos: signin <user> <password> [base] - prints the access token (empty if refused)
-signin() { curl -sk -m 10 --resolve "memos.$DOMAIN:443:127.0.0.1" -X POST -H 'Content-Type: application/json' -d "{\"passwordCredentials\":{\"username\":\"$1\",\"password\":\"$2\"}}" "${3:-$M}/api/auth/signin" | j '$d["accessToken"] ?? ""' | tr -d '"'; }
+signin() { curl -sk -m 10 --resolve "memos.$DOMAIN:443:127.0.0.1" -X POST -H 'Content-Type: application/json' -d "{\"passwordCredentials\":{\"username\":\"$1\",\"password\":\"$(jstr "$2")\"}}" "${3:-$M}/api/auth/signin" | j '$d["accessToken"] ?? ""' | tr -d '"'; }
 # Signs up (unauthenticated): signup <user> - prints the HTTP status
 signup() { code -X POST -H 'Content-Type: application/json' -d "{\"username\":\"$1\",\"password\":\"Some-pass-123\"}" "$M/api/users"; }
 # Whether it listens beyond the NAS itself (port 5230 = 146E)
@@ -65,7 +71,7 @@ ST=$(get status)
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://memos.$DOMAIN/\"" ] && [ "$(echo "$ST" | j '$d["restart_needed"]')" = false ] \
     && [ "$(post password -d show=1 | j '$d["password"]')" = "\"$PW\"" ] && pass 'status: running, Memos 26.11.1, its site, its password' \
     || fail "status: $(echo "$ST" | head -c 400)"
-R=$(post new_password -d confirm=1); NEW=$(echo "$R" | j '$d["password"]' | tr -d '"')
+R=$(post new_password -d confirm=1 --data-urlencode "password=$XPW"); NEW=$(echo "$R" | jpw)
 [ -n "$NEW" ] && [ "$NEW" != "$PW" ] && [ -n "$(signin admin "$NEW")" ] && [ -z "$(signin admin "$PW")" ] \
     && pass 'a new password from the page (the old one refused)' || fail "new password: $R"
 TOKEN=$(signin admin "$NEW")

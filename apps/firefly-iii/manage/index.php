@@ -24,13 +24,15 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>Its owner logs in as <code>admin@nas.local</code>, with this password: <code data-ff="password">••••••••••••</code>
         <button type="button" data-ff-action="show">Show</button> <button type="button" data-ff-action="copy">Copy</button></p>
-    <p><input type="text" data-ff="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-ff="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-ff-action="set">Change password</button></p>
     <p class="mg-note">The new password is in use at once (also if the owner's email address was changed in
-        Firefly III), and its other sessions end. Passwords are 12-128 characters: letters, digits and . _ ~ - (A
+        Firefly III), and its other sessions end. Passwords are 12-128 characters (letters, digits, symbols or spaces) (A
         password changed in Firefly III itself isn't shown here.) Nobody else can sign up: other people are invited in
         Firefly III (Options, Administration, Users) - the NAS sends no email unless a mail server is set in
         <code>Nas_Prog/_firefly-iii/conf/extra.env</code> (see the app's README).</p>
+    <p data-ff="password-message"></p>
 
     <h3>Access</h3>
     <p><label><input type="checkbox" data-ff="local"> Only through the Nginx app (HTTPS)</label>
@@ -208,7 +210,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

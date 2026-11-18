@@ -26,8 +26,11 @@ header('Cache-Control: no-store');
 
     <h3>Admin user</h3>
     <p>User name <code>nas-admin</code>, password <code data-fg="password">••••••••••••</code>
-        <button type="button" data-fg-action="show">Show</button> <button type="button" data-fg-action="copy">Copy</button>
-        <button type="button" data-fg-action="new-password">New password</button></p>
+        <button type="button" data-fg-action="show">Show</button> <button type="button" data-fg-action="copy">Copy</button></p>
+    <p><input type="password" data-fg="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-fg-action="new-password">Change password</button></p>
+    <p data-fg="password-message"></p>
     <p class="mg-note">Nobody can see anything without logging in, and there are no sign-ups: create your own users in
         Forgejo (Site administration → User accounts), and add your SSH keys in each user's settings.</p>
     <pre data-fg="example"></pre>
@@ -180,8 +183,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

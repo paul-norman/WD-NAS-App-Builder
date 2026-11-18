@@ -437,7 +437,7 @@ admin_password() {
     password="$(head -n 1 | tr -d '\r\n')"
 
     case "${password}" in
-        ''|*[!A-Za-z0-9._~-]*) log 'Passwords are letters, digits and . _ ~ - only'; return 1 ;;
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
     esac
 
     id="$(cat "${ADMIN_ID_FILE}" 2>/dev/null)"
@@ -446,8 +446,12 @@ admin_password() {
         ''|*[!0-9]*) log 'Its administrator has not been set up yet (start phpBB first)'; return 1 ;;
     esac
 
+    # As phpBB hashes what its login form gets: it HTML-escapes everything it's sent (& " < > - not ') and normalises
+    # Unicode (NFC) - so the password is hashed the same way, or one with those characters could never log in
     hash="$(printf '%s' "${password}" \
-        | "${PHP}" -n -r 'echo password_hash(stream_get_contents(STDIN), PASSWORD_BCRYPT, ["cost" => 10]);')"
+        | "${PHP}" -n -r '$p = htmlspecialchars(stream_get_contents(STDIN), ENT_COMPAT, "UTF-8");
+            echo password_hash(class_exists("Normalizer") ? Normalizer::normalize($p, Normalizer::FORM_C) : $p,
+                PASSWORD_BCRYPT, ["cost" => 10]);')"
 
     case "${hash}" in
         '$2y$10$'*) ;;

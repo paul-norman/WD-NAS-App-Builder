@@ -141,8 +141,9 @@ if ($action === 'listen') {
 }
 
 if ($action === 'reset_password') {
-    // A new random password (letters and digits, strong enough for Uptime Kuma's own check), given to its tool on input
-    $password = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 20);
+    // The password typed (any visible characters - Uptime Kuma's own check refuses weak ones), or a generated one
+    // (strong enough for it), given to its tool on input
+    $password = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
 
     list($code, $output) = kuma_ctl($ctl, 'reset-password', $password."\n");
 

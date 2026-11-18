@@ -7,6 +7,7 @@
 #   adguardhome_ctl.sh restart      - stop, then start
 #   adguardhome_ctl.sh firewall     - bring the DNS forwarding up to date with the NAS's addresses (every 5 minutes)
 #   adguardhome_ctl.sh new-password - give the admin account a new password (signing everyone out)
+#   adguardhome_ctl.sh set-password - the same, with the password typed on the page (on its input, one line)
 #   adguardhome_ctl.sh backup       - back up its settings (block lists, rules, clients, rewrites...)
 #   adguardhome_ctl.sh daily        - the daily job: a backup, and keeping its log small
 #   adguardhome_ctl.sh nginx        - rewrite the Nginx app's sites (its own comes from its nginx.json), and reload it
@@ -361,7 +362,11 @@ new_password() {
 
     running && was_running=1
     [ ${was_running} = 1 ] && stop
-    new_secret "${new}" 20
+    if [ -n "$1" ]; then
+        ( umask 077; printf '%s' "$1" > "${new}" )
+    else
+        new_secret "${new}" 20
+    fi
 
     if ! php "${LIB}" set-password "${CONFIG}" "${new}"; then
         rm -f "${new}"
@@ -377,6 +382,22 @@ new_password() {
     [ ${was_running} = 1 ] && start
 
     return 0
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 # Backs up its settings file (block lists, rules, clients, rewrites, upstream servers...: its statistics and query log
@@ -452,6 +473,7 @@ case "$1" in
         ;;
     firewall) firewall ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     backup) backup ;;
     daily)
         backup
@@ -459,7 +481,7 @@ case "$1" in
         ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|firewall|new-password|backup|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|firewall|new-password|set-password|backup|daily|nginx" >&2
 
         exit 1
         ;;

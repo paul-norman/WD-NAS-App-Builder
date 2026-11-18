@@ -3,11 +3,17 @@
 # anyone on the network can, Smart Fades removed), the page's token and new passwords, a music folder on the NAS scanned
 # with its own ffmpeg/ffprobe (tags read), backups (it's stopped for the copy, then started again), removal
 . /t/common/nas.sh music-assistant
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 U=http://127.0.0.1:8095
 # A command on its API with the page's token (or the token given as $3)
 api() { curl -s -H "Authorization: Bearer ${3:-$(cat $D/page_token)}" -H 'Content-Type: application/json' \
     -d "{\"message_id\":\"t\",\"command\":\"$1\",\"args\":${2:-{\}}}" $U/api; }
-login() { curl -s -H 'Content-Type: application/json' -d "{\"credentials\":{\"username\":\"admin\",\"password\":\"$1\"},\"device_name\":\"test\"}" $U/auth/login | j '$d["success"] ?? false'; }
+login() { curl -s -H 'Content-Type: application/json' -d "{\"credentials\":{\"username\":\"admin\",\"password\":\"$(jstr "$1")\"},\"device_name\":\"test\"}" $U/auth/login | j '$d["success"] ?? false'; }
 
 # No certificate authorities in /etc/ssl, as on the NAS: Debian's would hide a Python that can't find its own
 mkdir -p /tmp/ssl-hidden && mv /etc/ssl/certs /etc/ssl/cert.pem /tmp/ssl-hidden/ 2>/dev/null
@@ -43,8 +49,8 @@ grep -q 'SSL_CERT_FILE="${CA_FILE}"' $P/music-assistant/ma_ctl.sh && [ -f "$P/mu
     || fail "https: '$ENVIRON' $(env "$ENVIRON" $MAPY -c "$HTTPS" 2>&1 | tail -n 1)"
 
 echo '== new password'
-NP=$(post new_password | j '$d["password"]' | tr -d '"')
-[ ${#NP} -ge 16 ] && [ "$NP" != "$PW" ] && [ "$(login "$NP")" = true ] && [ "$(login "$PW")" != true ] && [ "$(get status | j 'is_array($d["players"])')" = true ] \
+NP=$(post new_password --data-urlencode "password=$XPW" | jpw)
+[ "$NP" = "$XPW" ] && [ "$NP" != "$PW" ] && [ "$(login "$NP")" = true ] && [ "$(login "$PW")" != true ] && [ "$(get status | j 'is_array($d["players"])')" = true ] \
     && pass "a new one works, the old one doesn't; the page still has a working token" || fail "new password: $NP $(login "$NP")"
 
 echo '== a music folder'

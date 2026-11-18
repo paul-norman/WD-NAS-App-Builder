@@ -23,10 +23,13 @@ header('Cache-Control: no-store');
 
     <h3>Admin account</h3>
     <p>Log in as <code>admin</code> with: <code data-gf="password">••••••••••••</code>
-        <button type="button" data-gf-action="show">Show</button> <button type="button" data-gf-action="copy">Copy</button>
-        <button type="button" data-gf-action="reset">Reset the password</button></p>
+        <button type="button" data-gf-action="show">Show</button> <button type="button" data-gf-action="copy">Copy</button></p>
+    <p><input type="password" data-gf="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-gf-action="reset">Change password</button></p>
+    <p data-gf="password-message"></p>
     <p class="mg-note">The first password is generated when Grafana's database is created. A password changed in Grafana
-        itself isn't shown here; resetting sets a new random one.</p>
+        itself isn't shown here. Passwords are 12-128 characters (letters, digits, symbols or spaces).</p>
 
     <h3>Access</h3>
     <p><label><input type="checkbox" data-gf="local"> Only through the Nginx app (HTTPS)</label>
@@ -217,12 +220,14 @@ header('Cache-Control: no-store');
         });
 
         button('reset').addEventListener('click', function () {
-            if (!window.confirm('Reset the admin account\'s password to a new random one?')) {
+            if (!window.confirm('Change the admin account\'s password?')) {
                 return;
             }
 
-            act('reset_password', { confirm: 1 }, 'Resetting the password…', 'Password reset - log in with the new one.').then(function (response) {
+            act('reset_password', { confirm: 1, password: part('new').value.trim() }, 'Changing the password…', 'Password changed - log in with the new one.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     secret.set(response.password);
                 }
             });

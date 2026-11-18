@@ -6,6 +6,10 @@
 # address (the Nginx app's site), logging in through its site, an image kept out of public view, a new password from
 # the page, backups, the network setting, started before MariaDB (as at boot), a restart keeping its data, removal
 . /t/common/nas.sh bookstack
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -90,8 +94,8 @@ ST=$(get status)
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://bookstack.$DOMAIN/\"" ] \
     && pass "the page: BookStack 26.09.3 answering, its database set up, its address https://bookstack.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password | j '$d["password"]')" = "\"$PW\"" ] && pass 'the page shows the password' || fail 'password not shown'
-R=$(post set_password -d password=Brand.New-Password_1)
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && logged_in "$(login admin@nas.local Brand.New-Password_1)" && ! logged_in "$(login admin@nas.local "$PW")" \
+R=$(post set_password --data-urlencode "password=$XPW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && logged_in "$(login admin@nas.local "$XPW")" && ! logged_in "$(login admin@nas.local "$PW")" \
     && pass 'a new password from the page: in use at once, the old one refused' || fail "new password: $R"
 q "UPDATE bookstack.users SET email = 'me@example.com' WHERE email = 'admin@nas.local'" > /dev/null
 R=$(post set_password -d password=Another.Password_2)

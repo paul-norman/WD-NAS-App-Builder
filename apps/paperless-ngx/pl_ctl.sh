@@ -7,6 +7,7 @@
 #   pl_ctl.sh stop             - stop all of them
 #   pl_ctl.sh restart          - stop, then start
 #   pl_ctl.sh new-password     - give the admin user a new generated password (at once, nothing restarted)
+#   pl_ctl.sh set-password     - the same, with the password typed on the page (on its input, one line)
 #   pl_ctl.sh manage <command> - run one of Paperless's management commands (e.g. document_exporter <folder>)
 #   pl_ctl.sh daily            - the daily job: keeping its log small
 #   pl_ctl.sh nginx            - add / update Paperless's site in the Nginx app (and reload it)
@@ -32,6 +33,7 @@ SERVICES='web consumer worker scheduler'
 PORT=8040
 # The Valkey app (its configuration has its port and password)
 VALKEY_CONF="${APPS_PATH}/_valkey/valkey.conf"
+VALKEY_PASSWORD_FILE="${APPS_PATH}/_valkey/password"
 VALKEY_CLI="${APPS_PATH}/valkey/binaries/valkey-cli"
 # Its own user (created if missing): the ID used when creating it. Its group is the NAS's share group if there is one
 PL_ID=96
@@ -102,11 +104,30 @@ valkey_conf() {
     awk -v key="$1" '$1 == key { print $2; exit }' "${VALKEY_CONF}" 2>/dev/null
 }
 
+# The Valkey app's password: its password file (as it is - spaces, quotes and symbols included), else - from an older
+# Valkey app - its config file's requirepass (then letters and digits, unquoted).
+#
+# Prints it
+valkey_password() {
+    if [ -f "${VALKEY_PASSWORD_FILE}" ]; then
+        sed -n 1p "${VALKEY_PASSWORD_FILE}"
+    else
+        awk '$1 == "requirepass" { print $2; exit }' "${VALKEY_CONF}" 2>/dev/null
+    fi
+}
+
+# Percent-encodes text for a URL (every byte, so any character is safe in it), without its final line break.
+#
+# Prints the encoded text (the text is read from the input)
+url_encode() {
+    printf '%s' "$(cat)" | od -An -tx1 -v | tr -d ' \n' | sed 's/\(..\)/%\1/g'
+}
+
 # Whether the Valkey app answers.
 #
 # Returns 0 if it does
 valkey_up() {
-    [ "$(REDISCLI_AUTH="$(valkey_conf requirepass)" VALKEYCLI_AUTH="$(valkey_conf requirepass)" "${VALKEY_CLI}" \
+    [ "$(REDISCLI_AUTH="$(valkey_password)" VALKEYCLI_AUTH="$(valkey_password)" "${VALKEY_CLI}" \
         -h 127.0.0.1 -p "$(valkey_conf port)" ping 2>/dev/null)" = PONG ]
 }
 
@@ -222,7 +243,7 @@ as_paperless() {
         PAPERLESS_DATA_DIR="${DATA_PATH}/data" PAPERLESS_MEDIA_ROOT="${DATA_PATH}/media" \
         PAPERLESS_SCRATCH_DIR="${DATA_PATH}/tmp" PAPERLESS_STATICDIR="${BIN}/paperless/static" \
         PAPERLESS_CONSUMPTION_DIR="$(setting CONSUME_DIR "${VOLUME_PATH}/Public/Paperless")" \
-        PAPERLESS_REDIS="redis://:$(valkey_conf requirepass)@127.0.0.1:$(valkey_conf port)" \
+        PAPERLESS_REDIS="redis://:$(valkey_password | url_encode)@127.0.0.1:$(valkey_conf port)" \
         PAPERLESS_REDIS_PREFIX=paperless \
         PAPERLESS_SECRET_KEY="$(cat "${SECRET_FILE}")" \
         PAPERLESS_ALLOWED_HOSTS='*' PAPERLESS_CSRF_TRUSTED_ORIGINS="${origins}" \
@@ -403,7 +424,11 @@ stop() {
 #
 # Prints what it did
 new_password() {
-    new_secret "${PASSWORD_FILE}.new" 20
+    if [ -n "$1" ]; then
+        ( umask 077; printf '%s' "$1" > "${PASSWORD_FILE}.new" )
+    else
+        new_secret "${PASSWORD_FILE}.new" 20
+    fi
 
     if PL_NEW_PASSWORD="$(cat "${PASSWORD_FILE}.new")" as_paperless "${PYTHON}" manage.py shell -c '
 import os
@@ -421,6 +446,22 @@ user.save()
 
         return 1
     fi
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 # Keeps the app's log under 2MB (the previous part is kept as paperless.log.1). Paperless rotates its own logs, in its
@@ -456,6 +497,7 @@ case "$1" in
         start
         ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     manage)
         shift
         as_paperless "${PYTHON}" manage.py "$@"
@@ -463,7 +505,7 @@ case "$1" in
     daily) rotate_log ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|manage <command>|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|manage <command>|daily|nginx" >&2
 
         exit 1
         ;;

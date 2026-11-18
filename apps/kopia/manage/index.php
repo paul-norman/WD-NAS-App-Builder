@@ -22,8 +22,11 @@ header('Cache-Control: no-store');
 
     <h3>Logging in</h3>
     <p>Log in to Kopia as <code>admin</code> with: <code data-kp="password">••••••••••••</code>
-        <button type="button" data-kp-action="show">Show</button> <button type="button" data-kp-action="copy">Copy</button>
-        <button type="button" data-kp-action="new-password">New password</button></p>
+        <button type="button" data-kp-action="show">Show</button> <button type="button" data-kp-action="copy">Copy</button></p>
+    <p><input type="password" data-kp="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-kp-action="new-password">Change password</button></p>
+    <p data-kp="password-message"></p>
     <p class="mg-note">This is only Kopia's web interface login. The repository's own password (which encrypts the backups,
         set when the repository is created) is separate: keep a copy away from the NAS - without it the backups can't be
         restored.</p>
@@ -226,8 +229,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Making a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Making a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     secret.set(response.password);
                 }
             });

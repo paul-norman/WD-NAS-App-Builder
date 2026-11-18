@@ -26,10 +26,19 @@ header('Cache-Control: no-store');
 
     <h3>Users</h3>
     <table data-cp="users"></table>
+    <p data-cp="renew-box" hidden>New password for <strong data-cp="renew-name"></strong>:
+        <input type="password" data-cp="renew-password" placeholder="Leave empty to generate one" autocomplete="new-password">
+        <button type="button" data-show-for="renew-password">Show</button>
+        <button type="button" data-cp-action="renew-save">Save</button>
+        <button type="button" data-cp-action="renew-cancel">Cancel</button></p>
     <p><label>New user <input type="text" data-cp="new-user" spellcheck="false" autocomplete="off" placeholder="e.g. alice"></label>
+        <input type="password" data-cp="new-user-password" placeholder="Password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new-user-password">Show</button>
         <button type="button" data-cp-action="add-user">Add user</button></p>
-    <p class="mg-note">Everyone logs in with their user name and password (each gets a generated one). Who may see and
-        change what is set for each folder below.</p>
+    <p data-cp="users-message"></p>
+    <p class="mg-note">Everyone logs in with their user name and password (the one typed, or a generated one) - passwords
+        are 12-128 characters (letters, digits, symbols or spaces). Who may see and change what is set for each folder
+        below.</p>
 
     <h3>Shared folders</h3>
     <table data-cp="folders"></table>
@@ -201,15 +210,12 @@ header('Cache-Control: no-store');
                 });
 
                 fresh.addEventListener('click', function () {
-                    if (!window.confirm('Give ' + name + ' a new password? Their old one stops working.')) {
-                        return;
-                    }
+                    renewing = { name: name, secret: secret };
 
-                    act('new_password', { name: name }, 'Setting a new password…', name + ' has a new password.').then(function (response) {
-                        if (response) {
-                            secret.set(response.password);
-                        }
-                    });
+                    part('renew-name').textContent = name;
+                    part('renew-password').value   = '';
+                    part('renew-box').hidden       = false;
+                    part('renew-password').focus();
                 });
 
                 remove.addEventListener('click', function () {
@@ -452,6 +458,9 @@ header('Cache-Control: no-store');
         }
 
         // Keep the page current, until the dashboard removes it
+        // The user whose password the New password box sets: { name, secret }
+        let renewing = null;
+
         <?php manage_timer_script(); ?>
 
         button('restart').addEventListener('click', function () {
@@ -461,11 +470,38 @@ header('Cache-Control: no-store');
         button('add-user').addEventListener('click', function () {
             let name = part('new-user').value.trim();
 
-            act('add_user', { name: name }, 'Adding ' + name + '…', name + ' added - share folders with them below.').then(function (response) {
+            act('add_user', { name: name, password: part('new-user-password').value.trim() }, 'Adding ' + name + '…',
+                name + ' added - share folders with them below.', 'users-message').then(function (response) {
                 if (response) {
-                    part('new-user').value = '';
+                    part('new-user').value          = '';
+                    part('new-user-password').value = '';
                 }
             });
+        });
+
+        // A user's new password: the one typed in the box New password opens, or a generated one (their old one stops
+        // working)
+        button('renew-save').addEventListener('click', function () {
+            let user = renewing;
+
+            if (!user) {
+                return;
+            }
+
+            act('new_password', { name: user.name, password: part('renew-password').value.trim() }, 'Setting a new password…',
+                user.name + ' has a new password.', 'users-message').then(function (response) {
+                if (response) {
+                    user.secret.set(response.password);
+
+                    part('renew-box').hidden     = true;
+                    part('renew-password').value = '';
+                }
+            });
+        });
+
+        button('renew-cancel').addEventListener('click', function () {
+            part('renew-box').hidden     = true;
+            part('renew-password').value = '';
         });
 
         button('settings').addEventListener('click', function () {

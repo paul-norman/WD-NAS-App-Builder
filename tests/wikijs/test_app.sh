@@ -5,6 +5,10 @@
 # the page, backups, the network setting, started before PostgreSQL answers (as at boot), a restart keeping its data,
 # removal
 . /t/common/nas.sh wikijs
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -17,7 +21,7 @@ q() { PGPASSWORD="$PGPW" $PGBIN/psql -h /var/run/postgresql -U postgres -d "${2:
 # with a third argument: prints its answer
 login() {
     SITE=$(q 'SELECT id FROM wiki.sites LIMIT 1'); STRATEGY=$(q "SELECT id FROM wiki.authentication WHERE module = 'local' LIMIT 1")
-    BODY="{\"strategyId\": \"$STRATEGY\", \"username\": \"$1\", \"password\": \"$2\"}"
+    BODY=$(php -r 'echo json_encode(["strategyId" => $argv[1], "username" => $argv[2], "password" => $argv[3]]);' "$STRATEGY" "$1" "$2")
     if [ -n "${3:-}" ]; then
         site "/_api/sites/$SITE/auth/login" -X PUT -H 'Content-Type: application/json' -d "$BODY"
     else
@@ -74,8 +78,11 @@ ST=$(get status)
 [ "$(post password | j '$d["password"]')" = "\"$PW\"" ] && pass 'the page shows the password' || fail 'password not shown'
 R=$(post set_password -d password=short)
 [ "$(echo "$R" | j '$d["ok"]')" = false ] && pass 'a short password refused' || fail "short password: $R"
-R=$(post set_password -d password=Brand.New-Password_1)
-[ "$(echo "$R" | j '$d["ok"]')" = true ] && authed "$(login admin@nas.local Brand.New-Password_1)" && ! authed "$(login admin@nas.local "$PW")" \
+# (bcrypt reads only 72 bytes: 40 accented letters are 80)
+R=$(post set_password --data-urlencode "password=$(printf 'é%.0s' $(seq 1 40))")
+[ "$(echo "$R" | j '$d["ok"]')" = false ] && echo "$R" | grep -q '72 bytes' && pass 'more than 72 bytes refused (bcrypt)' || fail "72 bytes: $R"
+R=$(post set_password --data-urlencode "password=$XPW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && authed "$(login admin@nas.local "$XPW")" && ! authed "$(login admin@nas.local "$PW")" \
     && pass 'a new password from the page: in use at once, the old one refused' || fail "new password: $R"
 q "UPDATE wiki.users SET email = 'me@example.com' WHERE email = 'admin@nas.local'" > /dev/null
 R=$(post set_password -d password=Another.Password_2)

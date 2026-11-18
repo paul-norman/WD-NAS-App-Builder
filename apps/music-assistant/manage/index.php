@@ -22,8 +22,11 @@ header('Cache-Control: no-store');
 
     <h3>Admin user</h3>
     <p>User name <code>admin</code>, password <code data-ma="password">••••••••••••</code>
-        <button type="button" data-ma-action="show">Show</button> <button type="button" data-ma-action="copy">Copy</button>
-        <button type="button" data-ma-action="new-password">New password</button></p>
+        <button type="button" data-ma-action="show">Show</button> <button type="button" data-ma-action="copy">Copy</button></p>
+    <p><input type="password" data-ma="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-ma-action="new-password">Change password</button></p>
+    <p data-ma="password-message"></p>
     <p class="mg-note" data-ma="no-admin" hidden>The app couldn't create the admin user (one already existed): log in with
         your own.</p>
     <p class="mg-note">Create a user for each person in Music Assistant (Settings → Users). Add your music with the "Local
@@ -203,8 +206,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

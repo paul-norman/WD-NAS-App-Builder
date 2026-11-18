@@ -3,6 +3,12 @@
 # CSRF token - against a running Icecast
 A=/mnt/HD/HD_a2/Nas_Prog/icecast; D=/mnt/HD/HD_a2/Nas_Prog/_icecast; M='/mnt/HD/HD_a2/Public/Shared Music'
 . /t/bin/setup.sh
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 mkdir -p /var/www/apps && ln -s $A/manage /var/www/apps/icecast
 echo "PHP $(php -r 'echo PHP_VERSION;')"
 sh $A/ice_ctl.sh start > /dev/null 2>&1
@@ -49,8 +55,8 @@ ST=$(get status); echo "$ST" | j '$d["mounts"][0]' | grep -q '"mount":"/music".*
 
 echo '== passwords, settings'
 OLD=$(cat $D/source_password)
-NEW=$(post new_password -d name=source | j '$d["password"]' | tr -d '"'); sleep 4
-[ "$NEW" != "$OLD" ] && [ "$(code -m 4 -X PUT -u source:$OLD -H 'Content-Type: audio/mpeg' -H 'Expect:' -T - $U/live < /tmp/one.wav)" = 401 ] \
+NEW=$(post new_password -d name=source --data-urlencode "password=$XPW" | jpw); sleep 4
+[ "$NEW" = "$XPW" ] && [ "$(code -m 4 -X PUT -u "source:$OLD" -H 'Content-Type: audio/mpeg' -H 'Expect:' -T - $U/live < /tmp/one.wav)" = 401 ] \
     && [ "$(get status | j '$d["station_running"]')" = true ] && echo "$(get status | j '$d["mounts"]')" | grep -q '/music' \
     && pass 'a new broadcasting password: the old one refused, the station still on air (it uses the new one)' || fail 'new source password'
 settings -d listen=local -d mount=music > /dev/null

@@ -9,6 +9,8 @@ in root-only files, never on a command line):
         before anyone else can, and the page's token
     python3 -I ma_api.py new-password <data path>
         gives the admin user a new generated password (and a new page token)
+    python3 -I ma_api.py set-password <data path>
+        the same, with the password on its input (one line)
 """
 
 import json
@@ -217,12 +219,13 @@ def setup(data_path):
     return 1
 
 
-def change_password(data_path):
+def change_password(data_path, given=""):
     """
-    Gives the admin user a new generated password, and the page a new token
-    (in case the change ended the old ones).
+    Gives the admin user a new password - the one given, else a generated
+    one - and the page a new token (in case the change ended the old ones).
 
     :param str data_path: The app's data folder
+    :param str given:     The password (any visible characters), or ""
 
     :return: The exit code
     """
@@ -252,7 +255,7 @@ def change_password(data_path):
 
         return 1
 
-    password = new_password()
+    password = given or new_password()
     status, _ = command(result["token"], "auth/user/update", password=password)
     command(result["token"], "auth/logout")
 
@@ -284,14 +287,23 @@ def change_password(data_path):
 if __name__ == "__main__":
     if (
         len(sys.argv) != 3
-        or sys.argv[1] not in ("setup", "new-password")
+        or sys.argv[1] not in ("setup", "new-password", "set-password")
         or not os.path.isdir(sys.argv[2])
     ):
         print(__doc__)
         sys.exit(2)
 
-    sys.exit(
-        setup(sys.argv[2])
-        if sys.argv[1] == "setup"
-        else change_password(sys.argv[2])
-    )
+    if sys.argv[1] == "setup":
+        sys.exit(setup(sys.argv[2]))
+
+    typed = ""
+
+    if sys.argv[1] == "set-password":
+        typed = sys.stdin.readline().rstrip("\r\n")
+
+        if not typed or any(ord(c) < 32 or ord(c) == 127 for c in typed):
+            print("Passwords are visible characters only"
+                  " (no control characters)")
+            sys.exit(1)
+
+    sys.exit(change_password(sys.argv[2], typed))

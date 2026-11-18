@@ -32,7 +32,7 @@ Over SSH, set the account back to the password in the file *(adjust the volume t
 
 ```sh
 PW_FILE=/mnt/HD/HD_a2/Nas_Prog/_phpMyAdmin/admin_password
-mysql --user=root --password= -e "ALTER USER 'admin'@'localhost' IDENTIFIED BY '$(cat ${PW_FILE})';"
+printf "ALTER USER 'admin'@'localhost' IDENTIFIED BY '%s';\n" "$(sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g" ${PW_FILE})" | mysql --user=root --password=
 cat ${PW_FILE}
 ```
 

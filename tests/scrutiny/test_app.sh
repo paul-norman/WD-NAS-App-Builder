@@ -5,6 +5,12 @@
 # (asking for the app's login first), alerts to the ntfy app's topic (a test alert arriving there), a restart keeping its
 # history, removal
 . /t/common/nas.sh scrutiny
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
+# Text for inside a JSON string: jstr <text> - its quotes and backslashes escaped
+jstr() { php -r 'echo substr(json_encode($argv[1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);' "$1"; }
 DOMAIN=nas.example.test
 S=http://127.0.0.1:8091
 site() { p=$1; shift; curl -sk -m 10 --resolve "scrutiny.$DOMAIN:443:127.0.0.1" "$@" "https://scrutiny.$DOMAIN$p"; }
@@ -77,8 +83,8 @@ grep -q 'proxy_pass *http://127.0.0.1:8091' $P/_nginx/sites/60-app-scrutiny.conf
     || fail "site: $(ls $P/_nginx/sites; site /web/ -u "admin:$(cat $D/password)" | head -c 200)"
 [ "$(site / -o /dev/null -w '%{redirect_url}' -u "admin:$(cat $D/password)")" = "https://scrutiny.$DOMAIN/web/" ] && [ "$(get status | j '$d["site"]["url"]')" = "\"https://scrutiny.$DOMAIN/\"" ] \
     && pass 'its site goes to its start page (/web/), and the page links to it' || fail "start: $(site / -o /dev/null -w '%{redirect_url}') $(get status | j '$d["site"]')"
-OLD=$(cat $D/password); NEW=$(post new_password -d confirm=1 | j '$d["password"]' | tr -d '"')
-[ ${#NEW} = 20 ] && [ "$(site /web/ -u "admin:$OLD" -o /dev/null -w '%{http_code}')" = 401 ] && site /web/ -u "admin:$NEW" | grep -qi '<app-root' \
+OLD=$(cat $D/password); NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw)
+[ "$NEW" = "$XPW" ] && [ "$(site /web/ -u "admin:$OLD" -o /dev/null -w '%{http_code}')" = 401 ] && site /web/ -u "admin:$NEW" | grep -qi '<app-root' \
     && pass 'a new password: in use at once, the old one refused' || fail "new password: ${#NEW}"
 
 echo '== alerts to ntfy'

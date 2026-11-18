@@ -76,15 +76,9 @@ if ($action === 'password') {
 }
 
 if ($action === 'set_password') {
-    // A new password: the one given (letters, digits and . _ ~ - only, like the other apps), or a random one. Tautulli
+    // A new password: the one given (any visible characters, spaces and symbols included), or a random one. Tautulli
     // restarts with it
-    $new = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
-
-    if ($new === '') {
-        $new = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(48))), 0, 20);
-    } elseif (!preg_match('/^[A-Za-z0-9._~-]{12,128}$/', $new)) {
-        manage_fail(400, 'Passwords must be 12-128 characters: letters, digits and . _ ~ -');
-    }
+    $new = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '');
 
     list($code, $output) = manage_run(['/bin/sh', $ctl, 'set-password'], [], $new."\n");
 

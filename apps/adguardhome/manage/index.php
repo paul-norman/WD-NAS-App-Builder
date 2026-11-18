@@ -28,8 +28,11 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>User name <code data-ag="admin">admin</code>, password <code data-ag="password">••••••••••••</code>
         <button type="button" data-ag-action="show">Show</button>
-        <button type="button" data-ag-action="copy">Copy</button>
-        <button type="button" data-ag-action="new-password">Reset the password</button></p>
+        <button type="button" data-ag-action="copy">Copy</button></p>
+    <p><input type="password" data-ag="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-ag-action="new-password">Change password</button></p>
+    <p data-ag="password-message"></p>
     <p class="mg-note">The app made this account before AdGuard Home first started, so nobody else can claim it. Reset
         the password sets a new one this page shows (AdGuard Home restarts, and everyone signs in again).</p>
 
@@ -173,8 +176,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

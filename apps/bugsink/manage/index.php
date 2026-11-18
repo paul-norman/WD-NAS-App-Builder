@@ -24,11 +24,13 @@ header('Cache-Control: no-store');
     <h3>Logging in</h3>
     <p>Its admin user is <code>admin</code>, with this password: <code data-bs="password">••••••••••••</code>
         <button type="button" data-bs-action="show">Show</button> <button type="button" data-bs-action="copy">Copy</button></p>
-    <p><input type="text" data-bs="new" placeholder="New password (leave empty to generate one)" autocomplete="off" spellcheck="false">
+    <p><input type="password" data-bs="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
         <button type="button" data-bs-action="set">Change password</button></p>
-    <p class="mg-note">The new password is in use at once. Passwords are 12-128 characters: letters, digits and . _ ~ -
+    <p class="mg-note">The new password is in use at once. Passwords are 12-128 characters (letters, digits, symbols or spaces)
         (A password changed in Bugsink itself isn't shown here.) Other people get an invitation link from the admin
         (Users, in Bugsink): the NAS sends no email.</p>
+    <p data-bs="password-message"></p>
 
     <h3>Reporting errors to it</h3>
     <p>Make a team and a project in Bugsink: the project shows its DSN, which your programs' Sentry SDK is given (Bugsink
@@ -141,7 +143,7 @@ header('Cache-Control: no-store');
         });
 
         button('set').addEventListener('click', function () {
-            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.').then(function (response) {
+            act('set_password', { password: part('new').value.trim() }, 'Saving the password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
                     secret.set(response.password);
 

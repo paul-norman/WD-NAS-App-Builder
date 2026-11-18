@@ -7,6 +7,7 @@
 #   retroassembly_ctl.sh stop         - stop RetroAssembly
 #   retroassembly_ctl.sh restart      - stop, then start
 #   retroassembly_ctl.sh new-password - give the admin account a new password (signing it out everywhere)
+#   retroassembly_ctl.sh set-password - the same, with the password typed on the page (on its input, one line)
 #   retroassembly_ctl.sh backup       - back up its database (safely, while it runs), saves and screenshots
 #   retroassembly_ctl.sh daily        - the daily job: a backup, and keeping its log small
 #   retroassembly_ctl.sh nginx        - rewrite the Nginx app's sites (RetroAssembly's own comes from its nginx.json),
@@ -336,7 +337,7 @@ stop() {
 #
 # Prints what it did; returns 0 once set
 new_password() {
-    local password="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20)"
+    local password="${1:-$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 20)}"
     local output
 
     if [ ! -f "${DATABASE}" ]; then
@@ -354,6 +355,22 @@ new_password() {
 
     ( umask 077; printf '%s' "${password}" > "${PASSWORD_FILE}" )
     log 'set a new admin password'
+}
+
+# A new password from the page: the one on the input (one line - any visible characters), used as new_password uses a
+# generated one.
+#
+# Returns 0 once it's in use
+set_password() {
+    local password
+
+    password="$(head -n 1 | tr -d '\r\n')"
+
+    case "${password}" in
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
+    esac
+
+    new_password "${password}"
 }
 
 # Backs up its database (SQLite's online backup: a consistent copy while RetroAssembly writes to it, checked) and the
@@ -447,6 +464,7 @@ case "$1" in
         start
         ;;
     new-password) new_password ;;
+    set-password) set_password ;;
     backup) backup ;;
     daily)
         backup
@@ -454,7 +472,7 @@ case "$1" in
         ;;
     nginx) nginx_site ;;
     *)
-        echo "Usage: $0 setup|start|stop|restart|new-password|backup|daily|nginx" >&2
+        echo "Usage: $0 setup|start|stop|restart|new-password|set-password|backup|daily|nginx" >&2
 
         exit 1
         ;;

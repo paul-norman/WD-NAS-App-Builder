@@ -24,8 +24,11 @@ header('Cache-Control: no-store');
 
     <h3>Admin user</h3>
     <p>User name <code>admin</code>, password <code data-nd="password">••••••••••••</code>
-        <button type="button" data-nd-action="show">Show</button> <button type="button" data-nd-action="copy">Copy</button>
-        <button type="button" data-nd-action="new-password">New password</button></p>
+        <button type="button" data-nd-action="show">Show</button> <button type="button" data-nd-action="copy">Copy</button></p>
+    <p><input type="password" data-nd="new" placeholder="New password (leave empty to generate one)" autocomplete="new-password">
+        <button type="button" data-show-for="new">Show</button>
+        <button type="button" data-nd-action="new-password">Change password</button></p>
+    <p data-nd="password-message"></p>
     <p class="mg-note">Create a user for each person in Navidrome (Settings → Users). Phones use any Subsonic app (e.g.
         Symfonium, Tempo or Substreamer on Android, play:Sub or Amperfy on iPhone) with the address above and their own
         user name and password. This page logs in as admin with this password, so keep it as the app set it.</p>
@@ -248,8 +251,10 @@ header('Cache-Control: no-store');
                 return;
             }
 
-            act('new_password', { confirm: 1 }, 'Setting a new password…', 'New password in use.').then(function (response) {
+            act('new_password', { confirm: 1, password: part('new').value.trim() }, 'Setting a new password…', 'New password in use.', 'password-message').then(function (response) {
                 if (response) {
+                    part('new').value = '';
+
                     password.set(response.password);
                 }
             });

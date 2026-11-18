@@ -281,7 +281,7 @@ admin_password() {
     password="$(head -n 1 | tr -d '\r\n')"
 
     case "${password}" in
-        ''|*[!A-Za-z0-9._~-]*) log 'Passwords are letters, digits and . _ ~ - only'; return 1 ;;
+        ''|*[[:cntrl:]]*) log 'Passwords are visible characters only (no control characters)'; return 1 ;;
     esac
 
     output="$(export MONGO_NEW_PASSWORD="${password}"; shell "
@@ -361,9 +361,10 @@ backup() {
     fi
 
     file="${dir}/mongodb-$(date '+%Y%m%d-%H%M%S').archive.gz"
-    # Its login in a configuration file of its own (root's only), not on its command line
+    # Its login in a configuration file of its own (root's only), not on its command line - YAML, the password single
+    # quoted (its own single quotes doubled: it may have any visible characters)
     conf="$(mktemp)"
-    ( umask 077; printf 'password: "%s"\n' "$(cat "${PASSWORD_FILE}")" > "${conf}" )
+    ( umask 077; printf "password: '%s'\n" "$(sed "s/'/''/g" "${PASSWORD_FILE}")" > "${conf}" )
 
     if ! output="$( ( umask 077; "${BIN}/mongodump" --config "${conf}" --host 127.0.0.1 --port ${PORT} \
         --username "${ADMIN}" --authenticationDatabase admin --gzip --archive="${file}.tmp" ) 2>&1)" \

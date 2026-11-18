@@ -4,6 +4,10 @@
 # on its command line, keys seen through it, read only, Valkey's password changed on Valkey's page (kvweb follows), new
 # passwords for its site, removal
 . /t/common/nas.sh kvweb
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
+# A field of the JSON on the input, decoded (password by default)
+jpw() { php -r '$d=json_decode(stream_get_contents(STDIN),true); echo isset($d[$argv[1]]) ? $d[$argv[1]] : "";' "${1:-password}"; }
 # As WD's NAS has it: no group called nogroup - nobody's own group is the share users' (1000), which Nginx's workers
 # then run as
 sed -i '/^nogroup:/d' /etc/group; sed -i 's/^\(nobody:[^:]*:[0-9]*:\)[0-9]*:/\11000:/' /etc/passwd
@@ -45,16 +49,16 @@ post readonly -d readonly= > /dev/null; sleep 1
 
 echo "== Valkey's password changed on Valkey's page"
 OLD=$(cat /var/run/kvweb.pid)
-page_up valkey; R=$(post set_password -d password=); page_up kvweb; sleep 2
+page_up valkey; R=$(post set_password --data-urlencode "password=$XPW"); page_up kvweb; sleep 2
 NEWPID=$(cat /var/run/kvweb.pid 2>/dev/null)
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && [ -n "$NEWPID" ] && [ "$NEWPID" != "$OLD" ] && health | grep -q '"database":true' \
-    && curl -s -m 5 "$U/api/keys" | grep -q '"suite:greeting"' && pass "kvweb restarted with Valkey's new password, still connected" || fail "valkey password: $R $(health)"
+    && curl -s -m 5 "$U/api/keys" | grep -q '"suite:greeting"' && pass "kvweb restarted with Valkey's new password (spaces, quotes, symbols), still connected" || fail "valkey password: $R $(health)"
 
 echo "== its site's password"
 R=$(post set_password -d password=short); echo "$R" | grep -q '12-128' && pass 'a short password refused' || fail "short: $R"
-NEW=$(post set_password -d password=Suite-pass-1234 | j '$d["password"]' | tr -d '"')
+NEW=$(post set_password --data-urlencode "password=$XPW" | jpw)
 H=$(cut -d: -f2- $D/htpasswd)
-[ "$NEW" = Suite-pass-1234 ] && [ "$(php -r 'echo crypt($argv[1], $argv[2]) === $argv[2] ? "ok" : "no";' Suite-pass-1234 "$H")" = ok ] && grep -q '^admin:\$6\$' $D/htpasswd \
+[ "$NEW" = "$XPW" ] && [ "$(php -r 'echo crypt($argv[1], $argv[2]) === $argv[2] ? "ok" : "no";' "$XPW" "$H")" = ok ] && grep -q '^admin:\$6\$' $D/htpasswd \
     && pass 'a password of my own: in the htpasswd file as a SHA-512 crypt hash for admin' || fail "set password: $NEW $(cat $D/htpasswd)"
 
 echo '== removal'

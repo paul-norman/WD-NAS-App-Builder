@@ -6,7 +6,9 @@
 . /t/common/nas.sh redis_exporter
 M=http://127.0.0.1:9121/metrics
 metrics() { curl -s -m 10 $M; }
-vpass() { awk '$1 == "requirepass" { print $2 }' $P/_valkey/valkey.conf; }
+vpass() { sed -n 1p $P/_valkey/password; }
+# A password with what used to be refused: spaces, quotes, a backslash, ^ & and an accented letter
+XPW='Tëst ^&"'"'"'\ pass 1'
 vcli() { REDISCLI_AUTH="$(vpass)" $P/valkey/binaries/valkey-cli -h 127.0.0.1 "$@" 2>/dev/null; }
 # Waits up to $2 seconds for the exporter to say whether it reached Valkey ($1: 1 or 0)
 wait_up() { i=0; until metrics | grep -q "^redis_up $1$" || [ $i -ge "${2:-60}" ]; do sleep 2; i=$((i + 2)); done; metrics | grep -q "^redis_up $1$"; }
@@ -53,6 +55,16 @@ R=$(post login -d confirm=1)
 ST=$(get status)
 [ "$(echo "$ST" | j '$d["connected"]')" = true ] && [ "$(echo "$ST" | j '$d["login"]["state"]')" = '"ok"' ] && [ "$(echo "$ST" | j '$d["database"]')" = true ] \
     && pass 'the page: connected, the password read' || fail "status: $(echo "$ST" | head -c 400)"
+
+echo "== a password with spaces, quotes and symbols, set on Valkey's page"
+page_up valkey
+R=$(post set_password --data-urlencode "password=$XPW")
+[ "$(echo "$R" | j '$d["ok"]')" = true ] && [ "$(vpass)" = "$XPW" ] && grep -q '^requirepass "Tëst ^&\\"'"'"'\\\\ pass 1"$' $P/_valkey/valkey.conf \
+    && [ "$(vcli PING)" = PONG ] && pass "Valkey's config file has it quoted, its password file as it is; valkey-cli logs in with it" || fail "valkey: $R $(grep requirepass $P/_valkey/valkey.conf)"
+page_up redis_exporter
+wait_up 1 60 && [ "$(cat $D/password)" = "$XPW" ] && pass 'the exporter followed it by itself (Valkey'"'"'s page has it log in again)' || fail "followed: $(metrics | grep '^redis_up') $(cat $D/password)"
+sh $P/valkey/stop.sh $P/valkey > /dev/null 2>&1; sh $P/valkey/start.sh $P/valkey > /dev/null 2>&1; wait_port 6379 30
+[ "$(vpass)" = "$XPW" ] && [ "$(vcli PING)" = PONG ] && pass 'Valkey restarted: its quoted password read back the same' || fail "restart: $(vpass)"
 
 echo '== removal'
 finish_app

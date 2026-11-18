@@ -162,13 +162,14 @@ if ($action === 'password') {
 if ($action === 'new_password') {
     $user = vikunja_requested_user($ctl);
 
-    list($code, $output) = manage_run(['/bin/sh', $ctl, 'new-password', $user]);
+    // The password typed (any visible characters; Vikunja's bcrypt reads 72 bytes), or a generated one
+    $password = manage_new_password(isset($_POST['password']) ? (string)$_POST['password'] : '', 12, 72, true);
+
+    list($code, $output) = manage_run(['/bin/sh', $ctl, 'set-password', $user], [], $password."\n");
 
     if ($code !== 0) {
         manage_fail(500, 'A new password could not be set: '.$output);
     }
-
-    $password = $user === 'admin' ? trim((string)@file_get_contents($data_path.'/admin_password')) : trim($output);
 
     manage_json(['user' => $user, 'password' => $password]);
 }
