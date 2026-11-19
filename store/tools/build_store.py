@@ -203,6 +203,14 @@ def app_entry(app_dir, metadata, args, previous, released):
     return entry
 
 
+class FeedError(Exception):
+    """
+    A publisher's list that can't be used (an entry gone, a package without
+    a checksum, a download not matching it): the app keeps its published
+    entry.
+    """
+
+
 def plex_feed(metadata):
     """
     Plex's list of its downloads: the "Western Digital (OS 5)" entry has one
@@ -213,13 +221,21 @@ def plex_feed(metadata):
     :param dict metadata: The app's details in metadata.json's "external"
 
     :return: The version, and a (model, URL, SHA1) tuple for each package
+
+    :raises FeedError: When the list has no "Western Digital (OS 5)" entry
     """
     with urllib.request.urlopen(
         "https://plex.tv/api/downloads/5.json", timeout=60
     ) as response:
         feed = json.load(response)
 
-    os5 = feed["nas"]["Western Digital (OS 5)"]
+    os5 = feed.get("nas", {}).get("Western Digital (OS 5)")
+
+    if not os5 or not os5.get("version"):
+        raise FeedError(
+            "Plex's downloads list has no \"Western Digital (OS 5)\" entry"
+        )
+
     packages = []
 
     for release in os5["releases"]:
@@ -258,6 +274,8 @@ def emby_feed(metadata):
 
     :return: The version, and a package (model, url, size, sha256) for each
              model
+
+    :raises FeedError: When a package has no SHA256, or there are none
     """
     request = urllib.request.Request(
         "https://api.github.com/repos/MediaBrowser/Emby.Releases/releases"
@@ -287,7 +305,7 @@ def emby_feed(metadata):
             continue
 
         if not digest.startswith("sha256:"):
-            sys.exit(f"{asset['name']} has no SHA256 on GitHub")
+            raise FeedError(f"{asset['name']} has no SHA256 on GitHub")
 
         packages.append({
             "model": EMBY_MODELS[match.group(1)],
@@ -297,7 +315,9 @@ def emby_feed(metadata):
         })
 
     if not packages:
-        sys.exit(f"Emby {version} has no OS5 packages for WD's models")
+        raise FeedError(
+            f"Emby {version} has no OS5 packages for WD's models"
+        )
 
     return version, sorted(packages, key=lambda package: package["model"])
 
@@ -318,6 +338,9 @@ def external_entry(app_id, metadata, published):
     :param dict published: Its entry in the published store.json (or None)
 
     :return: Its entry in store.json
+
+    :raises FeedError: When the publisher's list can't be used, or a download
+                       doesn't match its checksum
     """
     version, found = FEEDS[metadata["feed"]](metadata)
     entry = {"id": app_id, "version": version}
@@ -368,7 +391,7 @@ def external_entry(app_id, metadata, published):
 
         if hashlib.sha1(file.read_bytes()).hexdigest() != sha1:
             file.unlink()
-            sys.exit(f"{url} doesn't match its publisher's checksum")
+            raise FeedError(f"{url} doesn't match its publisher's checksum")
 
         packages.append({
             "model": model,
@@ -648,9 +671,23 @@ def main():
 
     if args.external:
         for app_id, app_metadata in metadata.get("external", {}).items():
-            store["apps"].append(
-                external_entry(app_id, app_metadata, previous.get(app_id))
-            )
+            published = previous.get(app_id)
+
+            # A publisher's list that fails (or is gone) doesn't stop the
+            # others: the app keeps its published entry, if it has one
+            try:
+                entry = external_entry(app_id, app_metadata, published)
+            except (FeedError, OSError, KeyError, ValueError) as error:
+                kept = "its published entry kept" if published else "left out"
+                print(
+                    f"::warning::{app_id}: its publisher's list failed"
+                    f" ({error}) - {kept}",
+                    file=sys.stderr,
+                )
+                entry = published
+
+            if entry:
+                store["apps"].append(entry)
 
         store["apps"].sort(key=lambda app: app["id"].lower())
 
