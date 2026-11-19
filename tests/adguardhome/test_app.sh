@@ -93,10 +93,10 @@ grep -q 'proxy_pass *http://127.0.0.1:8094' $P/_nginx/sites/60-app-adguard.conf 
 echo '== its page'
 page_up adguardhome
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["running"] && $d["answering"] && $d["forwarding"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"0.107.80"' ] \
+[ "$(echo "$ST" | j '$d["running"] && $d["answering"] && $d["forwarding"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"1.0.0"' ] \
     && echo "$ST" | j '$d["dns"]' | grep -q '10.98.0.1' && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://adguard.$DOMAIN/\"" ] \
     && [ "$(echo "$ST" | j '$d["admin"]')" = '"admin"' ] && [ "$(post password -d show=1 | j '$d["password"]')" = "\"$PW\"" ] \
-    && pass 'status: running, AdGuard Home 0.107.80, the DNS address, its site, the admin account and its password' || fail "status: $(echo "$ST" | head -c 400)"
+    && pass 'status: running, AdGuard Home 1.0.0, the DNS address, its site, the admin account and its password' || fail "status: $(echo "$ST" | head -c 400)"
 R=$(post new_password -d confirm=1 --data-urlencode "password=$XPW"); NEW=$(echo "$R" | jpw)
 [ -n "$NEW" ] && [ "$NEW" != "$PW" ] && [ "$(api_code "$NEW" status)" = 200 ] && [ "$(api_code "$PW" status)" = 401 ] \
     && [ "$(cat $D/admin_password)" = "$NEW" ] && [ "$(lan_dig nas.home.test)" = 192.168.50.5 ] \
