@@ -1,16 +1,16 @@
 {
     "recipe_version": 1,
-    "id":             "changedetection-browser",
-    "name":           "Browser for changedetection.io",
+    "id":             "chrome-browser",
+    "name":           "Chrome Browser",
     "version":        "156.0",
-    "summary":        "Google Chrome for the changedetection.io app, driven through Patchright: pages built by JavaScript, browser steps, screenshots and the visual selector",
+    "summary":        "Google Chrome for programs on the NAS to drive (Chrome DevTools Protocol), set up for Patchright: pages built by JavaScript, logins, screenshots - and used by the changedetection.io app",
     "description":    "description.md",
     "compose":        "compose.yaml",
-    "project":        "changedetection-browser",
-    "data_folder":    "_changedetection-browser",
+    "project":        "chrome-browser",
+    "data_folder":    "_chrome-browser",
     "requires":       {
         "arch":             "amd64",
-        "apps":             ["docker", "changedetection"],
+        "apps":             ["docker"],
         "docker_memory_mb": 1024,
         "disk_mb":          4096,
         "storage_driver":   "overlay2"

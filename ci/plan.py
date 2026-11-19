@@ -454,7 +454,7 @@ def plan(args):
         recipe
         for recipe in found["recipes"] | found["recipe_tests"]
         | ({"immich", "pihole", "arr", "frigate", "linkwarden",
-            "changedetection-browser"} if found["suites_all"]
+            "chrome-browser"} if found["suites_all"]
            else set())
         if f"recipe:{recipe}" in known_suites
     )

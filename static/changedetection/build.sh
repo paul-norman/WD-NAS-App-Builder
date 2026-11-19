@@ -4,10 +4,10 @@
 # relocatable build, python-build-standalone's) with changedetection.io and its packages installed into it (from
 # static/changedetection/requirements.txt: each version with its files' checksums, wheels checked against the NAS's
 # glibc), plus:
-#  - Patchright in place of Playwright: changedetection.io drives a browser (when one is set up - the Browser recipe,
-#    or one on another machine) through Playwright; Patchright is a drop-in replacement that hides what gives automated
-#    browsers away (it doesn't enable DevTools' Runtime and Console domains, which sites can detect). Its imports in
-#    changedetection.io are rewritten to Patchright's, and checked
+#  - Patchright in place of Playwright: changedetection.io drives a browser (when one is set up - the Chrome Browser
+#    recipe, or one on another machine) through Playwright; Patchright is a drop-in replacement that hides what gives
+#    automated browsers away (it doesn't enable DevTools' Runtime and Console domains, which sites can detect). Its
+#    imports in changedetection.io are rewritten to Patchright's, and checked
 #  - changedetection_runas: switches to changedetection.io's own user (the NAS has no su or similar) before running it
 #
 # Only for the Intel models: several of its packages (lxml, gevent, orjson, cryptography, numpy, tokenizers...) and
@@ -21,7 +21,7 @@ set -x
 VERSION=0.70.3
 # changedetection.io's own wheel, as PyPI publishes it
 CHANGEDETECTION_WHEEL_SHA256=3eba2a313eb8ebe2713058707008ddfee10808e20acd47d21ae242bd05950d41
-# Patchright (Python), matched to the Chrome version the Browser recipe runs (see recipes/changedetection-browser)
+# Patchright (Python), matched to the Chrome version the Chrome Browser recipe runs (see recipes/chrome-browser)
 PATCHRIGHT_VERSION=1.64.4
 PYTHON_VERSION=3.14.10
 PYTHON_RELEASE=20261026

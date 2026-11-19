@@ -39,7 +39,7 @@ header('Cache-Control: no-store');
     <p><label><input type="radio" name="cd-browser" value="" data-cd="browser-none"> None: every page fetched with plain
         requests</label><br>
         <label><input type="radio" name="cd-browser" value="local" data-cd="browser-local"> Chrome on this NAS (the
-        <em>Browser for changedetection.io</em> recipe)</label><br>
+        <em>Chrome Browser</em> recipe)</label><br>
         <label><input type="radio" name="cd-browser" value="other" data-cd="browser-other"> A browser on another machine:</label>
         <input type="text" data-cd="browser-url" placeholder="http://192.168.1.20:9222" autocomplete="off" spellcheck="false">
         <button type="button" data-cd-action="browser">Save</button></p>

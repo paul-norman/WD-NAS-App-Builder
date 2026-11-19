@@ -10,8 +10,8 @@
 #   changedetection_ctl.sh restart        - stop, then start
 #   changedetection_ctl.sh password       - a new login password: the one on its input (one line), or a generated one
 #                                           if none - then a restart
-#   changedetection_ctl.sh browser on     - use the Browser recipe's Chrome on this NAS (run by the recipe's hooks),
-#                                           then a restart
+#   changedetection_ctl.sh browser on     - use the Chrome Browser recipe on this NAS (run by the recipe's hooks), then
+#                                           a restart
 #   changedetection_ctl.sh browser off    - no browser (as the recipe's removal has it), then a restart
 #   changedetection_ctl.sh browser <url>  - use a browser elsewhere (its DevTools address), then a restart
 #   changedetection_ctl.sh nginx          - rewrite the Nginx app's sites (its own comes from its nginx.json), and
@@ -34,7 +34,7 @@ PASSWORD_FILE="${DATA_PATH}/password"
 OUT_LOG="${DATA_PATH}/changedetection.out"
 PID_FILE=/var/run/changedetection.pid
 PORT=5000
-# The Browser recipe's Chrome (its DevTools port, on the NAS itself)
+# The Chrome Browser recipe's Chrome (its DevTools port, on the NAS itself)
 LOCAL_BROWSER=http://127.0.0.1:9222
 # Its own user and group (created if missing): the IDs used when creating them
 CHANGEDETECTION_ID=51
@@ -288,7 +288,7 @@ new_password() {
 
 # Sets the browser it uses, then restarts it.
 #
-# $1 which on (the Browser recipe's, on this NAS), off (none), or a browser's DevTools address (http:// or ws://)
+# $1 which on (the Chrome Browser recipe's, on this NAS), off (none), or a browser's DevTools address (http:// or ws://)
 #
 # Returns 0 once changedetection.io runs with it
 browser() {

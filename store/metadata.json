@@ -107,6 +107,6 @@
         "immich":  { "categories": ["photos", "media"], "homepage": "https://immich.app/", "license": "AGPL-3.0-only" },
         "frigate": { "categories": ["security", "home"], "homepage": "https://frigate.video/", "license": "MIT" },
         "linkwarden": { "categories": ["productivity"], "homepage": "https://linkwarden.app/", "license": "AGPL-3.0-only" },
-        "changedetection-browser": { "categories": ["monitoring"], "homepage": "https://github.com/Kaliiiiiiiiii-Vinyzu/patchright-python", "license": "Apache-2.0" }
+        "chrome-browser": { "categories": ["development"], "homepage": "https://github.com/Kaliiiiiiiiii-Vinyzu/patchright-python", "license": "Apache-2.0" }
     }
 }

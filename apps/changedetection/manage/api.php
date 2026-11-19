@@ -11,9 +11,9 @@ $data_path     = $apps_path.'/_changedetection';
 $settings_file = $data_path.'/settings';
 $ctl           = $app_path.'/changedetection_ctl.sh';
 $target        = 'http://127.0.0.1:5000';
-// The Browser recipe's Chrome, on this NAS (its DevTools port), and its folder
+// The Chrome Browser recipe's Chrome, on this NAS (its DevTools port), and its folder
 $local_browser = 'http://127.0.0.1:9222';
-$recipe_path   = $apps_path.'/_changedetection-browser';
+$recipe_path   = $apps_path.'/_chrome-browser';
 
 /**
  * The app's settings (KEY=value lines, also read by its control script).
@@ -155,7 +155,7 @@ if ($action === 'browser') {
     }
 
     if ($browser === 'local' && !is_file($recipe_path.'/compose.yaml')) {
-        manage_fail(400, 'The Browser recipe isn\'t installed on this NAS (Store → Recipes)');
+        manage_fail(400, 'The Chrome Browser recipe isn\'t installed on this NAS (Store → Recipes)');
     }
 
     cd_run($ctl, ['browser', $browser === '' ? 'off' : ($browser === 'local' ? 'on' : $browser)]);

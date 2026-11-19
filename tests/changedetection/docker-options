@@ -1,1 +1,1 @@
--v {project}/recipes/changedetection-browser:/t/recipe:ro --cap-add SYS_PTRACE
+-v {project}/recipes/chrome-browser:/t/recipe:ro --cap-add SYS_PTRACE

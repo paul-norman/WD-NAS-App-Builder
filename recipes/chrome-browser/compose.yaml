@@ -1,22 +1,23 @@
-# Google Chrome for the changedetection.io app, on a WD My Cloud NAS (OS5, Intel models): the browser it drives (through
-# Patchright) for pages that need one. It's Selenium's official image - for its Google Chrome and virtual display (Xvfb)
-# - with its start replaced by this file's own (Selenium itself isn't run):
+# Google Chrome on a WD My Cloud NAS (OS5, Intel models), for programs on the NAS to drive through the Chrome DevTools
+# Protocol - set up for Patchright (the changedetection.io app uses it so). It's Selenium's official image - for its
+# Google Chrome and virtual display (Xvfb) - with its start replaced by this file's own (Selenium itself isn't run):
 #  - Chrome with a window, on the virtual display (a headless Chrome is easier for sites to tell apart), its DevTools
 #    port on the NAS itself only (127.0.0.1:9222 - host networking: Chrome only listens on its own 127.0.0.1)
 #  - started with Patchright's own Chrome switches - as Patchright would start it: --disable-blink-features=
 #    AutomationControlled, and none of the ones that give automation away (--enable-automation...)
 #  - restarted if it stops; a fresh profile each time the container starts
-#  - Chrome's version matched to the app's Patchright (156: Patchright 1.64), the image pinned (version and digest)
+#  - Chrome's version matched to the changedetection.io app's Patchright (156: Patchright 1.64), the image pinned
+#    (version and digest)
 #  - its memory capped, and its logs
 #
 # Run it from the folder holding this file and its .env (setup.sh puts both in
-# /mnt/HD/HD_a2/Nas_Prog/_changedetection-browser).
+# /mnt/HD/HD_a2/Nas_Prog/_chrome-browser).
 
-name: changedetection-browser
+name: chrome-browser
 
 services:
   chrome:
-    container_name: changedetection-browser
+    container_name: chrome-browser
     image: selenium/standalone-chrome:156.0-20261101@sha256:0ca0737a35399adcf5c7221a02dffe9f41dc1f3aea8a1a44866c52917e91ad5b
     # Its DevTools port on the NAS itself only: nothing on the network can drive it
     network_mode: host

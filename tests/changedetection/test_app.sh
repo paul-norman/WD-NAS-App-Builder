@@ -100,15 +100,15 @@ R=$(post browser -d browser=http://192.0.2.10:9222); up
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && pid_env | grep -qx 'PLAYWRIGHT_DRIVER_URL=http://192.0.2.10:9222' && [ "$(get status | j '$d["browser"]["version"]')" = '""' ] \
     && pass "another machine's browser: changedetection.io's Chrome fetcher uses it (not answering here)" || fail "other browser: $R $(pid_env | grep PLAYWRIGHT)"
 # The recipe's browser: a stand-in for Chrome's DevTools port, and the recipe's folder
-mkdir -p /tmp/cdp/json $P/_changedetection-browser && printf '{"Browser": "Chrome/156.0.8078.79"}\n' > /tmp/cdp/json/version && : > $P/_changedetection-browser/compose.yaml
+mkdir -p /tmp/cdp/json $P/_chrome-browser && printf '{"Browser": "Chrome/156.0.8078.79"}\n' > /tmp/cdp/json/version && : > $P/_chrome-browser/compose.yaml
 (cd /tmp/cdp && exec python3 -m http.server 9222 --bind 127.0.0.1 > /tmp/cdp.log 2>&1 &)
 wait_port 9222 10
-H=$(cd $P/_changedetection-browser && sh /t/recipe/hooks/post_install.sh 2>&1); up
+H=$(cd $P/_chrome-browser && sh /t/recipe/hooks/post_install.sh 2>&1); up
 ST=$(get status)
 grep -qx 'BROWSER_URL=http://127.0.0.1:9222' $D/settings && pid_env | grep -qx 'PLAYWRIGHT_DRIVER_URL=http://127.0.0.1:9222' && [ "$(echo "$ST" | j '$d["browser"]["local"]')" = true ] \
     && [ "$(echo "$ST" | j '$d["browser"]["version"]')" = '"Chrome/156.0.8078.79"' ] && echo "$H" | grep -q 'Chrome is answering: Chrome/156' \
     && pass "the recipe's post_install hook: the app uses its Chrome (the page shows its version)" || fail "recipe on: $H $(echo "$ST" | j '$d["browser"]')"
-H=$(cd $P/_changedetection-browser && sh /t/recipe/hooks/pre_uninstall.sh 2>&1); up
+H=$(cd $P/_chrome-browser && sh /t/recipe/hooks/pre_uninstall.sh 2>&1); up
 grep -qx 'BROWSER_URL=' $D/settings && ! pid_env | grep -q PLAYWRIGHT_DRIVER_URL && echo "$H" | grep -q 'no longer uses a browser' \
     && pass "the recipe's pre_uninstall hook: no browser (plain requests)" || fail "recipe off: $H $(grep BROWSER $D/settings)"
 [ "$(post browser -d browser=local | j '$d["ok"]')" = true ] && up && grep -qx 'BROWSER_URL=http://127.0.0.1:9222' $D/settings && post browser -d browser= > /dev/null && up \

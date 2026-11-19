@@ -1,17 +1,16 @@
 #!/bin/sh
-# Sets the Browser for changedetection.io up on the NAS (with the Docker and changedetection.io apps installed): run
-# from this folder, e.g.
-#     sh /mnt/HD/HD_a2/Public/changedetection-browser/setup.sh
+# Sets the Chrome Browser up on the NAS (with the Docker app installed): run from this folder, e.g.
+#     sh /mnt/HD/HD_a2/Public/chrome-browser/setup.sh
 #
-# It copies compose.yaml to /mnt/HD/HD_a2/Nas_Prog/_changedetection-browser, creates .env there from example.env (with
+# It copies compose.yaml to /mnt/HD/HD_a2/Nas_Prog/_chrome-browser, creates .env there from example.env (with
 # the NAS's time zone - only the first time: an existing .env is kept), starts Chrome, and has the changedetection.io
-# app use it. Running it again is safe (e.g. after changing .env).
+# app use it (if it's installed). Running it again is safe (e.g. after changing .env).
 # (It's the manual way: the Store app installs recipes from recipe.json, with a wizard - see store/SPEC.md)
 
 set -e
 
 RECIPE_PATH="$(dirname "$(readlink -f "$0")")"
-PROJECT=/mnt/HD/HD_a2/Nas_Prog/_changedetection-browser
+PROJECT=/mnt/HD/HD_a2/Nas_Prog/_chrome-browser
 
 if ! docker compose version > /dev/null 2>&1; then
     echo "Docker (with docker compose) isn't available: install or start the Docker app first"
