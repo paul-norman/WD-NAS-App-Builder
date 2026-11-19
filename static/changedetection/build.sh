@@ -18,9 +18,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=0.70.3
+VERSION=0.70.4
 # changedetection.io's own wheel, as PyPI publishes it
-CHANGEDETECTION_WHEEL_SHA256=3eba2a313eb8ebe2713058707008ddfee10808e20acd47d21ae242bd05950d41
+CHANGEDETECTION_WHEEL_SHA256=3ef090254dee8f014a1e698abc5d58682dcc3371f65a1c1f01a94795cb27e5b3
 # Patchright (Python), matched to the Chrome version the Chrome Browser recipe runs (see recipes/chrome-browser)
 PATCHRIGHT_VERSION=1.64.4
 PYTHON_VERSION=3.14.10
