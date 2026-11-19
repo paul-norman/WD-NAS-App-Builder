@@ -16,9 +16,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=8.5.12
+VERSION=8.5.13
 # php.net's published SHA256 of the source (php-${VERSION}.tar.gz), checked before building
-PHP_SHA256=81a0f450349e84b08eb43faa85f8a4c835684f3cc1c50471775d1317a046c525
+PHP_SHA256=3aeb20a7e667e197929747f76047409196f91f0172357439319cba344df8b3e1
 SPC_VERSION=2.8.5
 # Its x86_64 binary's digest, as GitHub publishes it for the release
 SPC_SHA256=523ba4279c54c7a377156c0dd3a36adf92ee64b01e9a7f5e9e2ec084b8e458e5
