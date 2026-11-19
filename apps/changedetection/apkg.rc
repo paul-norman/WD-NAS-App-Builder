@@ -1,0 +1,23 @@
+Package:			changedetection
+Version:			0.70.3
+Packager:			PDN
+Email:
+Homepage:			https://changedetection.io/
+Description:		changedetection.io: watches web pages for changes (prices, stock, news, documents) and alerts you - with Patchright for pages that need a browser.
+Icon:				changedetection.svg
+AddonShowName:		changedetection.io
+AddonIndexPage:		index.php
+AddonUsedPort:
+AddonDefaultPort:
+AddonDefaultGroup:
+AddonDefaultUser:
+InstDepend:
+InstConflict:
+StartDepend:
+StartConflict:
+CenterType:			1
+UserControl:		1
+MinFWVer:			5.27.157
+MaxFWVer:
+IndividualFlag:		1
+Hidden:				off

@@ -9,6 +9,7 @@ Some self-hosted apps are best run in Docker, through the project's [Docker app]
 | [Arr stack](arr/README.md) | Request, download and file films and TV (and music, books) into Jellyfin or Plex - connected for you | ~750MB, a share for the data |
 | [Frigate](frigate/README.md) | Security cameras: recording, and spotting people, cars and animals - detection on the NAS, a Coral USB or another machine (e.g. a Pi 5 + Hailo-8L) | ~2GB for Docker, ~9GB image, a share for recordings |
 | [Linkwarden](linkwarden/README.md) | Bookmarks kept for good: each saved page archived as a screenshot, a PDF and a readable copy | ~1.5GB for Docker, the Nginx app |
+| [Browser for changedetection.io](changedetection-browser/README.md) | Google Chrome for the changedetection.io app, driven through Patchright: pages built by JavaScript, browser steps, screenshots | ~1GB for Docker, the changedetection.io app |
 
 The recipes use `docker compose` *(included in the Docker app)*. Their containers also show up in Portainer.
 

@@ -1,0 +1,33 @@
+{
+    "recipe_version": 1,
+    "id":             "changedetection-browser",
+    "name":           "Browser for changedetection.io",
+    "version":        "156.0",
+    "summary":        "Google Chrome for the changedetection.io app, driven through Patchright: pages built by JavaScript, browser steps, screenshots and the visual selector",
+    "description":    "description.md",
+    "compose":        "compose.yaml",
+    "project":        "changedetection-browser",
+    "data_folder":    "_changedetection-browser",
+    "requires":       {
+        "arch":             "amd64",
+        "apps":             ["docker", "changedetection"],
+        "docker_memory_mb": 1024,
+        "disk_mb":          4096,
+        "storage_driver":   "overlay2"
+    },
+    "options": [
+        {
+            "key":      "TZ",
+            "type":     "timezone",
+            "label":    "Time zone",
+            "help":     "The time zone pages see in the browser - one that doesn't match your address's country is one way sites spot automated browsers.",
+            "default":  "{nas:timezone}",
+            "advanced": true
+        }
+    ],
+    "hooks": {
+        "post_install":  "hooks/post_install.sh",
+        "post_update":   "hooks/post_install.sh",
+        "pre_uninstall": "hooks/pre_uninstall.sh"
+    }
+}

@@ -74,6 +74,7 @@ parameters:
         - apps/python/manage/api.php
         - apps/qbittorrent/manage/api.php
         - apps/radicale/manage/api.php
+        - apps/changedetection/manage/api.php
         - apps/rclone/manage/api.php
         - apps/retroassembly/manage/api.php
         - apps/scrutiny/manage/api.php
