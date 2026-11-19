@@ -12,8 +12,8 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=2.37.2
-ABS_SHA256=f729b7513aa0cfedbeaa44583e0e7d7ec60e3ccac87704afca6326e3da70421a
+VERSION=2.38.0
+ABS_SHA256=69cb1ff3992c9994440eaa47332f7052a8b3f96d5a58e22c1f1af94bc2d1b295
 NODE_VERSION=24.22.2
 NODE_SHA256=48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75
 # The version Audiobookshelf expects, glibc build

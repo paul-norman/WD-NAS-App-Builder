@@ -13,7 +13,7 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=1.30.6
+VERSION=1.30.7
 OPENSSL_VERSION=3.5.9
 PCRE2_VERSION=10.49
 ZLIB_VERSION=1.3.2
@@ -23,7 +23,7 @@ NGX_BROTLI_COMMIT=a71f9312c2deb28875acc7bacfdd5695a111aa53
 # Checked against nginx's signature (Sergey Kandaurov's key, as nginx.org publishes it), OpenSSL's published SHA256,
 # PCRE2's and zlib's signatures (Nicholas Wilson's, Mark Adler's keys); Brotli's are GitHub's archives as first
 # downloaded (nothing published to check them against)
-NGINX_SHA256=3cf46f5ed7504d460125866b7bea99fb357f31d887e2e63b35503310e9b8b6c8
+NGINX_SHA256=2565b5c837050e958f70fb0f73c48e2bca4542ad349fd356f46fb0c72610bc6e
 OPENSSL_SHA256=603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a
 PCRE2_SHA256=929f0b20e62879252a15886b06c89f1edef61a363cbd5826fb041080a5e557ae
 ZLIB_SHA256=bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16

@@ -88,8 +88,8 @@ ID=$(echo "$R" | sed -n 's/.*"results":\[{"id":\([0-9]*\).*/\1/p')
 echo '== its page'
 page_up paperless-ngx
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["answering"] && !in_array(false, $d["services"], true)')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"3.4.2"' ] \
-    && echo "$ST" | j '$d["address"]' | grep -q ':8040/"$' && pass "status: running (its four processes), 3.4.2, $(echo "$ST" | j '$d["address"]')" \
+[ "$(echo "$ST" | j '$d["answering"] && !in_array(false, $d["services"], true)')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"3.5.1"' ] \
+    && echo "$ST" | j '$d["address"]' | grep -q ':8040/"$' && pass "status: running (its four processes), 3.5.1, $(echo "$ST" | j '$d["address"]')" \
     || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password -d show=1 | j '$d["password"]')" = "\"$(cat $D/admin_password)\"" ] && pass 'the password shown' || fail 'password'
 OLD=$(cat $D/admin_password); NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw)

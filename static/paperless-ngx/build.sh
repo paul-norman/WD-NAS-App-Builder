@@ -20,8 +20,8 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=3.4.2
-PAPERLESS_SHA256=599be82cd8fc184436b757f9b193101fb71a90bf0facf5695dcda43152fffc85
+VERSION=3.5.1
+PAPERLESS_SHA256=51fcc4e9ca436c46b3253fa84e90a5392625213ce09ce301cbcded679f2009cb
 # Left out of Paperless's pinned packages: PyTorch and the local AI embedding models (sentence-transformers - over 1GB;
 # Paperless only imports them for its optional "HuggingFace" embedding backend: its AI features work with OpenAI-like
 # or Ollama servers), and the MariaDB / PostgreSQL drivers (the app uses SQLite). Packages only these need go too
