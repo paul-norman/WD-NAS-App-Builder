@@ -50,9 +50,9 @@ echo "$L" | grep -q '^30[1-8] .*login' && ! login 'Wrong-password-1' && login "$
 echo '== its page'
 page_up changedetection
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"0.70.3"' ] && [ "$(echo "$ST" | j '$d["browser"]["url"]')" = '""' ] \
+[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"0.70.4"' ] && [ "$(echo "$ST" | j '$d["browser"]["url"]')" = '""' ] \
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://changes.$DOMAIN/\"" ] && [ "$(echo "$ST" | j '$d["ntfy"]')" = true ] \
-    && pass "the page: changedetection.io 0.70.3 answering, no browser, its address https://changes.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
+    && pass "the page: changedetection.io 0.70.4 answering, no browser, its address https://changes.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post show_password -d confirm=1 | j '$d["password"]')" = "\"$PW\"" ] && pass 'the page shows its password' || fail 'show password'
 P1=$(curl -s -H "$CK" $PAGE/index.php)
 echo "$P1" | grep -q '<input type="password" data-cd="new-password"' && echo "$P1" | grep -q 'data-show-for="new-password">Show' \
