@@ -13,10 +13,10 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=0.107.80
+VERSION=1.0.0
 # As its release publishes them
-ADGUARDHOME_SHA256=28593bc761d71469abdbc6f39ca42cbed763ec92b63082c729177b037ed51d18
-ADGUARDHOME_ARMHF_SHA256=760b941d49eaf92c3fd85ddd47f81530382f5cab8054165fd7f4089e1e9389dc
+ADGUARDHOME_SHA256=19e023d98eb42eb1cdbfd6e4b6ebc937dade59e969506c62eafb3a3d6d2c1e4f
+ADGUARDHOME_ARMHF_SHA256=7daac1e31ad5b244dd2bb87dca686f55a291156b2ea0477041acdf2cf3b23165
 # The architectures built (each into packages/static/adguardhome/<version>/<arch>)
 ARCHES='amd64 armhf'
 
