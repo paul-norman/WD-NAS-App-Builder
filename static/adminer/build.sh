@@ -13,8 +13,8 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=6.3.0
-ADMINER_SHA256=641e1a31e8cc333a309e202ef9446e1fd38c2069ed5f9ee509b80d70089d0503
+VERSION=6.3.1
+ADMINER_SHA256=a9aed04e4e68c4e46283804a69ee70cad4fbf23203b46470b760868b2fd9bd76
 REDIS_DRIVER_SHA256=2ef139ba8dffc915bf0116c15da3f6c9cdcec8094f519a2d09adb17077aee623
 # The architectures built (each into packages/static/adminer/<version>/<arch>)
 ARCHES='amd64 armhf'
