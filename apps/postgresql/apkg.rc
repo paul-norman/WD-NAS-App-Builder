@@ -1,9 +1,9 @@
 Package:			postgresql
-Version:			18.7-1
+Version:			19.0
 Packager:			PDN
 Email:
 Homepage:			https://www.postgresql.org/
-Description:		PostgreSQL 18: the advanced open source database, for apps on the NAS or the network.
+Description:		PostgreSQL 19: the advanced open source database, for apps on the NAS or the network.
 Icon:				logo.svg
 AddonShowName:		PostgreSQL
 AddonIndexPage:		index.php

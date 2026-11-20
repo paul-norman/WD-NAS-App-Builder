@@ -151,7 +151,7 @@ Never trust the `login_username` cookie: browsers can set it to anything.
 
 Apps that don't run as root create a user and a group of their own on the NAS *(in its `*_ctl.sh` `setup`, with BusyBox's `adduser` / `addgroup` - both with the same ID)*. The NAS's user list is in RAM, so they're created again at every boot - always with the same ID, as their files on the volumes keep it. Two apps with the same ID would clash: whichever starts second can't create its user, and doesn't start.
 
-So each app has its own ID, listed here. They count down from 99 *(below 51 are the systems' own IDs)*. For a new app, take the one `python3 ci/ids.py next` prints and add it here. CI's `plan` job runs `python3 ci/ids.py check`, which fails if two apps share an ID, an app takes a reserved one, or this list no longer matches the apps' scripts *(`python3 ci/ids.py list` shows what they use)*.
+So each app has its own ID, listed here. They count down from 99 *(below 51 are the systems' own IDs)*, then - that range being full - from 499 to 400 *(clear of the NAS's own: `admin` 500, `nobody` 501, its users and their groups from 1000, WD's services' groups counting down from 999 - `restsdk` is 990)*. For a new app, take the one `python3 ci/ids.py next` prints and add it here. CI's `plan` job runs `python3 ci/ids.py check`, which fails if two apps share an ID, an app takes a reserved one, or this list no longer matches the apps' scripts *(`python3 ci/ids.py list` shows what they use)*.
 
 | ID | App | Its user and group |
 |---|---|---|

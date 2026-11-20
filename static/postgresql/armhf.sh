@@ -8,6 +8,11 @@
 #
 #     VERSION=<PostgreSQL's version> bash /work/armhf.sh
 #
+# Run again after that with PREVIOUS=yes (and FINAL=<the app's folder>/previous), it builds the previous major version
+# the app upgrades its data from - postgresql-previous.tar.bz2 and pgaudit-previous.tar.gz, with the same other
+# extensions - into FINAL, reusing the libraries the first run built: only the programs pg_upgrade runs from it (and
+# initdb), with musl's loader of its own (its programs find it by its full path).
+#
 # The ARM models' kernels use large memory pages (32KB on the EX2 Ultra), and programs and libraries laid out for 4KB
 # pages - as Debian's and Alpine's ARM ones are - crash there. Everything here is compiled with clang and linked by LLD,
 # which lays them out for 64KB pages. PostgreSQL loads its extensions as libraries, so it can't be fully static: it uses
@@ -28,14 +33,26 @@ SYSROOT=/armv7
 # Where it's built (a prefix containing "pgsql", as the Intel build's: share/ and lib/ without a postgresql folder)
 PREFIX=/usr/local/pgsql
 # Where it lives on the NAS (the app's folder), for the programs to find musl's loader
-FINAL=/mnt/HD/HD_a2/Nas_Prog/postgresql/binaries/postgresql
+FINAL="${FINAL:-/mnt/HD/HD_a2/Nas_Prog/postgresql/binaries/postgresql}"
+PREVIOUS="${PREVIOUS:-no}"
+# The sources of PostgreSQL and pgaudit (whose releases follow PostgreSQL's major versions): this version's, or the
+# previous one's
+if [ "${PREVIOUS}" = yes ]; then
+    PG_ARCHIVE=postgresql-previous.tar.bz2
+    PGAUDIT_ARCHIVE=pgaudit-previous.tar.gz
+else
+    PG_ARCHIVE=postgresql.tar.bz2
+    PGAUDIT_ARCHIVE=pgaudit.tar.gz
+fi
+
 LOADER=ld-musl-armhf.so.1
 # Libraries built here, into the Alpine ARM system
 DEPS=/usr/local
 TOOLS=/work/tools
 CFLAGS_ARM='-O2 -fPIC'
-# LLVM's archive tools, which work for any target (the builds otherwise look for e.g. arm-linux-musleabihf-ar)
-export AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm STRIP=llvm-strip
+# LLVM's archive tools, which work for any target (the builds otherwise look for e.g. arm-linux-musleabihf-ar) - nm by
+# its full path, as PostgreSQL 19's libpq check (libpq_check.pl) wants one
+export AR=llvm-ar RANLIB=llvm-ranlib NM="$(command -v llvm-nm)" STRIP=llvm-strip
 # The other projects' static libraries built into PostgreSQL's programs, libraries and extensions: their symbols are
 # kept inside each (not PostgreSQL's own, e.g. libpgcommon's, which libpq hands on to its programs)
 # (colon separated: -Wl, would split commas into arguments of their own)
@@ -223,14 +240,22 @@ function build_libraries() {
 # editing (readline's static library needs ncurses' too; libedit is what PostgreSQL's own packages also offer).
 function build_postgresql() {
     rm -rf ${PREFIX}
-    unpack postgresql.tar.bz2 postgresql
+    unpack ${PG_ARCHIVE} postgresql
     cd /work/postgresql
     # Its check that libpq never calls exit() (which would end the program using it) finds atexit() and pthread_exit()
     # in the static OpenSSL built into it: they register OpenSSL's clean-up and end a thread, never the program -
-    # excluded from the check too
-    grep -F "grep -v -e __cxa_atexit -e __tsan_func_exit | grep exit" src/interfaces/libpq/Makefile > /dev/null
-    sed -i 's/grep -v -e __cxa_atexit -e __tsan_func_exit | grep exit/grep -v -e __cxa_atexit -e __tsan_func_exit -e " atexit" -e pthread_exit | grep exit/' \
-        src/interfaces/libpq/Makefile
+    # excluded from the check too. PostgreSQL 18 checks in libpq's Makefile; 19 in libpq_check.pl (which already
+    # excludes pthread_exit)
+    if [ -f src/interfaces/libpq/libpq_check.pl ]; then
+        grep -F 'next if /pthread_exit/;' src/interfaces/libpq/libpq_check.pl > /dev/null
+        perl -pi -e 's|^(\s*)next if /pthread_exit/;\n|$&$1next if / atexit\$/;\n|' src/interfaces/libpq/libpq_check.pl
+        grep -F 'next if / atexit$/;' src/interfaces/libpq/libpq_check.pl > /dev/null
+    else
+        grep -F "grep -v -e __cxa_atexit -e __tsan_func_exit | grep exit" src/interfaces/libpq/Makefile > /dev/null
+        sed -i 's/grep -v -e __cxa_atexit -e __tsan_func_exit | grep exit/grep -v -e __cxa_atexit -e __tsan_func_exit -e " atexit" -e pthread_exit | grep exit/' \
+            src/interfaces/libpq/Makefile
+    fi
+
     CC=${TOOLS}/cc PKG_CONFIG=${TOOLS}/pkg-config CFLAGS="${CFLAGS_ARM}" CPPFLAGS="${CPPFLAGS_ARM}" \
         LDFLAGS="${LDFLAGS_ARM}" LIBS='-lstdc++' ./configure --host=${TARGET} --prefix=${PREFIX} --disable-rpath \
         --with-openssl --with-icu --with-lz4 --with-zstd --with-uuid=e2fs --with-libedit-preferred
@@ -272,7 +297,7 @@ function build_extensions() {
     unpack pg_partman.tar.gz pg_partman
     make -C /work/pg_partman PG_CONFIG=${TOOLS}/pg_config -j "$(nproc)" install
 
-    unpack pgaudit.tar.gz pgaudit
+    unpack ${PGAUDIT_ARCHIVE} pgaudit
     make -C /work/pgaudit USE_PGXS=1 PG_CONFIG=${TOOLS}/pg_config -j "$(nproc)" install
 }
 
@@ -306,14 +331,26 @@ C
     llvm-strip /work/pg_runas
 }
 
-# Puts the build at the app's path with the Intel build's layout (musl's loader already there), stripped.
+# Puts the build at the app's path with the Intel build's layout (musl's loader already there), stripped - the
+# previous version: only the programs pg_upgrade runs from it, and initdb.
 function assemble() {
-    local file
+    local file program
 
-    cp -a ${PREFIX}/bin ${PREFIX}/share ${FINAL}/
+    if [ "${PREVIOUS}" = yes ]; then
+        mkdir -p ${FINAL}/bin
+
+        for program in postgres pg_ctl pg_controldata pg_resetwal initdb; do
+            cp -a ${PREFIX}/bin/${program} ${FINAL}/bin/
+        done
+
+        cp -a ${PREFIX}/share ${FINAL}/
+    else
+        cp -a ${PREFIX}/bin ${PREFIX}/share ${FINAL}/
+        cp /work/pg_runas ${FINAL}/bin/
+    fi
+
     cp -a ${PREFIX}/lib/. ${FINAL}/lib/
     rm -rf ${FINAL}/lib/pkgconfig ${FINAL}/lib/pgxs ${FINAL}/lib/*.a
-    cp /work/pg_runas ${FINAL}/bin/
 
     for file in ${FINAL}/bin/* ${FINAL}/lib/*.so*; do
         [ -f "${file}" ] && [ ! -L "${file}" ] && file "${file}" | grep ELF > /dev/null || continue
@@ -324,8 +361,13 @@ function assemble() {
 
 make_tools
 build_musl
-build_libraries
+
+# (the previous version: the first run's libraries, already in the Alpine ARM system)
+if [ "${PREVIOUS}" != yes ]; then
+    build_libraries
+    build_runas
+fi
+
 build_postgresql
 build_extensions
-build_runas
 assemble

@@ -55,6 +55,15 @@ header('Cache-Control: no-store');
         is shown once, so note it down. Names are lower case letters, digits and _; passwords 12-128 characters (letters,
         digits, symbols or spaces).</p>
 
+    <div data-pg="old-section" hidden>
+        <h3>Data from before an upgrade</h3>
+        <p>When the app moves to a new major version of PostgreSQL, its data is upgraded into a copy: the old version's
+            stays here, as it was, until removed - to go back to that version (the app's previous version, with this
+            folder renamed to <code>data</code> in <code>Nas_Prog/_postgresql</code>). Remove it once everything works.</p>
+        <table data-pg="old"></table>
+        <p data-pg="old-message"></p>
+    </div>
+
     <script>
     // Wrapped in a closure: nothing may leak into the dashboard's global scope (e.g. it relies on jQuery's $)
     (function () {
@@ -76,8 +85,11 @@ header('Cache-Control: no-store');
 
                 let status = part('status');
 
-                status.textContent = response.running ? 'Running (PostgreSQL ' + response.version + ')' : 'Not running' + (response.error ? ': ' + response.error : '');
+                status.textContent = response.running ? 'Running (PostgreSQL ' + response.version + ')' : 'Not running' +
+                    (response.problem ? ': ' + response.problem : (response.error ? ': ' + response.error : ''));
                 status.className   = response.running ? 'mg-ok' : 'mg-bad';
+
+                showOldData(response.old_data);
 
                 part('network').textContent = response.network ? 'from the local network and the NAS' : 'from the NAS only';
                 part('network-on').checked  = response.network;
@@ -104,6 +116,47 @@ header('Cache-Control: no-store');
                         row.insertCell().textContent = text;
                     });
                 });
+            });
+        }
+
+        /**
+         * Shows the data kept from before upgrades, each with a button removing it (the section is hidden when there's
+         * none).
+         *
+         * @param {Array} folders Each folder's name and size
+         */
+        function showOldData(folders) {
+            let table = part('old');
+
+            table.textContent          = '';
+            part('old-section').hidden = folders.length === 0;
+
+            folders.forEach(function (folder) {
+                let row    = table.insertRow();
+                let remove = document.createElement('button');
+
+                row.insertCell().textContent = folder.name;
+                row.insertCell().textContent = folder.size;
+                remove.type                  = 'button';
+                remove.textContent           = 'Remove';
+                remove.addEventListener('click', function () {
+                    if (!window.confirm('Remove ' + folder.name + ' (' + folder.size + ')? The PostgreSQL version it belongs to can\'t be gone back to afterwards.')) {
+                        return;
+                    }
+
+                    call('remove_old_data', { name: folder.name }).then(function (response) {
+                        if (!response.ok) {
+                            say(response.error, false, 'old-message');
+
+                            return;
+                        }
+
+                        say('Removed ' + response.removed + '.', true, 'old-message');
+                        showOldData(response.old_data);
+                        part('old-section').hidden = false;
+                    });
+                });
+                row.insertCell().appendChild(remove);
             });
         }
 

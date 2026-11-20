@@ -26,6 +26,32 @@ function pg_sql(string $sql): array
 }
 
 /**
+ * The data kept from before upgrades to a new major version (data-18...: the old version's, as it was), as pgsql_ctl.sh
+ * leaves them.
+ *
+ * @return list<array{ name: string, size: string }> Each folder's name and size (e.g. 1.2 GB)
+ */
+function pg_old_data(): array
+{
+    global $data_path;
+
+    $list = [];
+
+    foreach (glob($data_path.'/data-*', GLOB_ONLYDIR) ?: [] as $folder) {
+        if (!preg_match('/^data-\d+(-\d{8}-\d{6})?$/', basename($folder))) {
+            continue;
+        }
+
+        list(, $output) = manage_run(['du', '-sk', $folder]);
+
+        $kb     = (int)$output;
+        $list[] = ['name' => basename($folder), 'size' => $kb >= 1048576 ? round($kb / 1048576, 1).' GB' : round($kb / 1024).' MB'];
+    }
+
+    return $list;
+}
+
+/**
  * A string as an SQL literal for PostgreSQL: quoted, with its quotes doubled (its backslashes are ordinary characters
  * in standard strings) - passwords may have any visible characters.
  *
@@ -64,6 +90,8 @@ if ($action === 'status') {
         'network'   => (bool)preg_match("/^listen_addresses = '\\*'/m", $conf),
         'databases' => $list,
         'error'     => $code === 0 ? '' : $databases,
+        'problem'   => trim((string)@file_get_contents($data_path.'/problem')),
+        'old_data'  => pg_old_data(),
     ]);
 }
 
@@ -138,6 +166,23 @@ if ($action === 'network') {
     }
 
     manage_json(['network' => $on]);
+}
+
+if ($action === 'remove_old_data') {
+    // One of the folders kept from before an upgrade (never the data itself)
+    $name = isset($_POST['name']) ? (string)$_POST['name'] : '';
+
+    if (!preg_match('/^data-\d+(-\d{8}-\d{6})?$/', $name) || !is_dir($data_path.'/'.$name)) {
+        manage_fail(400, 'Not data kept from before an upgrade: '.$name);
+    }
+
+    list($code, $output) = manage_run(['rm', '-rf', $data_path.'/'.$name]);
+
+    if ($code !== 0) {
+        manage_fail(500, 'It could not be removed: '.$output);
+    }
+
+    manage_json(['removed' => $name, 'old_data' => pg_old_data()]);
 }
 
 manage_fail(400, 'Unknown action');

@@ -9,9 +9,9 @@ nor an app and the NAS itself, ever share one.
     python3 ci/ids.py next
 
 check: every app's IDs are its own (no other app's, none reserved, in the
-range apps use), and the README's list says exactly what the apps' scripts
+ranges apps use), and the README's list says exactly what the apps' scripts
 do (CI's plan job runs this). list: each app's IDs, from its scripts. next:
-the ID a new app should take (the highest free one).
+the ID a new app should take (the highest free one, 51-99 first).
 """
 
 import pathlib
@@ -21,10 +21,31 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parents[1]
 README = REPO / "apps" / "README.md"
 
-# The range apps take their IDs from (counting down from the top): lower ones
-# are the systems' own (e.g. Debian's staff group is 50), 100 is users
-LOWEST = 51
-HIGHEST = 99
+# The ranges apps take their IDs from, in turn (each counting down from its
+# top). 51-99: lower ones are the systems' own (e.g. Debian's staff group is
+# 50), 100 is users. 400-499, once that was full: clear of WD's own accounts
+# (admin 500, nobody 501, the NAS's users and their groups from 1000, WD's
+# services' groups counting down from 999 - restsdk 990), checked on a NAS
+RANGES = ((51, 99), (400, 499))
+
+
+def in_ranges(number):
+    """
+    Whether an ID is in one of the ranges apps take theirs from.
+
+    :param number: The ID
+    :return: True if it is
+    """
+    return any(low <= number <= high for low, high in RANGES)
+
+
+def ranges_text():
+    """
+    The ranges apps take their IDs from, for messages.
+
+    :return: e.g. "51-99 and 400-499"
+    """
+    return " and ".join(f"{low}-{high}" for low, high in RANGES)
 
 
 def app_ids():
@@ -140,9 +161,9 @@ def check():
                     " - take the one 'python3 ci/ids.py next' gives"
                 )
 
-            if not LOWEST <= number <= HIGHEST:
+            if not in_ranges(number):
                 problems.append(
-                    f"{app}: its ID {number} is outside {LOWEST}-{HIGHEST}"
+                    f"{app}: its ID {number} is outside {ranges_text()}"
                 )
 
         if table.get(app) != info["ids"]:
@@ -170,17 +191,19 @@ def check():
 
 def next_free():
     """
-    The ID a new app should take: the highest one in the range that no app
-    uses and that isn't reserved.
+    The ID a new app should take: the highest one in the first range with one
+    left that no app uses and that isn't reserved.
 
     :return: The ID, or None if there's none left
     """
     used = {n for info in app_ids().values() for n in info["ids"]}
     used |= set(listed()[1])
 
-    for number in range(HIGHEST, LOWEST - 1, -1):
-        if number not in used:
-            return number
+    for low, high in RANGES:
+        for number in range(high, low - 1, -1):
+            if number not in used:
+                return number
+
 
     return None
 
@@ -212,7 +235,7 @@ def main():
         number = next_free()
 
         if number is None:
-            sys.exit(f"No free ID left in {LOWEST}-{HIGHEST}")
+            sys.exit(f"No free ID left in {ranges_text()}")
 
         print(number)
 
