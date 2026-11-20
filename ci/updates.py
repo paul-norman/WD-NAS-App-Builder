@@ -641,15 +641,32 @@ def apply(name, version):
                         url.replace("{version}", version))):
                     changed.add(str(path.relative_to(REPO)))
 
-    # The old version in its test suite (where it checks what it runs)
-    pattern = re.compile(rf"(?<![0-9.]){re.escape(old)}(?![0-9])")
+    # The old version in its test suite (where it checks what it runs): as
+    # written, and with its dots escaped in a regular expression (e.g. grep
+    # '^ruby 4\.0\.9 ')
+    replacements = [
+        (re.compile(rf"(?<![0-9.]){re.escape(old)}(?![0-9])"), version),
+    ]
+
+    if "." in old:
+        escaped_old = old.replace(".", "\\.")
+        escaped_new = version.replace(".", "\\.")
+        replacements.append((
+            re.compile(rf"(?<![0-9.\\]){re.escape(escaped_old)}(?![0-9])"),
+            escaped_new,
+        ))
 
     for path in sorted((REPO / "tests" / name).glob("**/*")):
         if path.is_file():
             text = path.read_text(errors="replace")
+            new_text = text
 
-            if pattern.search(text):
-                path.write_text(pattern.sub(version, text))
+            for pattern, new in replacements:
+                # (a function: the new text's backslashes are its own)
+                new_text = pattern.sub(lambda match, new=new: new, new_text)
+
+            if new_text != text:
+                path.write_text(new_text)
                 changed.add(str(path.relative_to(REPO)))
 
     lock = lock_file(name)
