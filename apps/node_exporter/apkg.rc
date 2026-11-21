@@ -1,5 +1,5 @@
 Package:			node_exporter
-Version:			1.13.0
+Version:			1.13.1
 Packager:			PDN
 Email:
 Homepage:			https://github.com/prometheus/node_exporter
