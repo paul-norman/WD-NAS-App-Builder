@@ -12,9 +12,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=4.0.9
+VERSION=4.0.10
 # Ruby's published SHA256 (ruby-lang.org's releases list and cache.ruby-lang.org's index agree)
-RUBY_SHA256=a8057adb39f51ad6dc3106237504c93dd792bb515837b4fe7817ae21ed7e51f4
+RUBY_SHA256=1537f7a6003c436546ecab6b48b6e7725a9af2328f45a8af7f42f41c5df90ab8
 # As the Nginx app has them (OpenSSL's published SHA256; zlib checked against Mark Adler's signature)
 OPENSSL_VERSION=3.5.9
 OPENSSL_SHA256=603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a

@@ -11,7 +11,7 @@ echo '== installed'
 install_app
 [ "$(readlink /usr/bin/ruby)" = "$P/ruby/binaries/bin/ruby" ] && [ -L /usr/bin/gem ] && [ -L /usr/bin/bundle ] && [ -L /usr/bin/irb ] && [ -L /usr/bin/rake ] \
     && pass "its commands linked into /usr/bin: $(ls -l /usr/bin | grep -c "$P/ruby/") (ruby, gem, bundle, irb, rake...)" || fail "links: $(ls -l /usr/bin | grep ruby)"
-V=$(rb -v); echo "$V" | grep -q '^ruby 4\.0\.9 ' && pass "$V" || fail "ruby -v: $V"
+V=$(rb -v); echo "$V" | grep -q '^ruby 4\.0\.10 ' && pass "$V" || fail "ruby -v: $V"
 R=$(gem --version 2>&1) && B=$(bundle --version 2>&1) && pass "gem $R, $B (through their links)" || fail "gem / bundle: $R $B"
 
 echo '== its standard library'
@@ -26,7 +26,7 @@ R=$(rb -rnet/http -e 'print ENV["SSL_CERT_FILE"], " ", Net::HTTP.get_response(UR
 echo "$R" | grep -q "^$P/ruby/binaries/etc/cacert.pem [23]0[0-9]$" && pass "HTTPS to rubygems.org, trusting its own certificate authorities: $R" || fail "https: $R"
 
 echo '== the test server'
-wait_port 30291 30 && curl -s -m 5 http://127.0.0.1:30291/ | grep -q 'ruby 4.0.9.*' && curl -s -m 5 http://127.0.0.1:30291/ | grep -q 'OpenSSL 3' \
+wait_port 30291 30 && curl -s -m 5 http://127.0.0.1:30291/ | grep -q 'ruby 4.0.10.*' && curl -s -m 5 http://127.0.0.1:30291/ | grep -q 'OpenSSL 3' \
     && pass 'answering on 30291, with its versions' || fail "test server: $(cat $P/ruby/test_server.log)"
 
 echo '== gems'
@@ -60,7 +60,7 @@ install_app
 echo '== its page'
 page_up ruby
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["ruby"]')" = '"4.0.9"' ] && echo "$ST" | j '$d["gems"]' | grep -q 'thor-' && echo "$ST" | j '$d["gems"]' | grep -q 'sqlite3-' \
+[ "$(echo "$ST" | j '$d["ruby"]')" = '"4.0.10"' ] && echo "$ST" | j '$d["gems"]' | grep -q 'thor-' && echo "$ST" | j '$d["gems"]' | grep -q 'sqlite3-' \
     && [ "$(echo "$ST" | j '$d["test_server"]')" = '"running"' ] && pass "the page: Ruby $(echo "$ST" | j '$d["ruby"]'), RubyGems $(echo "$ST" | j '$d["rubygems"]'), the gems installed, the test server running" \
     || fail "status: $(echo "$ST" | head -c 300)"
 
