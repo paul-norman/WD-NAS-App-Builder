@@ -817,7 +817,22 @@ def run(limit):
             print(f"{name} {version}: #{pr['number']} conflicts with main -"
                   " made again from it")
 
-        if pr is None or pr["title"] != title or conflicting:
+        # Made again from main when its CI failed and main has changed since
+        # (e.g. a fix to how updates are made, or to its build or tests): the
+        # same version would otherwise keep its failed run for ever
+        stale = (
+            pr is not None
+            and not conflicting
+            and pr["title"] == title
+            and ci_failed(pr["number"])
+            and main_changed_since(branch)
+        )
+
+        if stale:
+            print(f"{name} {version}: #{pr['number']} failed CI and main has "
+                  "changed since - made again from it")
+
+        if pr is None or pr["title"] != title or conflicting or stale:
             if touched >= limit:
                 continue
 
@@ -1025,6 +1040,47 @@ def ci_passed(number):
         return True, ""
 
     return False, f"CI's result: {', '.join(result) or 'not run yet'}"
+
+
+def ci_failed(number):
+    """
+    Whether a pull request's required check (build-test-release's result
+    job) has finished and failed on its latest changes.
+
+    :param int number: The pull request
+
+    :return: True if it has
+    """
+    result = [
+        check.get("conclusion") or ""
+        for check in pr_state(number).get("statusCheckRollup") or []
+        if check.get("name") == "result"
+    ]
+
+    return bool(result) and "SUCCESS" not in result and any(
+        conclusion in ("FAILURE", "TIMED_OUT", "CANCELLED")
+        for conclusion in result
+    )
+
+
+def main_changed_since(branch):
+    """
+    Whether main has commits that an update's branch was made without,
+    leaving out the release run's own (store.json, [skip ci]).
+
+    :param str branch: The update's branch (e.g. update/ruby)
+
+    :return: True if it has
+    """
+    try:
+        base = git("merge-base", "origin/main", f"origin/{branch}").strip()
+    except subprocess.CalledProcessError:
+        return False
+
+    newer = git("log", "--format=%H", "--invert-grep", "--grep=\\[skip ci\\]",
+                f"{base}..origin/main")
+
+    return bool(newer.strip())
 
 
 def main():
