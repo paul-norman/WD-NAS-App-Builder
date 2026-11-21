@@ -188,7 +188,9 @@ upgrade() {
     need="$(du -sk "${PGDATA}" | cut -f 1)"
     free="$(df -Pk "${DATA_PATH}" | awk 'NR == 2 { print $4 }')"
 
-    if [ "${free}" -lt $((need + 102400)) ]; then
+    # (Compared by the shell's 64-bit arithmetic: the NAS's BusyBox [ ] compares 32-bit numbers, and a big volume's
+    # free KB wraps round to a negative number there)
+    if [ $((${free:-0} < need + 102400)) -eq 1 ]; then
         problem "Upgrading the data to PostgreSQL ${new} needs $((need / 1024 + 100)) MB free next to it" \
             "(it's copied): only $((free / 1024)) MB are"
 
