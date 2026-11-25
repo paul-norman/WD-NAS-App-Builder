@@ -44,14 +44,16 @@ for port in 1F95 1F96; do
     awk -v p=":$port" 'NR > 1 && $4 == "0A" && index($2, p) { print $2 }' /proc/net/tcp /proc/net/tcp6 | grep -qv '^0100007F:' && fail "port $port listens beyond the NAS"
 done
 pass 'both only on the NAS itself (127.0.0.1), the Nginx app being there'
-curl -s http://127.0.0.1:8085/version | grep -q '"version": "2026.11.14"' && pass "MeTube 2026.11.14 answering ($(curl -s http://127.0.0.1:8085/version))" || fail "version: $(curl -s http://127.0.0.1:8085/version)"
+curl -s http://127.0.0.1:8085/version | grep -q '"version": "2026.11.24"' && pass "MeTube 2026.11.24 answering ($(curl -s http://127.0.0.1:8085/version))" || fail "version: $(curl -s http://127.0.0.1:8085/version)"
+# The yt-dlp MeTube's release brought (packaged; the page shows it, and an update replaces it)
+YT=$($PY -m yt_dlp --version)
 
 echo '== people, from the page'
 page_up metube
 ST=$(get status)
 [ "$(echo "$ST" | j '$d["watch"]')" = true ] && [ "$(echo "$ST" | j '$d["download_dir"]')" = "\"$DL\"" ] && [ "$(echo "$ST" | j '$d["users"]')" = '[]' ] \
-    && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://videos.$DOMAIN/\"" ] && [ "$(echo "$ST" | j '$d["ytdlp"]')" = '"2026.10.26"' ] \
-    && pass "the page: both running, yt-dlp 2026.10.26, the Watch page at https://videos.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 500)"
+    && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://videos.$DOMAIN/\"" ] && [ "$(echo "$ST" | j '$d["ytdlp"]')" = "\"$YT\"" ] \
+    && pass "the page: both running, yt-dlp $YT, the Watch page at https://videos.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 500)"
 [ "$(post add_user -d name=Bad/Name | j '$d["ok"]')" = false ] && [ "$(post add_user -d name=alice -d password=short | j '$d["ok"]')" = false ] \
     && pass 'a bad name and a short password refused' || fail 'bad user accepted'
 AP=$(post add_user -d name=alice -d password=Alice.Pass-1 | j '$d["password"]')
@@ -280,13 +282,13 @@ $PY /t/app/stubs.py index /tmp/index-broken 2099.1.1 broken; $PY /t/app/stubs.py
 (cd /tmp/index-good && $PY -m http.server 8995 --bind 127.0.0.1 > /dev/null 2>&1 &)
 wait_port 8996 10; wait_port 8995 10
 YTDLP_INDEX_URL=http://127.0.0.1:8996/simple sh $P/metube/metube_ctl.sh ytdlp > /dev/null 2>&1
-[ ! -d $D/ytdlp ] && grep -q 'failed: the new yt-dlp did not run (still 2026.10.26)' $D/ytdlp.status && [ "$(get status | j '$d["ytdlp"]')" = '"2026.10.26"' ] \
+[ ! -d $D/ytdlp ] && grep -q "failed: the new yt-dlp did not run (still $YT)" $D/ytdlp.status && [ "$(get status | j '$d["ytdlp"]')" = "\"$YT\"" ] \
     && pass 'a broken yt-dlp refused: the packaged one still in use' || fail "broken: $(cat $D/ytdlp.status)"
 post ytdlp_setting -d update= > /dev/null
 YTDLP_INDEX_URL=http://127.0.0.1:8995/simple sh $P/metube/metube_ctl.sh ytdlp > /dev/null 2>&1
 [ ! -d $D/ytdlp ] && pass 'turned off on the page: not updated at night' || fail 'updated while off'
 YTDLP_INDEX_URL=http://127.0.0.1:8995/simple sh $P/metube/metube_ctl.sh ytdlp force > /dev/null 2>&1
-[ "$(stat -c %U $D/ytdlp)" = metube ] && grep -q 'ok: 2099.1.2 (was 2026.10.26)' $D/ytdlp.status && [ "$(get status | j '$d["ytdlp"]')" = '"2099.1.2"' ] \
+[ "$(stat -c %U $D/ytdlp)" = metube ] && grep -q "ok: 2099.1.2 (was $YT)" $D/ytdlp.status && [ "$(get status | j '$d["ytdlp"]')" = '"2099.1.2"' ] \
     && pass "\"Update now\": 2099.1.2 installed beside the packaged one, and used" || fail "update: $(cat $D/ytdlp.status)"
 # (the stand-in can't download: back to the packaged one)
 rm -rf $D/ytdlp; post ytdlp_setting -d update=1 > /dev/null
