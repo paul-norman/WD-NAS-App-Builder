@@ -13,10 +13,10 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=13.3.1
+VERSION=13.3.2
 # Each architecture's release, as dl.grafana.com publishes its SHA256 (<file>.sha256)
-GRAFANA_SHA256=6acf8939dd2f73332cbcafc27a33973fb1115b8867e7ffa3223c6e2ecbed8531
-GRAFANA_ARMHF_SHA256=889d240c242195209b419498a0e4d54272645238c4582fe2b240419b97e42e06
+GRAFANA_SHA256=e6f06cf4ad96a4809294c2e78d3ebe6bc42a79bff36ffe35eefbe502fc19aa87
+GRAFANA_ARMHF_SHA256=e47164b3111763057c9477f3c5730c63bde68a6eb3e0a4a9ea302101f1a2fae5
 # The data source plugins kept (each holds a program for its data source): Prometheus and Loki (the project's metrics
 # and logs apps), and the databases the MariaDB and PostgreSQL apps provide. Others (Tempo, InfluxDB...) can be
 # installed from Grafana's plugin catalogue
