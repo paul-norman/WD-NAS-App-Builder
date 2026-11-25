@@ -58,7 +58,7 @@ echo '== nothing without its login'
 C=$(curl -s -m 5 -o /dev/null -w '%{http_code}' "$Q/api/v2/app/version"); [ "$C" = 403 ] && pass "its API refuses a request without the login, even from the NAS itself ($C)" || fail "no login: $C"
 login wrong-password > /dev/null; C=$(api app/version -o /dev/null -w '%{http_code}'); [ "$C" = 403 ] && pass "and with a wrong password ($C)" || fail "wrong password: $C"
 C=$(login); V_=$(api app/version)
-[ "$C" = 200 ] || [ "$C" = 204 ] && [ "$V_" = v5.3.0 ] && pass "its API with the login: qBittorrent $V_" || fail "login: $C $V_"
+[ "$C" = 200 ] || [ "$C" = 204 ] && [ "$V_" = v5.3.1 ] && pass "its API with the login: qBittorrent $V_" || fail "login: $C $V_"
 curl -s -m 5 "$Q/" | grep -qi '<title>qBittorrent' && pass 'its web interface (its login form)' || fail "web: $(curl -s -m 5 $Q/ | head -c 200)"
 [ "$(pref save_path)" = "\"$DL\"" ] && [ "$(pref listen_port)" = 6882 ] && [ "$(pref web_ui_port)" = 8092 ] && [ "$(pref web_ui_host_header_validation_enabled)" = false ] \
     && pass "its settings from the app: $DL, peer port 6882, web interface 8092 (any host name)" || fail "prefs: $(pref save_path) $(pref listen_port)"
@@ -79,9 +79,9 @@ i=0; while [ $i -lt 15 ] && [ ! -f $DL/moved/test-file.bin ]; do sleep 1; i=$((i
 echo '== its page'
 page_up qbittorrent
 ST=$(get status); get status > /dev/null
-[ "$(echo "$ST" | j '$d["running"] && $d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"5.3.0"' ] && [ "$(echo "$ST" | j '$d["torrents"]')" = 1 ] \
+[ "$(echo "$ST" | j '$d["running"] && $d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"5.3.1"' ] && [ "$(echo "$ST" | j '$d["torrents"]')" = 1 ] \
     && echo "$ST" | j '$d["address"]' | grep -q ':8092/"$' && [ "$(stat -c '%u %a' $D/page_session)" = '0 600' ] \
-    && pass "status: running, 5.3.0, 1 torrent, $(echo "$ST" | j '$d["address"]') (its session kept, root's only)" || fail "status: $(echo "$ST" | head -c 400)"
+    && pass "status: running, 5.3.1, 1 torrent, $(echo "$ST" | j '$d["address"]') (its session kept, root's only)" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password -d show=1 | j '$d["password"]')" = "\"$(cat $D/password)\"" ] && pass 'the password shown' || fail 'password'
 OLD=$(cat $D/password); NEW=$(post new_password -d confirm=1 --data-urlencode "password=$XPW" | jpw); wait_port 8092 30
 C1=$(login "$OLD"); C2=$(login "$NEW")
@@ -109,7 +109,7 @@ grep -q 'proxy_pass *http://127.0.0.1:8092' $P/_nginx/sites/60-app-qbittorrent.c
 C=$(site /api/v2/auth/login -H "Origin: https://qbittorrent.$DOMAIN" -H "Referer: https://qbittorrent.$DOMAIN/" --data-urlencode username=admin \
     --data-urlencode "password=$NEW" -c /tmp/sitejar -o /dev/null -w '%{http_code}')
 V_=$(site /api/v2/app/version -b /tmp/sitejar -H "Referer: https://qbittorrent.$DOMAIN/")
-{ [ "$C" = 200 ] || [ "$C" = 204 ]; } && [ "$V_" = v5.3.0 ] && pass "logging in through it ($C), as a browser does (its own origin)" || fail "site login: $C $V_"
+{ [ "$C" = 200 ] || [ "$C" = 204 ]; } && [ "$V_" = v5.3.1 ] && pass "logging in through it ($C), as a browser does (its own origin)" || fail "site login: $C $V_"
 [ "$(get status | j '$d["site"]["url"]')" = "\"https://qbittorrent.$DOMAIN/\"" ] && pass 'the page shows its site' || fail "site: $(get status | j '$d["site"]')"
 
 echo '== the network setting'

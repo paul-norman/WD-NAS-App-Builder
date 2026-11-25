@@ -13,16 +13,16 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=5.3.0
+VERSION=5.3.1
 # The libtorrent line its releases are named after (release-<qBittorrent>_v<libtorrent>)
-LIBTORRENT_VERSION=2.1.2
+LIBTORRENT_VERSION=2.1.3
 # Qt's version in that release (its dependency-version.json says it): its source is listed for the app's releases (Qt is
 # LGPL), so the build stops if they differ
 QT_VERSION=6.12.0
 # Each architecture's program, and the release's list of what it contains, as GitHub publishes their digests
-QBT_SHA256=563e695a2b830e62e627e1ae403bcfcc494e444d5cabb5ecc1e09907353d8ed5
-QBT_ARMHF_SHA256=4685ecf166aba167b609c6d592c3ef21d97e8dea186648da1c54d2e064ceebd5
-DEPENDENCIES_SHA256=3f15cfe4ebda4ada305fb7e7776bebf302e0a655d9ab980bcf31d0b70f43f1e8
+QBT_SHA256=318037b4f4f038fa13d6141fa08e90cb7b5542e994490e8884e09dcf1393acac
+QBT_ARMHF_SHA256=96075dabc01ae47b4a1095cc1810500da73510843651a34f05f6affb1fd4f785
+DEPENDENCIES_SHA256=0e5d0aab60afbab5e477c8934f6645d71d4402bc71f28e368654b82e4b7b5021
 # The architectures built (each into packages/static/qbittorrent/<version>/<arch>)
 ARCHES='amd64 armhf'
 
