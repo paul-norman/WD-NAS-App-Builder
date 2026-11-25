@@ -27,9 +27,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=1.20.26
+VERSION=1.20.28
 # PyPI's checksum of CopyParty's wheel
-CPP_WHEEL_SHA256=7e51a2576699c089fe6ad74dfd59db02575eb4211af8870372b10a63caf611cb
+CPP_WHEEL_SHA256=f74a83ed11d2edb17efb8e9b50cde8f7b81d1eb77964fcea23f5d860885b923f
 CPP_PACKAGES='argon2-cffi pillow pillow-heif mutagen paramiko'
 PYTHON_VERSION=3.14.10
 PYTHON_RELEASE=20261026
