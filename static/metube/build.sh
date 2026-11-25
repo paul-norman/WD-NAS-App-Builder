@@ -16,9 +16,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=2026.11.14
+VERSION=2026.11.24
 # MeTube's release has no source archive of its own: GitHub's archive of its tag, pinned here
-METUBE_SHA256=1ca5cb4b892a6d26882bd454d8287ccf6fb795d6e0fce30fc04a932e858fc4de
+METUBE_SHA256=e813f160bc1ac21980b56f38e81a1279ce060f3041e6ab3aa884748f4fdbafd6
 PYTHON_VERSION=3.14.10
 PYTHON_RELEASE=20261026
 PYTHON_SHA256=4d3c16c59ed0802a3d1d34d8bce504b15ceeaff39d62dadecc6a9fa803412aed

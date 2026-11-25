@@ -44,7 +44,7 @@ for port in 1F95 1F96; do
     awk -v p=":$port" 'NR > 1 && $4 == "0A" && index($2, p) { print $2 }' /proc/net/tcp /proc/net/tcp6 | grep -qv '^0100007F:' && fail "port $port listens beyond the NAS"
 done
 pass 'both only on the NAS itself (127.0.0.1), the Nginx app being there'
-curl -s http://127.0.0.1:8085/version | grep -q '"version": "2026.11.14"' && pass "MeTube 2026.11.14 answering ($(curl -s http://127.0.0.1:8085/version))" || fail "version: $(curl -s http://127.0.0.1:8085/version)"
+curl -s http://127.0.0.1:8085/version | grep -q '"version": "2026.11.24"' && pass "MeTube 2026.11.24 answering ($(curl -s http://127.0.0.1:8085/version))" || fail "version: $(curl -s http://127.0.0.1:8085/version)"
 
 echo '== people, from the page'
 page_up metube
