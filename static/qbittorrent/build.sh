@@ -18,7 +18,7 @@ VERSION=5.3.1
 LIBTORRENT_VERSION=2.1.3
 # Qt's version in that release (its dependency-version.json says it): its source is listed for the app's releases (Qt is
 # LGPL), so the build stops if they differ
-QT_VERSION=6.12.0
+QT_VERSION=6.12.1
 # Each architecture's program, and the release's list of what it contains, as GitHub publishes their digests
 QBT_SHA256=318037b4f4f038fa13d6141fa08e90cb7b5542e994490e8884e09dcf1393acac
 QBT_ARMHF_SHA256=96075dabc01ae47b4a1095cc1810500da73510843651a34f05f6affb1fd4f785
