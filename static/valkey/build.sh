@@ -13,9 +13,9 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=9.2.0
+VERSION=9.2.1
 # Checked against Valkey's own published hash (github.com/valkey-io/valkey-hashes)
-VALKEY_SHA256=a02cb44db1269b699629e419d4949e6e51e984b1f0e9a984e8ee1e1b3b7cc36f
+VALKEY_SHA256=fec5d34ac6f5c7f35cddcaae368734d8a789f1af2f7c29853e790f093d848d71
 # The architectures built (each into packages/static/valkey/<version>/<arch>)
 ARCHES='amd64 armhf'
 
