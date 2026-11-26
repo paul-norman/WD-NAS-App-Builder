@@ -119,14 +119,21 @@ window.storeApps = {
 
         go_sub_page('/apps/store/index.php', 'store');
 
-        // If the Store's page can't be shown, this is still the way back to WD's own Apps page
-        setTimeout(function () {
-            if (!$('#store-manage').length && !storeApps.back) {
-                $('#mainbody').html('<p>The Store\'s page could not be loaded. To get the NAS\'s own Apps page back, run this over SSH:</p>'
+        // If the Store's page can't be shown, this is still the way back to WD's own Apps page - only into this page's own
+        // main area, and not once another dashboard page has been opened (WD's pages have a #mainbody too)
+        clearTimeout(storeApps.timer);
+
+        storeApps.timer = setTimeout(function () {
+            let main = $('#store-apps-page > #mainbody');
+
+            if (main.length && !$('#store-manage').length && !storeApps.back) {
+                main.html('<p>The Store\'s page could not be loaded. To get the NAS\'s own Apps page back, run this over SSH:</p>'
                     + '<pre>umount /usr/local/modules/web/pages/addons/app.php</pre><p>(or reinstall the Store app).</p>');
             }
         }, 10000);
     },
+
+    timer: null,
 
     /**
      * Opens an app's own page (its CenterType 1 index page) in the main area, with a way back to the Store (see
@@ -251,7 +258,10 @@ function page_load(_sub_page, _sub_page_callback)
         }
     };
 
-    window.page_unload = function () {};
+    // Leaving for another dashboard page: no "could not be loaded" message over it
+    window.page_unload = function () {
+        clearTimeout(storeApps.timer);
+    };
 
     get_ip_address();
 
