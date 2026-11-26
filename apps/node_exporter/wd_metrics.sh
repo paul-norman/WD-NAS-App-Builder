@@ -7,9 +7,11 @@
 #  - CAP_LOG=<file> also keeps that file (Node Exporter's log) under 1MB, between runs
 #  - WD_METRICS_SOURCE=<dir> reads disks.xml, raids.xml and vols.xml from <dir> instead (for tests), and each disk's
 #    smartctl output from <dir>/smart-<disk>.txt
+#  - WD_CRONTAB=<file> reads WD's nightly disk check time from <file> instead of root's crontab (for tests)
 #
 # Every 10th run (and the first) it also reads each disk's SMART health and attributes with smartctl (the app's own, or
-# the NAS's) into smart.prom. With -n standby a sleeping disk isn't woken: its last reading is kept until it wakes
+# the NAS's) into smart.prom. With -n standby a sleeping disk isn't woken: its last reading is kept until it wakes. That
+# reading waits while WD checks the disks' health itself (see wd_checking)
 
 OUT_DIR="$1"
 INTERVAL="$2"
@@ -17,6 +19,7 @@ SOCKET='/var/run/xmldb_sock_sysinfo'
 WORK='/tmp/node_exporter-wd'
 SMARTCTL="$(dirname "$(readlink -f "$0")")/binaries/smartctl"
 [ -x "${SMARTCTL}" ] || SMARTCTL="$(command -v smartctl)"
+WD_CRONTAB="${WD_CRONTAB:-/var/spool/cron/crontabs/root}"
 
 collect() {
     mkdir -p "${WORK}"
@@ -218,6 +221,30 @@ collect_smart() {
     mv -f "${OUT_DIR}/smart.prom.$$" "${OUT_DIR}/smart.prom"
 }
 
+# Whether WD is checking the disks' health, or is about to: WD's own smartctl is running (its sysinfod runs
+# `smartctl --smart on --health` on each disk), or it's within 10 minutes of WD's nightly check (wd_crontab.sh, in root's
+# crontab). If a check fails, even once and for a moment (e.g. two smartctl runs on a disk at once), WD marks the disk
+# unhealthy - "Drive Status: Fault" in the dashboard - and a later check that passes doesn't clear it.
+#
+# Returns 0 if so (SMART is read on a later run), 1 if not
+wd_checking() {
+    local due
+    local now
+    local since
+
+    ps | grep -q '[s]martctl --smart on' && return 0
+
+    # The nightly check's time, in minutes after midnight (only a fixed hour and minute)
+    due="$(awk '/wd_crontab\.sh/ && $1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ { print $2 * 60 + $1; exit }' \
+        "${WD_CRONTAB}" 2>/dev/null)"
+    [ -n "${due}" ] || return 1
+
+    now="$(date '+%H %M' | awk '{ print $1 * 60 + $2 }')"
+    since=$(( (now - due + 1440) % 1440 ))
+
+    [ "${since}" -le 10 ] || [ "${since}" -ge 1430 ]
+}
+
 mkdir -p "${OUT_DIR}"
 
 if [ -z "${INTERVAL}" ]; then
@@ -230,12 +257,17 @@ fi
 # Runs until stopped, removing its files on the way out
 trap 'rm -f "${OUT_DIR}/wd.prom" "${OUT_DIR}"/wd.prom.* "${OUT_DIR}/smart.prom" "${OUT_DIR}"/smart.prom.*; rm -rf "${WORK}"; exit 0' TERM INT
 runs=0
+smart_due=0
 
 while :; do
     collect
 
-    if [ $((runs % 10)) = 0 ]; then
+    # SMART every 10th run - or, while WD is checking the disks itself, on the first run after it has finished
+    [ $((runs % 10)) = 0 ] && smart_due=1
+
+    if [ "${smart_due}" = 1 ] && ! wd_checking; then
         collect_smart
+        smart_due=0
     fi
     runs=$((runs + 1))
 

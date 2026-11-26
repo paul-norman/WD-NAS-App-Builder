@@ -35,7 +35,7 @@ Disk serial numbers are left out. For alerts, e.g. `wd_health > 0`, `wd_disk_tem
 
 ## SMART metrics
 
-WD's records only say whether a disk has passed or failed. Every 5 minutes the script also reads each disk's own SMART data with `smartctl` *(smartmontools 7.5, built static by `static/node_exporter` for the Intel models - the ARM models use the NAS's own `smartctl`, if it has one)*, with `-n standby`: a sleeping disk isn't woken, and its last reading is kept until it wakes.
+WD's records only say whether a disk has passed or failed. Every 5 minutes the script also reads each disk's own SMART data with `smartctl` *(smartmontools 7.5, built static by `static/node_exporter` for the Intel models - the ARM models use the NAS's own `smartctl`, if it has one)*, with `-n standby`: a sleeping disk isn't woken, and its last reading is kept until it wakes. It waits while WD checks the disks' health itself *(its nightly check, and whenever WD's own `smartctl` is running)*: two readings of a disk at once can make WD's check fail, and WD then marks the disk unhealthy *("Drive Status: Fault")*, and a later check that passes doesn't clear it.
 
 | Metric | Labels | Value |
 |---|---|---|
