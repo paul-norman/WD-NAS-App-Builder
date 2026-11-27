@@ -81,8 +81,8 @@ ID=$(cat $D/admin_id)
     && [ -n "$(q "SELECT user_group_id FROM firefly.users WHERE id = $ID" | grep -v NULL)" ] \
     && pass 'its owner admin@nas.local, the only user, with its own financial administration (as its sign-up makes it)' || fail "owner: $(q 'SELECT id, email, user_group_id FROM firefly.users') $(tail -n 5 /tmp/debug_apkg)"
 [ "$(stat -c '%u %a' $D/storage/oauth-private.key 2>/dev/null)" = '55 600' ] && [ -s $D/storage/oauth-public.key ] \
-    && [ "$(cat $D/db_version)" = 6.7.9 ] \
-    && pass "its API's keys made (its own, readable by it only), its database brought up to date for 6.7.9" || fail "keys: $(ls -l $D/storage) $(cat $D/db_version)"
+    && [ "$(cat $D/db_version)" = 6.7.12 ] \
+    && pass "its API's keys made (its own, readable by it only), its database brought up to date for 6.7.12" || fail "keys: $(ls -l $D/storage) $(cat $D/db_version)"
 ! grep -q '\.ERROR:' $D/storage/logs/laravel.log && pass "no errors in Firefly III's own log after its first start" || fail "errors: $(grep '\.ERROR:' $D/storage/logs/laravel.log | cut -c1-300)"
 
 echo '== logging in, through its site'
@@ -107,9 +107,9 @@ grep -q 'firefly_ctl.sh daily' /var/spool/cron/crontabs/root && pass 'and daily,
 echo '== its page'
 page_up firefly-iii
 ST=$(get status)
-[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"6.7.9"' ] && [ "$(echo "$ST" | j '$d["db"]["state"]')" = '"ok"' ] \
+[ "$(echo "$ST" | j '$d["answering"]')" = true ] && [ "$(echo "$ST" | j '$d["version"]')" = '"6.7.12"' ] && [ "$(echo "$ST" | j '$d["db"]["state"]')" = '"ok"' ] \
     && [ "$(echo "$ST" | j '$d["site"]["url"]')" = "\"https://firefly.$DOMAIN/\"" ] \
-    && pass "the page: Firefly III 6.7.9 answering, its database set up, its address https://firefly.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
+    && pass "the page: Firefly III 6.7.12 answering, its database set up, its address https://firefly.$DOMAIN/" || fail "status: $(echo "$ST" | head -c 400)"
 [ "$(post password | j '$d["password"]')" = "\"$PW\"" ] && pass 'the page shows the password' || fail 'password not shown'
 R=$(post set_password --data-urlencode "password=$XPW")
 [ "$(echo "$R" | j '$d["ok"]')" = true ] && logged_in "$(login admin@nas.local "$XPW")" && ! logged_in "$(login admin@nas.local "$PW")" \
@@ -144,7 +144,7 @@ echo '== a new version'
 echo 6.7.8 > $D/db_version
 : > /tmp/debug_apkg
 post restart > /dev/null
-grep -q 'bringing its database up to date for Firefly III 6.7.9' /tmp/debug_apkg && [ "$(cat $D/db_version)" = 6.7.9 ] \
+grep -q 'bringing its database up to date for Firefly III 6.7.12' /tmp/debug_apkg && [ "$(cat $D/db_version)" = 6.7.12 ] \
     && logged_in "$(login me@example.com Another.Password_2)" \
     && pass "its database upgraded by Firefly III's own upgrade, its owner kept" || fail "upgrade: $(tail -n 5 /tmp/debug_apkg)"
 : > /tmp/debug_apkg
