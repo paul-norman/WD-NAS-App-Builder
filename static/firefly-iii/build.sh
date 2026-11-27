@@ -14,8 +14,8 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=6.7.9
-FIREFLY_SHA256=f905729c3be6e66d5333c22992281224ef1dc7e21cea13f4ef09af643d09b825
+VERSION=6.7.12
+FIREFLY_SHA256=78968730e46c12c27ccedf10d1f29a3eaba77e0ef26bbfa7c81894e30a2e360a
 
 # The architectures built (each into packages/static/firefly-iii/<version>/<arch>)
 ARCHES='amd64 armhf'
