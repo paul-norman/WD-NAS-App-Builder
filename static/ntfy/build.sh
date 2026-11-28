@@ -14,11 +14,11 @@ set -e
 set -o pipefail
 set -x
 
-VERSION=2.38.2
+VERSION=2.38.3
 # Each architecture's release, as its checksums.txt publishes it
-NTFY_SHA256=2040946f6e1103420e72a79a7048c841fb73cd51c17d45232e0c8f6ac7f0d531
+NTFY_SHA256=b47bbfb7f93f0993aa19fc0412a686f11ea350644fcea598b8c37bcae3ced9e8
 # Its source (GitHub's archive of the release's tag), for the ARM build
-NTFY_SOURCE_SHA256=1a5f8eda8d3615204436f4894add4d7dd19ce59854e5585909ea8f671bcb2998
+NTFY_SOURCE_SHA256=779ed8794908e7a2aac755ab561df8ef56d5f233594a6ec63fa3256463b4435e
 # The documentation's tools (ntfy's requirements.txt doesn't pin them)
 MKDOCS_VERSION=1.6.1
 MKDOCS_MATERIAL_VERSION=9.8.1
